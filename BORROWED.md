@@ -18,7 +18,7 @@ Anything borrowed is listed here with its source, so either project can be rebui
 | Model loader | `nureasoning/src/a15_infer.py::load_model` | `src/a15_fit.py` | Cosmos-Reason2 config swap, verified vocab 155697 / traj offset 151669, zero missing keys |
 | Sample builder | `nureasoning/src/a15ft_data.py::build_sample` | `src/a15_fit.py` | same inputs as our zero-shot and fine-tune runs; logged 6.4 s futures for a quality proxy |
 | nuReasoning validation clips | `nureasoning/cache/validation`, `nureasoning/img_a15/validation` | `src/a15_fit.py` | real multi-camera inputs until PAI scenes are available |
-| HF token | `nureasoning/.cache/hf/token` (mode 600, never on a command line) | data fetches | same account |
+| ~~HF token~~ | not borrowed: AlpaSim uses HF account **`amanupg-columbia`** (the challenge account). Token in `alpasim/.cache/hf/token` (mode 600, never on a command line) | NuRec / nuPlan downloads | nuReasoning uses the personal `amanupg` account |
 
 Candidates to borrow later (not used yet): the fine-tuned Alpamayo checkpoints
 (`nureasoning/runs_a15ft`, Motional 3-camera domain) and the nuVLA full-recipe half-models
