@@ -41,3 +41,19 @@ Questions:
 | 12946966 | `a15_fit`: Alpamayo 1.5 memory/latency/quality × {bf16, int8, fp8, fp8-dyn, int4} × {reasoning, no reasoning}, 1 H100 | queued (QOS CPU cap) |
 
 The first base-image build failed. Apptainer's unprivileged build (no subuid, so a "root-mapped namespace") cannot run apt's `_apt` sandbox. The fix is `-o APT::Sandbox::User=root`, plus `set -e` in `%post`.
+
+### Result 1: the official closed-loop simulator runs on Insomnia (verified 2026-09-27)
+- **How:** Apptainer sandboxes plus our `src/compose_apptainer.py` in place of docker compose.
+- **Test:** nuPlan dev preset, one scene, starter-kit driver (straight line at current speed). Job 12947998 on an L40S (ins057), 4 min 36 s wall.
+- **Result:** scene `2021.05.25.14.16.10_veh-35_01100_01664-f02b15cc225b5d9a`:
+  - PASS, score 1.0;
+  - collision_at_fault 0, offroad 0, left_corridor 0;
+  - progress_rel 0.953; dist_to_gt_trajectory 0.15 m; 56.9 m driven;
+  - 10 Drive calls, mean 1.2 ms.
+- **Fixes needed on the way:**
+  1. **No squashfuse**, so `exec *.sif` unpacks 10 GB into node RAM each time. We unpack once into `sandbox/` instead: alpasim-base 20 GB, nre 27 GB. `--writable-tmpfs` is ignored on GPFS; harmless.
+  2. **Hydra writes to the working directory:** the wizard now runs from the run directory.
+  3. **Apptainer ignores Docker WORKDIR:** `--pwd /repo`.
+  4. **Compose bind-mounts `/repo/src`,** which would hide the protos compiled into the image: skipped.
+  5. **The nuPlan preset pins `TORCH_CUDA_ARCH_LIST=8.9;9.0+PTX`,** so the MTGS renderer (gsplat, compiled at startup in about 250 s, cached in `~/.cache/torch_extensions`) fails on an A6000 (sm86) with "no kernel image". Use L40S or H100.
+- **Still untested locally:** the PAI track (NRE renderer), which is blocked on the gated NuRec scenes.

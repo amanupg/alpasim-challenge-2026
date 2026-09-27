@@ -11,7 +11,8 @@ of `docker compose up --exit-code-from runtime-0`:
   * the runtime runs in the foreground; its exit code is ours; everything else is torn down.
 GPU device_ids in the compose file index into this job's CUDA_VISIBLE_DEVICES.
 Host sides of volumes under /repo (the checkout baked into the SIF, where the wizard ran)
-are mapped to the identical host checkout given by --repo-host.
+are mapped to the identical host checkout given by --repo-host; binds whose container side
+is under /repo (developer source mounts) are skipped. Default working dir = /repo (WORKDIR).
 
 Usage: python3 compose_apptainer.py COMPOSE.json --sif-dir DIR --repo-host DIR --logdir DIR
 (COMPOSE.json = the YAML converted to JSON by the SIF's python; the host python has no yaml)
@@ -47,12 +48,15 @@ def build(name, svc, a, gpus):
     cmd = ["apptainer", "exec", "--nv", "--writable-tmpfs"]
     for v in svc.get("volumes") or []:
         parts = v.split(":")
+        if parts[1] == "/repo" or parts[1].startswith("/repo/"):
+            # developer source mounts; they would hide the protos compiled into the image,
+            # which already holds the same commit
+            continue
         hp = host_path(parts[0], a.repo_host)
         if not os.path.exists(hp) and not os.path.splitext(hp)[1]:
             os.makedirs(hp)          # docker creates missing bind sources as directories
         cmd += ["-B", ":".join([hp] + parts[1:])]
-    if svc.get("working_dir"):
-        cmd += ["--pwd", svc["working_dir"]]
+    cmd += ["--pwd", svc.get("working_dir") or "/repo"]     # docker WORKDIR of alpasim-base
     env = {}
     for e in svc.get("environment") or []:
         if "=" in e:

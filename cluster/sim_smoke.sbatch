@@ -2,7 +2,7 @@
 #SBATCH -A edu
 #SBATCH -p short
 #SBATCH -J as_smoke
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:l40s:1   # nuPlan preset pins TORCH_CUDA_ARCH_LIST=8.9;9.0 (L40S/H100)
 #SBATCH --exclude=ins046,ins047
 #SBATCH -c 8
 #SBATCH --mem=64G
@@ -29,8 +29,8 @@ trap 'kill $DRV 2>/dev/null' EXIT
 
 # 2) wizard writes docker-compose.yaml + service configs only
 PRESET=$([ $TRACK = pai ] && echo "+e2e_challenge=dev" || echo "+e2e_challenge_nuplan=dev")
-apptainer exec -B $A $SIF bash -c "cd /repo && /repo/.venv/bin/alpasim_wizard $PRESET \
-  wizard.run_method=NONE wizard.log_dir=$RUN defines.filesystem=$A/data/fs" > $RUN/wizard.log 2>&1 \
+apptainer exec -B $A $SIF bash -c "cd $RUN && /repo/.venv/bin/alpasim_wizard $PRESET \
+  wizard.run_method=NONE wizard.log_dir=$RUN defines.filesystem=$A/data/fs hydra.run.dir=$RUN/hydra" > $RUN/wizard.log 2>&1 \
   || { tail -40 $RUN/wizard.log; exit 1; }
 apptainer exec $SIF /repo/.venv/bin/python -c "import yaml,json; json.dump(yaml.safe_load(open('$RUN/docker-compose.yaml')), open('$RUN/docker-compose.json','w'), indent=1)"
 
