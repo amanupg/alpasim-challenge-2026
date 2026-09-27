@@ -1,0 +1,42 @@
+# AlpaSim E2E challenge driver: Alpamayo 1.5, int8 weight-only, no-reasoning mode.
+# Build context = the alpasim/ folder (our repo). Layers are ordered so the 21 GB weights
+# layer is pushed once; code changes re-push only the last layer.
+#   docker buildx build --platform linux/amd64 --load -f container/Dockerfile.a15 -t <tag> .
+# Versions match the environment the policy was validated in (alpasim/LEDGER.md, Result 2):
+# torch 2.8.0 cu128, transformers 4.57.1, torchao 0.13.0, alpamayo1.5 @ 36aeb4c.
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 \
+    XDG_CACHE_HOME=/tmp/.cache TORCH_HOME=/tmp/torch HF_HOME=/tmp/huggingface \
+    TRITON_CACHE_DIR=/tmp/triton CUDA_CACHE_PATH=/tmp/nv MPLCONFIGDIR=/tmp/matplotlib \
+    ALPASIM_DRIVER_LOG_DIR=/run/alpasim-driver HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+    OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 NUMEXPR_NUM_THREADS=2 \
+    TORCH_NUM_THREADS=2 TOKENIZERS_PARALLELISM=false \
+    PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+# 1) runtime: torch wheels bundle the CUDA libraries; only the host driver is needed
+RUN pip install torch==2.8.0 torchvision==0.23.0 --index-url https://download.pytorch.org/whl/cu128
+
+# 2) python deps (alpamayo1_5 runtime imports: torch, transformers, einops, hydra, scipy, numpy)
+RUN pip install transformers==4.57.1 accelerate==1.15.0 tokenizers==0.22.2 safetensors==0.8.0 \
+        huggingface-hub==0.36.2 einops==0.8.2 hydra-core==1.3.7 omegaconf==2.3.1 scipy \
+        pillow==12.3.0 torchao==0.13.0 grpcio==1.84.0 protobuf==4.25.9 \
+    && pip install --no-deps "alpamayo1_5 @ https://github.com/NVlabs/alpamayo1.5/archive/36aeb4c.tar.gz"
+COPY container/alpasim_grpc /tmp/alpasim_grpc
+RUN pip install --no-deps /tmp/alpasim_grpc && rm -rf /tmp/alpasim_grpc \
+    && python -c "import alpasim_grpc, alpamayo1_5, torchao, grpc; print('deps ok', alpasim_grpc.API_VERSION_MESSAGE)"
+
+# 3) model files (public, pinned revisions; no Qwen weights: Alpamayo's checkpoint holds them)
+COPY container/assets/qwen3vl8b /app/assets/qwen3vl8b
+COPY container/assets/qwen3vl2b /app/assets/qwen3vl2b
+COPY container/assets/alpamayo15 /app/assets/alpamayo15
+
+# 4) our code (last: cheap to re-push)
+RUN groupadd --system alpasim && useradd --system --gid alpasim --home-dir /app --shell /usr/sbin/nologin alpasim
+COPY src/a15_driver /app/a15_driver
+WORKDIR /app
+ENV ALPASIM_DRIVER_HOST=0.0.0.0 ALPASIM_DRIVER_PORT=6789 A15_ASSETS=/app/assets A15_QUANT=int8wo \
+    A15_REASONING=0 A15_INFERENCE_INTERVAL_US=500000 A15_FRAME_DT_S=0.1 ALPASIM_DRIVER_GRPC_WORKERS=8
+EXPOSE 6789
+USER alpasim
+CMD ["python", "-m", "a15_driver.driver"]

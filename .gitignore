@@ -11,3 +11,5 @@ external/
 *.pt
 *.safetensors
 __pycache__/
+container/assets/
+container/alpasim_grpc/

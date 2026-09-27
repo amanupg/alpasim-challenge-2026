@@ -1,0 +1,7 @@
+external/
+cluster/
+notes/
+patches/
+**/__pycache__
+**/.cache
+.git
