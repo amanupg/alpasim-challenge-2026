@@ -110,3 +110,25 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - The submission pipeline works end to end.
 - Alpamayo 1.5 fits 16 GiB at int8 with no loss in open-loop accuracy.
 - **Open risk:** the official throughput limit with 4 replicas per H100. The first official submission reports it.
+
+### Result 4: container driver in local closed loop, nuPlan (2026-09-27)
+- **Driver:** `src/a15_driver` (Alpamayo 1.5, int8 weight-only on 7.70B params, no reasoning, replan every 0.5 s, cached plan in between). Run natively from the nureasoning a15env plus AlpaSim overlays: the same code that goes in the container.
+- **Token embedding table on CPU** (`A15_EMBED_CPU=1`, default):
+  - trajectories identical (max diff 0.000000 m, 6 clips);
+  - nvidia-smi process memory 15,456 → 14,236 MiB standalone (job 12950505), 14,528 MiB peak in closed loop.
+  - That leaves ~1.8 GiB margin to the 16 GiB (16,384 MiB) cap.
+- **Same 30 nuPlan navtest scenes** (shard 001), 2 concurrent rollouts, L40S:
+
+| Driver | Passed | Mean scene score | At-fault coll. | Offroad | Left corridor | Progress | Dist to GT |
+|---|---|---|---|---|---|---|---|
+| starter (straight, current speed), job 12950496 | 23/30 | 0.687 | 0.03 | 0.07 | 0.13 | 0.80 | 2.10 m |
+| a15 int8 no-reasoning, job 12950497 | 23/30 | 0.728 | 0.03 | 0.17 | 0.07 | 0.86 | 1.37 m |
+
+- **Timing:** 300 Drive calls with an inference on every call (nuPlan calls at 2 Hz); mean 0.83 s; 0 inference errors, 0 fallbacks.
+- **Caveats:**
+  - nuPlan is off-domain for Alpamayo: Motional rig, CAM_L0/F0/R0 mapped to slots 0/1/2, frames 0.5 s apart instead of 0.1 s, no telephoto.
+  - 30 scenes is a small sample.
+- **Image `v0.2-a15int8`** (built on the Mac, linux/amd64, 21.5 GB):
+  - verified offline inside the image: vocab 155697 / traj offset 151669; frames resize to 576x320;
+  - starts read-only with no network; the model needs a GPU.
+  - Pushing to ECR.

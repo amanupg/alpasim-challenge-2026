@@ -57,13 +57,41 @@ def _quantize(model, mode: str) -> int:
     return sum(n)
 
 
+class CpuEmbedding(torch.nn.Module):
+    """Token-embedding lookup served from CPU memory (the 155,697 x 4,096 bf16 table is
+    ~1.2 GiB of GPU memory otherwise). Exact: same weights, same gather, moved to the ids' device."""
+
+    def __init__(self, emb: torch.nn.Embedding) -> None:
+        super().__init__()
+        self.weight_cpu = emb.weight.detach().to("cpu")
+        self.padding_idx = emb.padding_idx
+        self.num_embeddings, self.embedding_dim = emb.num_embeddings, emb.embedding_dim
+
+    @property
+    def weight(self):                      # some HF code reads .weight.dtype / .device
+        return self.weight_cpu
+
+    def forward(self, ids: torch.Tensor) -> torch.Tensor:
+        return torch.nn.functional.embedding(ids.cpu(), self.weight_cpu, self.padding_idx).to(ids.device)
+
+
+def _embed_to_cpu(model) -> int:
+    lm = model.vlm.model.language_model
+    emb = lm.embed_tokens
+    n = emb.weight.numel()
+    lm.embed_tokens = CpuEmbedding(emb)
+    del emb
+    return n
+
+
 class Alpamayo15Policy:
     """predict(frames, cam_slots, hist_xyz, hist_rot) -> (xy (64,2), yaw (64,)) in the t0 rig frame."""
 
     output_frequency_hz = 10.0
 
     def __init__(self, *, model_dir: str, vlm_dir: str, processor_dir: str,
-                 quant: str = "int8wo", reasoning: bool = False, seed: int = 42) -> None:
+                 quant: str = "int8wo", reasoning: bool = False, seed: int = 42,
+                 embed_cpu: bool = True) -> None:
         from alpamayo1_5 import helper
         from alpamayo1_5.models.alpamayo1_5 import Alpamayo1_5
 
@@ -82,6 +110,8 @@ class Alpamayo15Policy:
         assert not bad, f"loading info not clean: { {k: list(v)[:5] for k, v in bad.items()} }"
         model.eval()
         t1 = time.time()
+        if embed_cpu:                      # before the GPU move, so the table never lands there
+            self.cpu_embedding_params = _embed_to_cpu(model)
         self.quantized_params = _quantize(model, quant)
         torch.cuda.empty_cache()
         self._model, self._helper = model, helper
