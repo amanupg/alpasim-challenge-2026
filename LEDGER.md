@@ -57,3 +57,18 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   4. **Compose bind-mounts `/repo/src`,** which would hide the protos compiled into the image: skipped.
   5. **The nuPlan preset pins `TORCH_CUDA_ARCH_LIST=8.9;9.0+PTX`,** so the MTGS renderer (gsplat, compiled at startup in about 250 s, cached in `~/.cache/torch_extensions`) fails on an A6000 (sm86) with "no kernel image". Use L40S or H100.
 - **Still untested locally:** the PAI track (NRE renderer), which is blocked on the gated NuRec scenes.
+
+### Correction: official submission quota is per CALENDAR MONTH (2026-09-27)
+- **Earlier notes said "3 per rolling 30 days" for official submissions. That's wrong.** Only warmups are rolling-30-day.
+- **Evidence:**
+  - The CLI's `limits` prints "Monthly submission limit / Submitted this month / Remaining this month".
+  - NVlabs/alpasim#171: teams losing "remaining August submissions" before month end, with the "September submission limit reduced to 3".
+  - The organiser in #170/#158: "3 per month"; soft-open allocations were reset.
+- **Consequence:** the 3 September slots expire at month end (Sep 30), and October brings 3 more. Unused slots don't carry over.
+- **Other facts from the upstream issues:**
+  - #185: warmups were wrongly counted against the official quota; fixed 2026-09-18.
+  - #158: a failed submission (typo'd image) still counts. The CLI now checks that the image exists first.
+  - #170: one team measured 25% of the time budget locally with 4 replicas on a similar GPU, but the server reported ~80%. So local latency underestimates the server's throughput accounting; only the server's "observed throughput wall time vs limit" is authoritative.
+  - #166: PAI rank = IRT posterior rank interval (better upper bound first), tie-break on at-fault incident spacing. Hard braking inflates incident spacing but not scene score. The top ~5 PAI entries get a final rerun.
+  - #188: the terms require submissions under Apache 2.0, plus a perpetual, broad, sublicensable license to NVIDIA (including making submissions open source). Teams that don't accept get their submission data deleted at month end. Accepting is Aman's decision.
+  - The Space says PAI evaluations use the larger final suite and can take ~10x longer.
