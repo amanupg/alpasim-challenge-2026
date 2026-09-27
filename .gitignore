@@ -1,0 +1,13 @@
+# data, images and runs live on the cluster, never in git
+data/
+sif/
+runs/
+logs/
+cache/
+envs/
+external/
+*.sif
+*.npz
+*.pt
+*.safetensors
+__pycache__/
