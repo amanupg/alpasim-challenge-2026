@@ -72,3 +72,41 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - #166: PAI rank = IRT posterior rank interval (better upper bound first), tie-break on at-fault incident spacing. Hard braking inflates incident spacing but not scene score. The top ~5 PAI entries get a final rerun.
   - #188: the terms require submissions under Apache 2.0, plus a perpetual, broad, sublicensable license to NVIDIA (including making submissions open source). Teams that don't accept get their submission data deleted at month end. Accepting is Aman's decision.
   - The Space says PAI evaluations use the larger final suite and can take ~10x longer.
+
+### Result 2: Alpamayo 1.5 against the 16 GiB contract (job 12947478, L40S, 2026-09-27)
+- **Setup:**
+  - Inputs: 4 camera slots × 4 frames, with the nuReasoning front camera also standing in for the telephoto; 1 sample, seed 42.
+  - Clips: nuReasoning validation key frames (frame 100). ADE/FDE are against the logged 6.4 s future.
+  - Quantization: torchao 0.13 on 7.40B params (language model + expert linears). Vision, embeddings and lm_head stay bf16.
+- **Results** (latency per plan on the L40S; the H100 is faster):
+
+| Config | Peak GiB | Latency s | VLM s | Diffusion s | ADE (same 30 clips) | FDE |
+|---|---|---|---|---|---|---|
+| bf16, reasoning (~17 tok) | 22.1 | 1.15 | 0.90 | 0.24 | 3.14 | 7.46 |
+| bf16, no reasoning | 22.1 | 0.75 | 0.50 | 0.24 | 1.98 | 6.55 |
+| **int8 weight-only, no reasoning** | **15.6** | **0.88** | 0.57 | 0.30 | **1.96** | 6.49 |
+| int8 weight-only, reasoning | 15.7 | 1.60 | 1.28 | 0.31 | 3.14 | 7.45 |
+| fp8 weight-only, no reasoning | 15.9 | 1.41 | 1.08 | 0.33 | 1.97 | 6.50 |
+| int4 weight-only, no reasoning | 12.4 | 3.18 | 2.35 | 0.83 | 2.26 | 7.64 |
+| fp8 dynamic activation+weight | 16.0 | 52-75 | - | - | 1.98 | - |
+
+- **fp8 dynamic** apparently took a fallback path (tens of seconds per plan); discarded.
+- **"No reasoning"** closes the reasoning block in the prompt (`<|cot_start|><|cot_end|>`). The model emits `<traj_future_start>` itself in 87% of cases; the rest fall back to the last token, with similar ADE (1.82 on those clips).
+- **Reasoning hurts here:** on the same clips it gives worse open-loop ADE (3.14 vs 1.98). Single sample at temperature 0.6; closed-loop effect unknown.
+- **int8 costs nothing measurable in accuracy** (1.96 vs 1.98). int4 costs about 0.3 m ADE and is slower (unoptimised kernels on the L40S).
+- **Memory is tight:** int8 peaks at 15.6 GiB plus the CUDA context, about 0.5 GiB outside PyTorch. Headroom plan: int8 embeddings and lm_head (about 1.3 GB bf16 saved), and keep the 4-camera input.
+
+### Result 3: first server warmup SUCCEEDED (2026-09-27)
+- Submission `951885e7-86f7-4607-83a9-af8ca7c6617e`, track nuplan-warmup, image `teams/amanupg:v0.1-starter` (starter kit, 100 MB, digest `5d93a152…`).
+- 32/32 valid scored rollouts; evaluation 21:56:19 to 22:02:23 UTC.
+- Throughput: observed 269 s vs limit 2700 s (passed). A near-zero-cost driver shows about 270 s of pure simulator overhead per 32-scene wave.
+- Warmups aren't scored and their limit isn't the official one, so this doesn't settle the official budget.
+- **Accounts:**
+  - Challenge: HF `amanupg-columbia`, team `amanupg`, Aman is captain; terms `official-2026-08` accepted.
+  - Cluster token for AlpaSim: `alpasim/.cache/hf/token`. NuRec downloads verified (2.0 GB sample scene).
+
+### Verdict of the one-day feasibility test: GO
+- The simulator runs locally on Insomnia (nuPlan verified; PAI data is now accessible).
+- The submission pipeline works end to end.
+- Alpamayo 1.5 fits 16 GiB at int8 with no loss in open-loop accuracy.
+- **Open risk:** the official throughput limit with 4 replicas per H100. The first official submission reports it.
