@@ -95,7 +95,7 @@ def main():
     for c in clips:
         if len(rows) >= a.clips + 1:
             break
-        s = build_sample(os.path.join(NR, "cache", "validation", c), [os.path.join(NR, "img_a15", "validation")], 100)
+        s = build_sample(os.path.join(NR, "cache", "validation", c), [os.path.join(NR, "img_a15", "validation", c)], 100)
         if s is None:
             continue
         fr, ci = s["image_frames"], s["camera_indices"]
@@ -125,6 +125,8 @@ def main():
         if len(rows) <= 2:
             print(f"[{tag}] {c} lat {dt:.2f}s gen {T['gen']:.2f}s dif {T['dif']:.3f}s new {T['new']} "
                   f"eos {rows[-1]['eos']} ade {d.mean():.2f} cot {rows[-1]['cot']!r}", flush=True)
+    if len(rows) < 2:
+        raise SystemExit(f"[{tag}] only {len(rows)} usable clips; check inputs")
     R = rows[1:]                                           # first call = warm-up
     peak = torch.cuda.max_memory_reserved()
     summ = {"tag": tag, "gpu": torch.cuda.get_device_name(), "n": len(R), "quantized_params": qparams,

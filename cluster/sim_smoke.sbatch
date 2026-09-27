@@ -15,7 +15,7 @@ source /etc/profile
 module load apptainer/1.4.5
 set -x
 A=/insomnia001/depts/edu/users/au2327/alpasim
-SIF=$A/sif/alpasim-base.sif; REPO=$A/external/alpasim
+SIF=$A/sandbox/alpasim-base; REPO=$A/external/alpasim   # unpacked sandboxes: no squashfuse here
 TRACK=${TRACK:-nuplan}
 RUN=$A/runs/smoke_${TRACK}_$SLURM_JOB_ID; mkdir -p $RUN
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
@@ -35,7 +35,7 @@ apptainer exec -B $A $SIF bash -c "cd /repo && /repo/.venv/bin/alpasim_wizard $P
 apptainer exec $SIF /repo/.venv/bin/python -c "import yaml,json; json.dump(yaml.safe_load(open('$RUN/docker-compose.yaml')), open('$RUN/docker-compose.json','w'), indent=1)"
 
 # 3) run the stack; runtime in the foreground
-python3 $A/src/compose_apptainer.py $RUN/docker-compose.json --sif-dir $A/sif --repo-host $REPO --logdir $RUN/svc-logs
+python3 $A/src/compose_apptainer.py $RUN/docker-compose.json --sif-dir $A/sandbox --repo-host $REPO --logdir $RUN/svc-logs
 RC=$?
 echo "runtime exit $RC"
 ls $RUN; ls $RUN/aggregate 2>/dev/null

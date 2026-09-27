@@ -18,7 +18,8 @@ Usage: python3 compose_apptainer.py COMPOSE.json --sif-dir DIR --repo-host DIR -
 """
 import argparse, json, os, signal, socket, subprocess, sys, time
 
-IMAGES = [("nvcr.io/nvidia/nre/nre-ga", "nre-ga_26.04.sif"), ("alpasim-base", "alpasim-base.sif")]
+# image -> file or sandbox directory name under --sif-dir (sandboxes: this apptainer lacks squashfuse)
+IMAGES = [("nvcr.io/nvidia/nre/nre-ga", "nre-ga_26.04"), ("alpasim-base", "alpasim-base")]
 
 
 def sif_for(image, sif_dir):

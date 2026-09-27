@@ -14,7 +14,7 @@ A=/insomnia001/depts/edu/users/au2327/alpasim
 NR=/insomnia001/depts/edu/users/au2327/nureasoning
 PY=$NR/ext/a15env/bin/python
 OV=$A/envs/overlay_torchao
-[ -d $OV/torchao ] || $PY -m pip install -q --no-deps --target $OV torchao==0.13.0
+[ -d $OV/torchao ] || $NR/env/bin/python -m pip install -q --no-deps --target $OV torchao==0.13.0
 export PYTHONPATH=$OV PYTHONNOUSERSITE=1 HF_HOME=$NR/.cache/hf HF_HUB_OFFLINE=1
 $PY -c "import torch, torchao; print(torch.__version__, 'torchao', torchao.__version__)"
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
