@@ -143,3 +143,19 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - Rough estimate for the int8 Alpamayo at 2 Hz: about 40 plans per rollout × 987 ≈ 39.5k plans over 4 H100s × 4 replicas. At ~10 plans/s aggregate that's ~3,950 s. It fits, but not with much room.
   - **Unknown:** H100 throughput with 4 replicas contending per GPU. A PAI warmup reports one 32-rollout wave's wall time; compare with the starter's ~300 s/wave (9,250 s / ~31 waves) and extrapolate.
   - **Levers if tight:** replan at 1 Hz, CUDA graphs for the diffusion expert (they collapsed the diffusion time in the fp8 test), drop the telephoto camera.
+
+### Result 6: Alpamayo image on the real evaluator, pai-warmup (2026-09-28)
+- **Submission:** `ff87a2af-5ebf-401a-ae0c-dafbe9b0361a`, image `teams/amanupg:v0.2-a15int8`, digest `sha256:877117daffdbc5f9fd4299d22fa1d048504b6e2d97083ca3f080a77b740b1e0b`.
+  - Config: int8, no reasoning, CPU embedding, replan every 0.5 s.
+  - Queued ~3 h; evaluation 04:26:19 to 04:44:59 UTC.
+- **Result:** SUCCEEDED, 32/32 valid scored rollouts. So the image loads, fits and drives on the evaluator's H100s with 16 replicas.
+- **Timing:** observed **552 s** for one 32-rollout wave (warmup limit 2,700 s).
+- **Extrapolation to the official PAI run** (ESTIMATE, not measured):
+  - Starter official: 9,250 s / (987/32 ≈ 30.8 waves) ≈ 300 s per wave. The Alpamayo wave is ~250 s longer.
+  - If none of the 552 s is one-off startup: 9,250 + 30.8 × 252 ≈ **17,000 s > 14,400 s limit**.
+  - If ~120 s of it is startup (16 replicas loading the 21 GB model), it's ≈ 13,300 s: just under, too thin to risk a slot.
+- **Implied effective cost:** ~250 s / (2 rollouts × ~40 plans per replica) ≈ 3 s per plan under 4-replica contention per H100, vs 0.83 s alone on an L40S.
+- **Decision:** don't spend an official slot on v0.2 at 2 Hz. Next is v0.3:
+  - replan at 1 Hz (halves the model load);
+  - CUDA graphs for the diffusion expert, if exact-equivalent (0.30 of the 0.83 s is diffusion);
+  - measure 1 Hz vs 2 Hz driving quality locally on the same PAI scenes before choosing.
