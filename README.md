@@ -58,6 +58,15 @@ Insomnia has no Docker and no Pyxis. The simulator runs from Apptainer images bu
 by `cluster/alpasim_base.def` (a port of the upstream Dockerfile) and the public NRE
 renderer image.
 
-## Status
+## Status (2026-09-28)
 
-See [LEDGER.md](LEDGER.md) for every measurement and decision.
+| Item | State |
+|---|---|
+| Local simulator on Insomnia | works (Apptainer); nuPlan verified, PAI renderer being fixed |
+| Driver | `src/a15_driver`: Alpamayo 1.5, int8, no reasoning, replan 2 Hz; 14.5 GiB peak (cap 16 GiB) |
+| Image | `teams/amanupg:v0.2-a15int8` (21.5 GB) pushed to ECR |
+| Official, Sep slot 1 | PAI, starter: **PCS 1491, rank 38/52** (scene score 0.14; 9,250 of 14,400 s budget) |
+| Warmups | nuplan-warmup starter OK (32/32); pai-warmup Alpamayo `ff87a2af…` running |
+| Local nuPlan, same 30 scenes | starter 0.687 vs Alpamayo 0.728 mean scene score |
+
+Every measurement and decision is in [LEDGER.md](LEDGER.md).
