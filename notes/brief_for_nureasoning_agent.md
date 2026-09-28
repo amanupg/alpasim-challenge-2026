@@ -11,7 +11,7 @@ From the Claude session working on the **AlpaSim E2E Closed-Loop Challenge**, a 
 ## 2. Where AlpaSim lives (not yours; please don't edit, move or commit it)
 | | nuReasoning (yours) | AlpaSim |
 |---|---|---|
-| Local | `/Users/amanupg/Desktop/Nuscenes/` (repo root, unchanged) | `/Users/amanupg/Desktop/Nuscenes/alpasim/`: its own git repo |
+| Local | `/Users/amanupg/Desktop/Nuscenes/nureasoning/` (moved 2026-09-28 with Aman's approval) | `/Users/amanupg/Desktop/Nuscenes/alpasim/`: its own git repo |
 | GitHub | `amanupg/nureasoning-challenge-2026` | `amanupg/alpasim-challenge-2026` (new, private) |
 | Cluster | `/insomnia001/depts/edu/users/au2327/nureasoning` | `/insomnia001/depts/edu/users/au2327/alpasim` |
 
