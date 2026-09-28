@@ -216,3 +216,21 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Recommendation to Aman:**
   - September slot 2 = v0.3 on PAI.
   - Slot 3 = v0.3 on nuPlan. No nuPlan warmup: the image is proven on the server, and the same code passed locally on nuPlan.
+
+### Sprint before the last two September slots (Aman approved 2026-09-28; slots held until Sep 30)
+- **Levers**, all switches in the v0.3 code (defaults unchanged):
+  - `A15_NUM_SAMPLES=K`: K diffusion samples per plan, keep the xy medoid. The VLM prompt runs once and the KV cache is reused.
+    - K=5 check (job 12957818, Blackwell): nvidia-smi 14,432 MiB (unchanged); 1.71 s vs 0.70 s per plan.
+    - Estimated official ≈ 10,700 of 14,400 s at 1 Hz.
+  - `A15_NAV=1`: "Turn left/right in Xm" from the route waypoints (first heading change > 30° within 100 m). Unit-tested on synthetic routes.
+  - `A15_REASONING=1`: chain-of-causation text on.
+  - Controller gains (submission-time JSON, no image change):
+    - A: lat_position 3.0, heading 2.0;
+    - B: rel_front_steering_angle 10.0, rel_acceleration 3.0.
+- **Evaluation:**
+  - The first 40 curated-val PAI scenes (prefetched once: 90 usdz files, 70 GB).
+  - One Blackwell GPU per variant, 4 concurrent rollouts (same for all variants).
+  - Paired per-scene comparison against the base run with `src/compare_runs.py` (bootstrap 90% interval).
+  - Jobs 12959800-805: base, k5, nav, gainsA, gainsB, cot.
+- **Paired re-read of Result 7:** 1 Hz vs 2 Hz on 10 scenes = +0.024 (1 win, 0 losses, 9 ties). Equivalent, not better.
+- **Rule:** only variants with a clear paired gain go into v0.4; otherwise submit v0.3.
