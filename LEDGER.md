@@ -159,3 +159,13 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - replan at 1 Hz (halves the model load);
   - CUDA graphs for the diffusion expert, if exact-equivalent (0.30 of the 0.83 s is diffusion);
   - measure 1 Hz vs 2 Hz driving quality locally on the same PAI scenes before choosing.
+
+### Local PAI simulation on Insomnia: renderer driver requirement (2026-09-28)
+- **Launcher fixes along the way:**
+  - per-image working dir (NRE has no /repo);
+  - host-backed writable dirs for NRE's `ptx_cache` and physics' `/mnt/warp`;
+  - strip the shell-style quotes the wizard writes in env values (`WARP_CACHE_PATH='/mnt/warp'` had become a relative path).
+- **Blocker:** NRE 26.04 is built on CUDA 12.8 and JIT-compiles kernels (NVRTC). On nodes with NVIDIA driver 550.54 (L40S, H100; CUDA ≤ 12.4) every render fails with `CUDA_ERROR_UNSUPPORTED_PTX_VERSION`.
+- **Measured drivers:** L40S 550.54.14; H100 NVL 550.54.14; RTX PRO 6000 Blackwell (ins046/047) **575.57.08**.
+- **Consequence:** local PAI runs go on the R6000 (Blackwell) nodes. nuPlan (MTGS) runs on L40S/H100. The official evaluator is unaffected (its drivers are new).
+- The CUDA-graph option for the diffusion expert costs +1.2 GB GPU memory (15,438 vs 14,236 MiB) for -6% latency (0.898 vs 0.956 s). Kept off.

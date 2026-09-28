@@ -91,7 +91,7 @@ class Alpamayo15Policy:
 
     def __init__(self, *, model_dir: str, vlm_dir: str, processor_dir: str,
                  quant: str = "int8wo", reasoning: bool = False, seed: int = 42,
-                 embed_cpu: bool = True) -> None:
+                 embed_cpu: bool = True, cuda_graph: bool = False) -> None:
         from alpamayo1_5 import helper
         from alpamayo1_5.models.alpamayo1_5 import Alpamayo1_5
 
@@ -113,6 +113,8 @@ class Alpamayo15Policy:
         if embed_cpu:                      # before the GPU move, so the table never lands there
             self.cpu_embedding_params = _embed_to_cpu(model)
         self.quantized_params = _quantize(model, quant)
+        if cuda_graph:                     # bounded exact CUDA graphs for the diffusion expert (alpamayo1_5 API)
+            model.enable_diffusion_expert_cuda_graph(max_batch_size=1)
         torch.cuda.empty_cache()
         self._model, self._helper = model, helper
         self._proc = helper.get_processor(model.tokenizer)

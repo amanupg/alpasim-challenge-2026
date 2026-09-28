@@ -19,17 +19,20 @@ Usage: python3 compose_apptainer.py COMPOSE.json --sif-dir DIR --repo-host DIR -
 """
 import argparse, json, os, signal, socket, subprocess, sys, time
 
-# image -> (file or sandbox directory under --sif-dir, default working dir = the image's WORKDIR,
-# writable). Sandboxes because this apptainer lacks squashfuse; on GPFS --writable-tmpfs is
-# ignored, so an image that writes into its own tree (NRE: .../nrend/ptx_cache) runs with
-# --writable on our own sandbox copy instead.
-IMAGES = [("nvcr.io/nvidia/nre/nre-ga", "nre-ga_26.04", "/", True), ("alpasim-base", "alpasim-base", "/repo", False)]
+# image -> (sandbox directory under --sif-dir, default working dir = the image's WORKDIR,
+# paths inside the image the service writes to). Sandboxes because this apptainer lacks
+# squashfuse. On GPFS --writable-tmpfs is ignored and --writable breaks the system/GPU binds,
+# so each such path is backed by a persistent host directory under --cache-dir instead
+# (NRE writes its compiled-kernel cache into its own install tree).
+IMAGES = [("nvcr.io/nvidia/nre/nre-ga", "nre-ga_26.04", "/",
+           ["/app/internal/scripts/pycena/runtime/pycena_nrm_full.runfiles/_main/libs/nrend/ptx_cache"]),
+          ("alpasim-base", "alpasim-base", "/repo", ["/mnt/warp"])]     # physics: WARP_CACHE_PATH
 
 
 def image_entry(image):
-    for prefix, f, wd, writable in IMAGES:
+    for prefix, f, wd, write_paths in IMAGES:
         if image.split(":")[0].endswith(prefix):
-            return f, wd, writable
+            return f, wd, write_paths
     raise SystemExit(f"no SIF mapped for image {image!r}")
 
 
@@ -52,7 +55,13 @@ def gpu_env(svc, gpus):
 
 
 def build(name, svc, a, gpus):
-    cmd = ["apptainer", "exec", "--nv", "--writable" if image_entry(svc["image"])[2] else "--writable-tmpfs"]
+    cmd = ["apptainer", "exec", "--nv", "--writable-tmpfs"]
+    name_dir, _, write_paths = image_entry(svc["image"])
+    for wp in write_paths:
+        host = os.path.join(a.cache_dir, name_dir, wp.strip("/").replace("/", "__"))
+        os.makedirs(host, exist_ok=True)
+        os.makedirs(os.path.join(a.sif_dir, name_dir, wp.lstrip("/")), exist_ok=True)   # bind target must exist
+        cmd += ["-B", f"{host}:{wp}"]
     for v in svc.get("volumes") or []:
         parts = v.split(":")
         if parts[1] == "/repo" or parts[1].startswith("/repo/"):
@@ -67,7 +76,10 @@ def build(name, svc, a, gpus):
     env = {}
     for e in svc.get("environment") or []:
         if "=" in e:
-            k, val = e.split("=", 1); env[k] = val
+            k, val = e.split("=", 1)
+            if len(val) >= 2 and val[0] == val[-1] and val[0] in "'\"":
+                val = val[1:-1]          # the wizard writes shell-style quoting (its SLURM path exports via bash)
+            env[k] = val
     g = gpu_env(svc, gpus)
     if g is not None:
         env["CUDA_VISIBLE_DEVICES"] = g
@@ -97,6 +109,7 @@ def main():
     ap.add_argument("--sif-dir", required=True)
     ap.add_argument("--repo-host", required=True)
     ap.add_argument("--logdir", required=True)
+    ap.add_argument("--cache-dir", default="/insomnia001/depts/edu/users/au2327/alpasim/cache/containers")
     ap.add_argument("--timeout", type=int, default=1800)
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()

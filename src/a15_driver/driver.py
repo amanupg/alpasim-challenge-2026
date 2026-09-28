@@ -369,7 +369,8 @@ def main() -> None:
         processor_dir=os.environ.get("A15_PROCESSOR_DIR", f"{assets}/qwen3vl2b"),
         quant=os.environ.get("A15_QUANT", "int8wo"),
         reasoning=os.environ.get("A15_REASONING", "0") == "1",
-        embed_cpu=os.environ.get("A15_EMBED_CPU", "1") == "1"))
+        embed_cpu=os.environ.get("A15_EMBED_CPU", "1") == "1",
+        cuda_graph=os.environ.get("A15_CUDA_GRAPH", "0") == "1"))
     service = A15ChallengeDriver(
         handle=handle,
         pai_cameras=[c.strip() for c in os.environ.get("A15_PAI_CAMERAS", DEFAULT_PAI_CAMERAS).split(",") if c.strip()],

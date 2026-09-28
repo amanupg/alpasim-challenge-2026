@@ -24,9 +24,9 @@ def smi_mib():
     return max([int(l.split(",")[1]) for l in out.strip().splitlines() if l.split(",")[0].strip() == str(os.getpid())] or [0])
 
 
-def run(embed_cpu, n=6):
+def run(opts, n=12):
     p = Alpamayo15Policy(model_dir=snap("nvidia--Alpamayo-1.5-10B"), vlm_dir=snap("Qwen--Qwen3-VL-8B-Instruct"),
-                         processor_dir=snap("Qwen--Qwen3-VL-2B-Instruct"), embed_cpu=embed_cpu)
+                         processor_dir=snap("Qwen--Qwen3-VL-2B-Instruct"), **opts)
     clips = sorted(os.path.basename(os.path.dirname(x)) for x in glob.glob(f"{NR}/img_a15/validation/*/_done.json"))
     outs, lat = [], []
     for c in clips:
@@ -40,7 +40,7 @@ def run(embed_cpu, n=6):
         xy, yaw, _ = p.predict(fr, [0, 1, 2, 6], s["ego_history_xyz"], s["ego_history_rot"])
         torch.cuda.synchronize(); lat.append(time.time() - t); outs.append(xy)
     mem = smi_mib()
-    print(f"embed_cpu={embed_cpu}: nvidia-smi {mem} MiB, peak reserved {torch.cuda.max_memory_reserved()/2**30:.2f} GiB, "
+    print(f"{opts}: nvidia-smi {mem} MiB, peak reserved {torch.cuda.max_memory_reserved()/2**30:.2f} GiB, "
           f"latency {np.mean(lat[1:]):.3f}s", flush=True)
     del p; torch.cuda.empty_cache(); torch.cuda.reset_peak_memory_stats()
     return np.stack(outs), mem
@@ -49,9 +49,10 @@ def run(embed_cpu, n=6):
 if __name__ == "__main__":
     # one configuration per process: a second model in the same process inherits the first
     # one's allocations and makes the memory numbers meaningless
-    flag = sys.argv[1] == "1"
+    # argv[1] e.g. "embed_cpu=1,cuda_graph=0"
+    opts = {k: v == "1" for k, v in (kv.split("=") for kv in sys.argv[1].split(","))}
     out = sys.argv[2]
-    xy, mem = run(flag)
+    xy, mem = run(opts)
     np.savez(out, xy=xy, mem=mem)
     if len(sys.argv) > 3:
         other = np.load(sys.argv[3])
