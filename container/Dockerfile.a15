@@ -35,8 +35,12 @@ COPY container/assets/alpamayo15 /app/assets/alpamayo15
 RUN groupadd --system alpasim && useradd --system --gid alpasim --home-dir /app --shell /usr/sbin/nologin alpasim
 COPY src/a15_driver /app/a15_driver
 WORKDIR /app
+# v0.3: replan every 1.0 s (v0.2 used 0.5 s). Local PAI, same 10 scenes: 1 Hz 0.800 vs 2 Hz 0.776
+# mean scene score, with half the model time per Drive call (LEDGER, Result 7).
+ARG GIT_HASH=unknown
 ENV ALPASIM_DRIVER_HOST=0.0.0.0 ALPASIM_DRIVER_PORT=6789 A15_ASSETS=/app/assets A15_QUANT=int8wo \
-    A15_REASONING=0 A15_INFERENCE_INTERVAL_US=500000 A15_FRAME_DT_S=0.1 ALPASIM_DRIVER_GRPC_WORKERS=8
+    A15_REASONING=0 A15_INFERENCE_INTERVAL_US=1000000 A15_FRAME_DT_S=0.1 ALPASIM_DRIVER_GRPC_WORKERS=8 \
+    A15_EMBED_CPU=1 A15_CUDA_GRAPH=0 A15_GIT_HASH=$GIT_HASH
 EXPOSE 6789
 USER alpasim
 CMD ["python", "-m", "a15_driver.driver"]
