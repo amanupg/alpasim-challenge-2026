@@ -10,6 +10,9 @@
 # Local closed-loop evaluation on Insomnia (Apptainer simulator stack + our driver).
 #   DRIVER=starter|a15   TRACK=nuplan|pai   NSCENES=N   ROLLOUTS=2 (concurrent, as officially)
 #   SCENES_FROM=<run dir>: reuse that run's scene list (same scenes for a fair comparison)
+#   EXTRA_OVERRIDES="controller.gains.lat_position_weight=3.0 ..." extra wizard overrides (no commas:
+#   sbatch --export splits on them); TAG=name appended to the run dir
+#   A15_* variables are passed through to the a15 driver (A15_NUM_SAMPLES, A15_NAV, A15_REASONING, ...)
 # The a15 driver runs natively from nureasoning's a15env (read-only) + alpasim overlays, i.e.
 # the same code that goes into the container; its model files come from the HF caches.
 source /etc/profile
@@ -18,7 +21,8 @@ set -x
 A=/insomnia001/depts/edu/users/au2327/alpasim; NR=/insomnia001/depts/edu/users/au2327/nureasoning
 SIF=$A/sandbox/alpasim-base; REPO=$A/external/alpasim
 DRIVER=${DRIVER:-starter}; TRACK=${TRACK:-nuplan}; NSCENES=${NSCENES:-10}; ROLLOUTS=${ROLLOUTS:-2}
-RUN=$A/runs/local_${TRACK}_${DRIVER}_$SLURM_JOB_ID; mkdir -p $RUN
+RUN=$A/runs/local_${TRACK}_${DRIVER}${TAG:+_$TAG}_$SLURM_JOB_ID; mkdir -p $RUN
+env | grep -E "^A15_|^EXTRA_OVERRIDES" | sort > $RUN/variant.env
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 export ALPASIM_DRIVER_HOST=localhost ALPASIM_DRIVER_PORT=6789 ALPASIM_NUPLAN_ROOT=$A/data/nuplan_track
 
@@ -67,7 +71,7 @@ fi
   echo "export HF_HOME=$A/.cache/hf"
   echo "exec /repo/.venv/bin/alpasim_wizard $PRESET wizard.run_method=NONE wizard.log_dir=$RUN" \
        "defines.filesystem=$A/data/fs hydra.run.dir=$RUN/hydra eval.video.render_video=false" \
-       "runtime.endpoints.driver.n_concurrent_rollouts=$ROLLOUTS $SEL"
+       "runtime.endpoints.driver.n_concurrent_rollouts=$ROLLOUTS $SEL $EXTRA_OVERRIDES"
 } > $RUN/wizard.sh
 apptainer exec -B $A $SIF bash $RUN/wizard.sh > $RUN/wizard.log 2>&1 || { tail -40 $RUN/wizard.log; exit 1; }
 apptainer exec $SIF /repo/.venv/bin/python -c "import yaml,json; json.dump(yaml.safe_load(open('$RUN/docker-compose.yaml')), open('$RUN/docker-compose.json','w'), indent=1)"

@@ -91,7 +91,7 @@ class Alpamayo15Policy:
 
     def __init__(self, *, model_dir: str, vlm_dir: str, processor_dir: str,
                  quant: str = "int8wo", reasoning: bool = False, seed: int = 42,
-                 embed_cpu: bool = True, cuda_graph: bool = False) -> None:
+                 embed_cpu: bool = True, cuda_graph: bool = False, num_samples: int = 1) -> None:
         from alpamayo1_5 import helper
         from alpamayo1_5.models.alpamayo1_5 import Alpamayo1_5
 
@@ -120,22 +120,50 @@ class Alpamayo15Policy:
         self._proc = helper.get_processor(model.tokenizer)
         self._reasoning, self._seed = reasoning, seed
         self._eos = model.tokenizer.convert_tokens_to_ids("<|traj_future_start|>")
+        self._num_samples, self._hist = max(1, int(num_samples)), None
+        if self._num_samples > 1:
+            self._wrap_diffusion_medoid()
         LOGGER.info("Alpamayo 1.5 loaded in %.0fs, quantized %s (%.2fB params) in %.0fs, reserved %.2f GiB",
                     t1 - t0, quant, self.quantized_params / 1e9, time.time() - t1,
                     torch.cuda.memory_reserved() / 2**30)
 
+    def _wrap_diffusion_medoid(self) -> None:
+        """K trajectory samples per plan, keep the medoid (least total xy distance to the others).
+        The VLM prompt runs ONCE; only the flow-matching sampler repeats, reusing the prompt KV cache
+        (sample_trajectories_from_data_with_vlm_rollout's step_fn crops the cache back after every
+        expert call). Sampling K sequences through the VLM instead would copy the ~470 MB prompt
+        cache K times and break the 16 GiB cap."""
+        model, orig = self._model, self._model.diffusion.sample
+        K = self._num_samples
+
+        def sample(*args, batch_size, **kw):
+            assert batch_size == 1, "medoid wrapper expects one plan per call"
+            S = torch.cat([orig(*args, batch_size=1, **kw) for _ in range(K)], 0)       # (K, *action_dims)
+            hx, hr = self._hist
+            xyz, _ = model.action_space.action_to_traj(S, hx[:, -1].repeat(K, *[1] * (hx.dim() - 2)),
+                                                       hr[:, -1].repeat(K, *[1] * (hr.dim() - 2)))
+            xy = xyz[..., :2].reshape(K, -1).float()
+            i = int(torch.cdist(xy, xy).sum(1).argmin())
+            self._last_spread = float(torch.cdist(xy, xy).max()) / max(xyz.shape[-2], 1) ** 0.5
+            return S[i:i + 1]
+        model.diffusion.sample = sample
+
     @torch.no_grad()
     def predict(self, frames: torch.Tensor, cam_slots: list[int],
-                hist_xyz: torch.Tensor, hist_rot: torch.Tensor) -> tuple[np.ndarray, np.ndarray, dict]:
+                hist_xyz: torch.Tensor, hist_rot: torch.Tensor, nav_text: str | None = None
+                ) -> tuple[np.ndarray, np.ndarray, dict]:
         """frames: (n_cam, 4, 3, H, W) uint8 ordered as cam_slots (ascending);
-        hist_*: (1, 1, 16, 3) / (1, 1, 16, 3, 3) ego history in the t0 rig frame."""
-        msgs = self._helper.create_message(frames.flatten(0, 1), camera_indices=torch.tensor(cam_slots))
+        hist_*: (1, 1, 16, 3) / (1, 1, 16, 3, 3) ego history in the t0 rig frame;
+        nav_text: optional route instruction ("Turn left in 30m"), Alpamayo 1.5's navigation input."""
+        msgs = self._helper.create_message(frames.flatten(0, 1), camera_indices=torch.tensor(cam_slots),
+                                           nav_text=nav_text)
         if not self._reasoning:
             msgs[-1]["content"][0]["text"] = "<|cot_start|><|cot_end|>"
         tok = self._proc.apply_chat_template(msgs, tokenize=True, add_generation_prompt=False,
                                              continue_final_message=True, return_dict=True, return_tensors="pt")
         inp = self._helper.to_device({"tokenized_data": tok, "ego_history_xyz": hist_xyz,
                                       "ego_history_rot": hist_rot}, "cuda")
+        self._hist = (inp["ego_history_xyz"], inp["ego_history_rot"])
         torch.cuda.manual_seed_all(self._seed)
         with torch.autocast("cuda", dtype=torch.bfloat16):
             xyz, rot, extra = self._model.sample_trajectories_from_data_with_vlm_rollout(

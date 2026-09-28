@@ -86,6 +86,31 @@ def _interp_poses(ts: np.ndarray, pos: np.ndarray, quat: np.ndarray, t: np.ndarr
     return out_p, out_q
 
 
+def route_nav_text(xy: np.ndarray, turn_deg: float = 30.0, max_dist_m: float = 100.0) -> str | None:
+    """'Turn left in 30m' style instruction (Alpamayo 1.5's navigation input) from route waypoints in
+    the rig frame: distance along the route to the first point whose heading departs more than
+    turn_deg from the route's initial heading ahead of the car. None for no turn within max_dist_m.
+    Same rule as nureasoning/src/a15_infer.py::route_nav_text (borrowed idea)."""
+    pts = xy[xy[:, 0] > -2.0]
+    if len(pts) < 2:
+        return None
+    seg = np.diff(pts, axis=0); L = np.linalg.norm(seg, axis=1)
+    keep = L > 0.2
+    if keep.sum() < 2:
+        return None
+    seg, L = seg[keep], L[keep]
+    hd = np.arctan2(seg[:, 1], seg[:, 0]); s = np.concatenate([[0.0], np.cumsum(L)])
+    d0 = float(np.linalg.norm(pts[0]))                 # route start relative to the car
+    for i in range(1, len(hd)):
+        dh = (hd[i] - hd[0] + np.pi) % (2 * np.pi) - np.pi
+        if abs(dh) > math.radians(turn_deg):
+            d = s[i] + d0 if pts[0][0] > 0 else s[i]
+            if d > max_dist_m:
+                return None
+            return f"Turn {'left' if dh > 0 else 'right'} in {int(round(d))}m"
+    return None
+
+
 def _yaw_of(q: np.ndarray) -> float:
     w, x, y, z = q
     return math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
@@ -162,13 +187,16 @@ class SessionState:
     speed: float = 0.0
     latest_pose: common_pb2.PoseAtTime | None = None
     cached_plan: CachedPlan | None = None
+    route_xy: np.ndarray | None = None                      # latest route waypoints, rig frame
+    last_nav: str | None = None
     stats: dict = field(default_factory=lambda: {"drive": 0, "infer": 0, "infer_err": 0, "fallback": 0,
                                                  "cached": 0, "infer_s": 0.0})
 
 
 class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
-    def __init__(self, *, handle: PolicyHandle, pai_cameras: list[str], interval_us: int, frame_dt_s: float):
-        self._handle, self._pai_cameras = handle, pai_cameras
+    def __init__(self, *, handle: PolicyHandle, pai_cameras: list[str], interval_us: int, frame_dt_s: float,
+                 nav: bool = False):
+        self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -199,9 +227,9 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             s = self._sessions.pop(request.session_uuid, None)
         if s is not None:
             st = s.stats
-            LOGGER.info("closed session %s: drive %d, inferences %d (errors %d, mean %.3fs), cached %d, fallback %d",
+            LOGGER.info("closed session %s: drive %d, inferences %d (errors %d, mean %.3fs), cached %d, fallback %d, last nav %r",
                         request.session_uuid, st["drive"], st["infer"], st["infer_err"],
-                        st["infer_s"] / max(st["infer"], 1), st["cached"], st["fallback"])
+                        st["infer_s"] / max(st["infer"], 1), st["cached"], st["fallback"], s.last_nav)
         return common_pb2.Empty()
 
     # ------------------------------------------------------------ observations
@@ -241,6 +269,10 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         return common_pb2.Empty()
 
     def submit_route(self, request, context):
+        s = self._get_session(request.session_uuid, context)
+        wps = np.array([[w.x, w.y] for w in request.route.waypoints], dtype=np.float64).reshape(-1, 2)
+        with self._lock:
+            s.route_xy = wps
         return common_pb2.Empty()
 
     def submit_recording_ground_truth(self, request, context):
@@ -272,10 +304,16 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         if batch is None:
             return
         frames, hx, hr, t0, anchor = batch
+        nav = None
+        if self._nav:
+            with self._lock:
+                route = s.route_xy
+            nav = route_nav_text(route) if route is not None else None
+            s.last_nav = nav
         t = time.time()
         try:
             with self._infer_lock:
-                xy, yaw, info = policy.predict(frames, s.slots, hx, hr)
+                xy, yaw, info = policy.predict(frames, s.slots, hx, hr, nav_text=nav)
         except Exception:                                    # noqa: BLE001
             LOGGER.exception("inference failed")
             with self._lock:
@@ -370,12 +408,14 @@ def main() -> None:
         quant=os.environ.get("A15_QUANT", "int8wo"),
         reasoning=os.environ.get("A15_REASONING", "0") == "1",
         embed_cpu=os.environ.get("A15_EMBED_CPU", "1") == "1",
-        cuda_graph=os.environ.get("A15_CUDA_GRAPH", "0") == "1"))
+        cuda_graph=os.environ.get("A15_CUDA_GRAPH", "0") == "1",
+        num_samples=int(os.environ.get("A15_NUM_SAMPLES", "1"))))
     service = A15ChallengeDriver(
         handle=handle,
         pai_cameras=[c.strip() for c in os.environ.get("A15_PAI_CAMERAS", DEFAULT_PAI_CAMERAS).split(",") if c.strip()],
         interval_us=int(os.environ.get("A15_INFERENCE_INTERVAL_US", "500000")),
-        frame_dt_s=float(os.environ.get("A15_FRAME_DT_S", "0.1")))
+        frame_dt_s=float(os.environ.get("A15_FRAME_DT_S", "0.1")),
+        nav=os.environ.get("A15_NAV", "0") == "1")
     host, port = os.environ.get("ALPASIM_DRIVER_HOST", "0.0.0.0"), int(os.environ.get("ALPASIM_DRIVER_PORT", "6789"))
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=int(os.environ.get("ALPASIM_DRIVER_GRPC_WORKERS", "8"))))
     egodriver_pb2_grpc.add_EgodriverServiceServicer_to_server(service, server)
