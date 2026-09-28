@@ -203,3 +203,16 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **v0.3 pushed:** digest `sha256:29a4f9c2f340bf3ee2914df131627eb8895684f2df67d6667c27a817cfebe424`. The push took 2 h 26 min, not minutes.
   - Cause: Docker Desktop's build cache had been cleared, so `pip install torch` re-ran and gave a new layer digest. Every later layer (including the 21 GB weights) changed identity.
   - Fix going forward: build new versions `FROM teams/amanupg:v0.3-a15int8-1hz` so only new code layers upload.
+
+### Result 9: v0.3 pai-warmup, and nuPlan at 1 Hz (2026-09-28)
+- **pai-warmup `db872692-56f9-497e-85cb-93ca6595223d`** (v0.3, digest `29a4f9c2…`): SUCCEEDED, 32/32. Observed **535.7 s** vs v0.2's 552.1 s.
+  - Halving the plans saved only ~16 s per wave, so almost all of the ~540 s is fixed (16 replicas starting up and loading 21 GB).
+  - Two-point linear fit (ESTIMATE): model time ≈ 32 s/wave at 2 Hz and 16 s/wave at 1 Hz; fixed part ≈ 520 s.
+  - Official PAI estimate for v0.3: 9,250 (starter) + ~200 (one-off model load) + 30.8 × ~16 ≈ **~10,000 s of 14,400**. The earlier 17,000 s extrapolation wrongly treated startup as per-wave cost.
+- **nuPlan, same 30 scenes as Result 4** (job 12953375, L40S): a15 at 1 Hz scored 24/30, mean scene score **0.784**.
+  - Compare: a15 at 2 Hz 0.728 (23/30); starter 0.687 (23/30).
+  - At-fault collisions 0.07, offroad 0.10, left corridor 0.07, progress 0.87.
+  - Mean Drive call 0.42 s; driver peak GPU memory **14,528 MiB**.
+- **Recommendation to Aman:**
+  - September slot 2 = v0.3 on PAI.
+  - Slot 3 = v0.3 on nuPlan. No nuPlan warmup: the image is proven on the server, and the same code passed locally on nuPlan.
