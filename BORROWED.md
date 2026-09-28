@@ -4,7 +4,7 @@ The two challenges live in separate folders and separate repos:
 
 | | nuReasoning | AlpaSim |
 |---|---|---|
-| Local | `Nuscenes/` (repo root today; see README) | `Nuscenes/alpasim/` |
+| Local | `Nuscenes/nureasoning/` | `Nuscenes/alpasim/` |
 | Cluster | `/insomnia001/depts/edu/users/au2327/nureasoning` | `/insomnia001/depts/edu/users/au2327/alpasim` |
 | GitHub | `amanupg/nureasoning-challenge-2026` | `amanupg/alpasim-challenge-2026` |
 
