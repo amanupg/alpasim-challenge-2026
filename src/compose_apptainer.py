@@ -12,22 +12,29 @@ of `docker compose up --exit-code-from runtime-0`:
 GPU device_ids in the compose file index into this job's CUDA_VISIBLE_DEVICES.
 Host sides of volumes under /repo (the checkout baked into the SIF, where the wizard ran)
 are mapped to the identical host checkout given by --repo-host; binds whose container side
-is under /repo (developer source mounts) are skipped. Default working dir = /repo (WORKDIR).
+is under /repo (developer source mounts) are skipped. Default working dir = the image's WORKDIR (IMAGES).
 
 Usage: python3 compose_apptainer.py COMPOSE.json --sif-dir DIR --repo-host DIR --logdir DIR
 (COMPOSE.json = the YAML converted to JSON by the SIF's python; the host python has no yaml)
 """
 import argparse, json, os, signal, socket, subprocess, sys, time
 
-# image -> file or sandbox directory name under --sif-dir (sandboxes: this apptainer lacks squashfuse)
-IMAGES = [("nvcr.io/nvidia/nre/nre-ga", "nre-ga_26.04"), ("alpasim-base", "alpasim-base")]
+# image -> (file or sandbox directory under --sif-dir, default working dir = the image's WORKDIR,
+# writable). Sandboxes because this apptainer lacks squashfuse; on GPFS --writable-tmpfs is
+# ignored, so an image that writes into its own tree (NRE: .../nrend/ptx_cache) runs with
+# --writable on our own sandbox copy instead.
+IMAGES = [("nvcr.io/nvidia/nre/nre-ga", "nre-ga_26.04", "/", True), ("alpasim-base", "alpasim-base", "/repo", False)]
+
+
+def image_entry(image):
+    for prefix, f, wd, writable in IMAGES:
+        if image.split(":")[0].endswith(prefix):
+            return f, wd, writable
+    raise SystemExit(f"no SIF mapped for image {image!r}")
 
 
 def sif_for(image, sif_dir):
-    for prefix, f in IMAGES:
-        if image.split(":")[0].endswith(prefix):
-            return os.path.join(sif_dir, f)
-    raise SystemExit(f"no SIF mapped for image {image!r}")
+    return os.path.join(sif_dir, image_entry(image)[0])
 
 
 def host_path(p, repo_host):
@@ -45,7 +52,7 @@ def gpu_env(svc, gpus):
 
 
 def build(name, svc, a, gpus):
-    cmd = ["apptainer", "exec", "--nv", "--writable-tmpfs"]
+    cmd = ["apptainer", "exec", "--nv", "--writable" if image_entry(svc["image"])[2] else "--writable-tmpfs"]
     for v in svc.get("volumes") or []:
         parts = v.split(":")
         if parts[1] == "/repo" or parts[1].startswith("/repo/"):
@@ -56,7 +63,7 @@ def build(name, svc, a, gpus):
         if not os.path.exists(hp) and not os.path.splitext(hp)[1]:
             os.makedirs(hp)          # docker creates missing bind sources as directories
         cmd += ["-B", ":".join([hp] + parts[1:])]
-    cmd += ["--pwd", svc.get("working_dir") or "/repo"]     # docker WORKDIR of alpasim-base
+    cmd += ["--pwd", svc.get("working_dir") or image_entry(svc["image"])[1]]
     env = {}
     for e in svc.get("environment") or []:
         if "=" in e:

@@ -132,3 +132,14 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - verified offline inside the image: vocab 155697 / traj offset 151669; frames resize to 576x320;
   - starts read-only with no network; the model needs a GPU.
   - Pushing to ECR.
+
+### Result 5: first OFFICIAL submission, PAI track, starter image (September slot 1 of 3)
+- **Submission:** `0f1f124a-ca30-4804-aebb-db10cff56267`, image `v0.1-starter` (straight line at current speed). Evaluated 2026-09-27 22:08 to 2026-09-28 01:11 UTC.
+- **Coverage:** 987/987 valid scored rollouts.
+- **Leaderboard:** PCS **1491** (interval 1440-1543), rank 38/52. Average scene score **0.140**; at-fault incident spacing 0.143; dist_to_gt 2.16.
+- **Above** every VAVAM entry (PCS ~1013-1082). **Top:** jongam 2135 (scene score 0.561). **Host "internal" (Alpamayo 1 reference):** 2000 (scene score 0.560).
+- **Throughput:** observed **9,250 s of the 14,400 s limit** (margin 5,150 s, passed).
+  - A near-zero-cost driver already uses 64% of the PAI budget; our whole model cost must fit in about 5,150 s.
+  - Rough estimate for the int8 Alpamayo at 2 Hz: about 40 plans per rollout × 987 ≈ 39.5k plans over 4 H100s × 4 replicas. At ~10 plans/s aggregate that's ~3,950 s. It fits, but not with much room.
+  - **Unknown:** H100 throughput with 4 replicas contending per GPU. A PAI warmup reports one 32-rollout wave's wall time; compare with the starter's ~300 s/wave (9,250 s / ~31 waves) and extrapolate.
+  - **Levers if tight:** replan at 1 Hz, CUDA graphs for the diffusion expert (they collapsed the diffusion time in the fp8 test), drop the telephoto camera.
