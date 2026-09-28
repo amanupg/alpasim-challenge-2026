@@ -58,7 +58,10 @@ elif [ $TRACK = nuplan ]; then
 fi
 echo "$SCENES" > $RUN/scene_ids.txt
 # PAI: first N scenes of the curated validation suite (scenes download from HF on first use)
-if [ $TRACK = pai ]; then
+if [ $TRACK = pai ] && [ -n "$SCENE_FILE" ]; then      # explicit PAI scene list (one clipgt id per line)
+  PRESET="+e2e_challenge=dev"
+  SEL="+nurec_scenes=curated_val scenes.test_suite_id=null \"scenes.scene_ids=[$(sed "s/.*/'&'/" $SCENE_FILE | paste -sd, -)]\" scenes.limit_to_first_n=0"
+elif [ $TRACK = pai ]; then
   PRESET="+e2e_challenge=dev"; SEL="+nurec_scenes=curated_val scenes.limit_to_first_n=$NSCENES"
 else
   PRESET="+e2e_challenge_nuplan=dev"; SEL="\"scenes.scene_ids=[$SCENES]\" scenes.limit_to_first_n=0"

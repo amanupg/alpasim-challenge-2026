@@ -234,3 +234,27 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - Jobs 12959800-805: base, k5, nav, gainsA, gainsB, cot.
 - **Paired re-read of Result 7:** 1 Hz vs 2 Hz on 10 scenes = +0.024 (1 win, 0 losses, 9 ties). Equivalent, not better.
 - **Rule:** only variants with a clear paired gain go into v0.4; otherwise submit v0.3.
+
+### Sprint round 1: 40 PAI scenes, paired against base (jobs 12959800-805, Blackwell, 4 concurrent rollouts)
+
+| Variant | Mean | Paired diff [90%] | Wins/losses/ties | Passed |
+|---|---|---|---|---|
+| base (v0.3: int8, 1 Hz, K=1) | 0.661 | - | - | 30/40 |
+| reasoning on | 0.496 | **-0.165** [-0.308, -0.024] | 7/14/19 | 21 |
+| K=5 medoid | 0.579 | **-0.082** [-0.179, +0.007] | 5/9/26 | 27 |
+| gains A (lat 3, heading 2) | 0.701 | +0.040 [-0.012, +0.104] | 5/5/30 | 32 |
+| nav text | 0.696 | +0.036 [-0.013, +0.095] | 5/7/28 | 33 |
+| gains B (steer 10, acc 3) | 0.672 | +0.011 [-0.080, +0.100] | 8/4/28 | 31 |
+
+- **Dropped:** reasoning and the medoid (both lose).
+- **Surprising:** the medoid's consensus trajectory drives worse. Plausibly it averages away decisive manoeuvres. Note it, don't chase it now.
+- **Suggestive but not significant:** gains A and nav.
+- **Driver peak GPU memory 15,052-15,134 MiB in every variant.**
+- **gains B had 2 rollouts end on `UNAVAILABLE: Stream removed (Connection reset by peer)`** during the runtime's submit_image to our driver.
+  - The driver kept running with no errors. Likely load: 4 concurrent rollouts per driver locally vs 2 officially.
+  - Hardening for v0.4: more gRPC workers, larger message limits.
+- **Round 2** (same 40 scenes):
+  - base rerun (A/A noise calibration), 12964410;
+  - nav + gains A, 12964411;
+  - gains A strong (lat 5, heading 3), 12964412.
+- **Round 3:** the winner vs base on 30 fresh scenes (curated val 41-70, prefetch 12964413) to avoid winner's curse.
