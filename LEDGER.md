@@ -169,3 +169,18 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Measured drivers:** L40S 550.54.14; H100 NVL 550.54.14; RTX PRO 6000 Blackwell (ins046/047) **575.57.08**.
 - **Consequence:** local PAI runs go on the R6000 (Blackwell) nodes. nuPlan (MTGS) runs on L40S/H100. The official evaluator is unaffected (its drivers are new).
 - The CUDA-graph option for the diffusion expert costs +1.2 GB GPU memory (15,438 vs 14,236 MiB) for -6% latency (0.898 vs 0.956 s). Kept off.
+
+### Result 7: local PAI closed loop, same 10 curated-val scenes (Blackwell node ins047, 2 concurrent rollouts)
+
+| Driver | Passed | Mean scene score | At-fault coll. | Offroad | Left corridor | Progress | Dist to GT |
+|---|---|---|---|---|---|---|---|
+| starter, job 12952258 | 5/10 | 0.349 | 0.00 | 0.30 | 0.20 | 0.57 | 2.38 m |
+| a15 int8, replan 2 Hz, job 12952257 | 8/10 | 0.776 | 0.10 | 0.00 | 0.10 | 0.92 | 3.16 m |
+| a15 int8, replan 1 Hz, job 12952259 | 8/10 | **0.800** | 0.10 | 0.00 | 0.10 | 0.95 | 3.43 m |
+
+- **Alpamayo more than doubles the starter's mean scene score on PAI.** Replanning at 1 Hz is no worse than 2 Hz on these scenes, and halves the mean Drive-call time (0.133 vs 0.262 s).
+- **Load:** 199 Drive calls and 40 plans per rollout at 2 Hz (20 at 1 Hz), so the budget estimate's "40 plans per rollout" is confirmed.
+- **Caveats:**
+  - 10 scenes only; local scenes are easier than the hidden set (starter 0.349 here vs 0.140 officially).
+  - Renderer harmonizer config differs from the official EC2 preset.
+- **Memory flag:** on Blackwell the driver process showed 19.2 GB in nvidia-smi (vs 14.2 GB on L40S). Being measured standalone on H100 (the official GPU) and Blackwell: jobs 12952759 and 12952760.
