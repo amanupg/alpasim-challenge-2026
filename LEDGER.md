@@ -184,3 +184,19 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - 10 scenes only; local scenes are easier than the hidden set (starter 0.349 here vs 0.140 officially).
   - Renderer harmonizer config differs from the official EC2 preset.
 - **Memory flag:** on Blackwell the driver process showed 19.2 GB in nvidia-smi (vs 14.2 GB on L40S). Being measured standalone on H100 (the official GPU) and Blackwell: jobs 12952759 and 12952760.
+
+### Result 8: driver GPU memory by GPU type, and v0.3 image (2026-09-28)
+- **Standalone** (`src/check_policy.py`, 4 camera slots × 4 frames, 12 nuReasoning clips, int8 + CPU embedding):
+
+| GPU | Driver | nvidia-smi (process) | Peak reserved | Latency/plan |
+|---|---|---|---|---|
+| H100 PCIe (official GPU family), job 12952759 | 550.54.14 | 14,620 MiB | 13.41 GiB | 0.784 s |
+| RTX PRO 6000 Blackwell, job 12952760 | 575.57.08 | 14,432 MiB | 13.37 GiB | 0.696 s |
+| L40S, job 12950505 | 550.54.14 | 14,236 MiB | 13.37 GiB | 0.959 s |
+
+- **Closed loop** (PAI run 12952259): the driver process (the first GPU pid, present before the simulator) peaked at **15,052 MiB**, leaving ~1.3 GB under the 16,384 MiB cap.
+  - The 19.3 GB figure reported earlier was NVIDIA's renderer process sharing that GPU (the logger took the max over all pids; now fixed to report the driver pid only).
+  - Physics used ~2.0 GB.
+- **Image `v0.3-a15int8-1hz`:** same layers as v0.2 except the last.
+  - `A15_INFERENCE_INTERVAL_US=1000000`, `A15_GIT_HASH=e7a75d6`, `A15_EMBED_CPU=1`, `A15_CUDA_GRAPH=0` (verified inside the image).
+  - Pushing to ECR.

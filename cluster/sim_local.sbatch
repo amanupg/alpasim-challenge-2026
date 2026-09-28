@@ -42,7 +42,9 @@ else
   DRV=$!
 fi
 trap 'kill $DRV 2>/dev/null' EXIT
+# log ALL GPU processes, but the driver's own line is what the 16 GiB cap is about (renderer/physics share the GPU)
 ( while kill -0 $DRV 2>/dev/null; do nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader >> $RUN/gpu_mem.log; sleep 15; done ) &
+echo $DRV > $RUN/driver.pid
 
 # ---- scenes
 if [ -n "$SCENES_FROM" ]; then
@@ -73,6 +75,6 @@ python3 $A/src/compose_apptainer.py $RUN/docker-compose.json --sif-dir $A/sandbo
 RC=$?
 echo "runtime exit $RC"
 python3 $A/src/summarize_run.py $RUN
-sort -t, -k2 -n $RUN/gpu_mem.log | tail -3
+echo "driver (pid $DRV) peak GPU memory: $(grep "^$DRV," $RUN/gpu_mem.log | sort -t, -k2 -n | tail -1)"
 grep "closed session\|inference failed" $RUN/driver.log | tail -20
 exit $RC
