@@ -301,3 +301,23 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - nuPlan: `491ce993-ed61-4c43-ad08-a9968aa3bce9`, same image, default gains.
 - The first submit attempt was refused before submission: the Docker ECR token had expired (12 h). The CLI checks the image first, so no slot was used; `ecr-login` fixed it.
 - September quota is now used up (3/3). October brings 3 more.
+
+### Result 10: v0.3 official results (2026-09-29)
+
+| Track | Submission | Coverage | Wall time / limit | PCS [interval] | Rank | Scene score | At-fault spacing |
+|---|---|---|---|---|---|---|---|
+| PAI | 5aab2ba2 | 987/987 | 9,474 / 14,400 s | **2143** [2096-2189] | **2 / 58** | 0.611 | 0.795 |
+| nuPlan | 491ce993 | 1000/1000 | 1,268 / 3,000 s | 1296 [1235-1358] | 19 / 71 | 0.827 | 0.234 |
+
+- **PAI:**
+  - The only entry above us is acmlab-dow, 2224 (scene 0.665). Next: jongam 2123/2119, fox-srdc 2108, team-unofficial (slim-fp8) 2081. The host's Alpamayo 1 reference is 2000.
+  - Our at-fault incident spacing (0.795) is the best in the top 6.
+  - Our starter entry now shows 1468 (rank 43); scores are re-fit as entries arrive.
+  - My pre-submission ESTIMATE was PCS ~1900-1990 (rank ~10-16): too pessimistic. The local-to-hidden scene-score shrink measured on the starter (0.349 → 0.140) did not transfer to a driver that turns and reacts. Local 0.661-0.693 on 40 scenes vs official 0.611.
+  - The wall-time estimate (~10,000 s) held: 9,474 s.
+- **nuPlan:**
+  - The top 10 are almost all py123d-garage (recorded on day one as the host framework; the leaderboard has no host flag).
+  - Likely-eligible teams ahead of us: team-ready 1463 (scene 0.875), yax-nam 1469, team-lucifer 1467. Host go_straight_with_delay_v2: 1333 (scene 0.799, spacing 0.258).
+  - Our scene score beats go-straight, but our incident spacing is lower (0.234), and the IRT fit weights it.
+  - nuPlan is off-domain for Alpamayo (Motional rig, 2 Hz frames). The fix is more data-side work than tuning.
+- **Quota:** September's 3/3 used. October: 3.
