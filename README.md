@@ -65,7 +65,8 @@ renderer image.
 | Local simulator on Insomnia | works (Apptainer); nuPlan verified, PAI renderer being fixed |
 | Driver | `src/a15_driver`: Alpamayo 1.5, int8, no reasoning, replan 2 Hz; 14.5 GiB peak (cap 16 GiB) |
 | Image | `teams/amanupg:v0.2-a15int8` (21.5 GB) pushed to ECR |
-| Official, Sep slot 1 | PAI, starter: **PCS 1491, rank 38/52** (scene score 0.14; 9,250 of 14,400 s budget) |
+| Official, Sep slot 1 | PAI, starter: PCS 1491 at the time (scene score 0.14; 9,250 of 14,400 s budget) |
+| Official, Sep slots 2-3 | v0.3 (Alpamayo 1.5 int8, 1 Hz): **PAI PCS 2143, rank 2/58**; nuPlan PCS 1296, rank 19/71 |
 | Warmups | nuplan-warmup starter OK (32/32); pai-warmup Alpamayo `ff87a2af…` running |
 | Local nuPlan, same 30 scenes | starter 0.687 vs Alpamayo 0.728 mean scene score |
 
