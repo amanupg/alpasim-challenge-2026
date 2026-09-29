@@ -295,3 +295,9 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - Fine-tune the action expert on NuRec/PAI data (the nuReasoning fine-tune fixed Alpamayo's speed profile).
   - Selective (not uniform) conservatism for the at-fault collisions.
   - The gRPC robustness hardening.
+
+### Official submissions: September slots 2 and 3 (2026-09-29)
+- PAI: `5aab2ba2-ada8-4df5-91ab-24b03bb86234`, image `v0.3-a15int8-1hz` (digest 29a4f9c2…), default gains.
+- nuPlan: `491ce993-ed61-4c43-ad08-a9968aa3bce9`, same image, default gains.
+- The first submit attempt was refused before submission: the Docker ECR token had expired (12 h). The CLI checks the image first, so no slot was used; `ecr-login` fixed it.
+- September quota is now used up (3/3). October brings 3 more.
