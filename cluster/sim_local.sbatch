@@ -24,7 +24,15 @@ DRIVER=${DRIVER:-starter}; TRACK=${TRACK:-nuplan}; NSCENES=${NSCENES:-10}; ROLLO
 RUN=$A/runs/local_${TRACK}_${DRIVER}${TAG:+_$TAG}_$SLURM_JOB_ID; mkdir -p $RUN
 env | grep -E "^A15_|^EXTRA_OVERRIDES" | sort > $RUN/variant.env
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
-export ALPASIM_DRIVER_HOST=localhost ALPASIM_DRIVER_PORT=6789 ALPASIM_NUPLAN_ROOT=$A/data/nuplan_track
+# Unique ports per job: several runs can share a node, and gRPC binds with SO_REUSEPORT, so fixed
+# ports (6000.., 6789) silently split connections between co-located runs' services and drivers
+# (found 2026-09-29: sprint round 1 on ins046 was contaminated this way).
+PORT_BASE=$((20000 + (SLURM_JOB_ID % 4000) * 10))
+export ALPASIM_DRIVER_HOST=localhost ALPASIM_DRIVER_PORT=$((PORT_BASE + 9)) ALPASIM_NUPLAN_ROOT=$A/data/nuplan_track
+if ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE ":($PORT_BASE|$((PORT_BASE+1))|$((PORT_BASE+2))|$((PORT_BASE+3))|$((PORT_BASE+9)))$"; then
+  echo "port block $PORT_BASE busy on $(hostname)"; exit 3
+fi
+echo "ports: services from $PORT_BASE, driver $ALPASIM_DRIVER_PORT" 
 
 # ---- driver
 if [ $DRIVER = a15 ]; then
@@ -73,7 +81,7 @@ fi
   echo "cd $RUN"
   echo "export HF_HOME=$A/.cache/hf"
   echo "exec /repo/.venv/bin/alpasim_wizard $PRESET wizard.run_method=NONE wizard.log_dir=$RUN" \
-       "defines.filesystem=$A/data/fs hydra.run.dir=$RUN/hydra eval.video.render_video=false" \
+       "defines.filesystem=$A/data/fs hydra.run.dir=$RUN/hydra eval.video.render_video=false wizard.baseport=$PORT_BASE" \
        "runtime.endpoints.driver.n_concurrent_rollouts=$ROLLOUTS $SEL $EXTRA_OVERRIDES"
 } > $RUN/wizard.sh
 apptainer exec -B $A $SIF bash $RUN/wizard.sh > $RUN/wizard.log 2>&1 || { tail -40 $RUN/wizard.log; exit 1; }

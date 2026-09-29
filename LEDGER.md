@@ -258,3 +258,16 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - nav + gains A, 12964411;
   - gains A strong (lat 5, heading 3), 12964412.
 - **Round 3:** the winner vs base on 30 fresh scenes (curated val 41-70, prefetch 12964413) to avoid winner's curse.
+
+### INVALIDATION: co-located local runs shared ports (found 2026-09-29 00:40 UTC)
+- **Cause:** every local run used fixed ports (services 6000+, driver 6789). gRPC binds with SO_REUSEPORT, so two runs on one node silently split connections between each other's drivers and services.
+- **Evidence (driver sessions served, 40 expected):**
+  - ins046: nav 40 (3 with nav text), gains A **54**, gains B **22**. Round 2 base rerun **0**, nav+gains A 8.
+  - ins047: base, k5 and cot each exactly 40, with per-variant latencies (0.17 / 0.42 / 0.32 s per Drive call) matching their own drivers.
+- **Verdict:**
+  - Round 1 nav, gains A and gains B are **invalid** (drivers and controllers, which hold the gains, mixed on ins046). Round 2 base rerun and nav+gains A were cancelled.
+  - base, k5 and cot (ins047) stand. They all used default gains, so a shared controller couldn't change results, and each driver served its own 40 sessions.
+  - All earlier comparisons (nuPlan starter/a15 on different nodes; the sequential 10-scene PAI chain; nuPlan 1 Hz alone) are unaffected.
+- **Fix:** `sim_local.sbatch` now uses a per-job port block (`wizard.baseport`, driver `PORT_BASE+9`, from the Slurm job id) and refuses to start if the block is busy.
+- **Resubmitted:** nav 12965003, gains A 12965004, nav+gains A 12965005, base rerun (A/A) 12965006. Gains A strong (12964412) ran alone on ins047 and is kept.
+- The fresh-scene prefetch first failed on CRLF line endings in `sim_suites_curated.csv` (scene ids ended in `\r`); rerun as 12964995.
