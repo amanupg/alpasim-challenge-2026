@@ -271,3 +271,27 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Fix:** `sim_local.sbatch` now uses a per-job port block (`wizard.baseport`, driver `PORT_BASE+9`, from the Slurm job id) and refuses to start if the block is busy.
 - **Resubmitted:** nav 12965003, gains A 12965004, nav+gains A 12965005, base rerun (A/A) 12965006. Gains A strong (12964412) ran alone on ins047 and is kept.
 - The fresh-scene prefetch first failed on CRLF line endings in `sim_suites_curated.csv` (scene ids ended in `\r`); rerun as 12964995.
+
+### Sprint result (clean reruns with per-job ports, 2026-09-29): no lever beats noise; submit v0.3 unchanged
+- **Validity:** every driver served exactly its own 40 sessions (jobs 12965003-006 on ins046 with distinct port blocks; 12964412 alone on ins047).
+- **Noise floor (A/A):** base rerun 0.693 vs base 0.661 on the same 40 scenes, config identical. That's +0.032 [-0.013, +0.092], 4 wins / 6 losses. The simulator is not deterministic run to run, so differences of about ±0.03 are noise at 40 scenes.
+- **Against the base rerun (0.693):**
+
+| Variant | Mean | Diff [90%] | Wins/losses |
+|---|---|---|---|
+| nav | 0.691 | -0.002 [-0.079, +0.075] | 7/7 |
+| gains A (lat 3, heading 2) | 0.696 | +0.002 [-0.051, +0.056] | 8/4 |
+| nav + gains A | 0.672 | -0.021 [-0.072, +0.007] | 4/6 |
+| gains A strong (lat 5, heading 3) | 0.678 | -0.015 [-0.052, +0.007] | 5/4 |
+
+- **Nav text triggered in only 2 of 40 sessions** (first turn within 100 m), so it can barely matter on these scenes.
+- **Still-valid negatives** (ins047, beyond the noise floor): reasoning -0.165 [-0.308, -0.024]; K=5 medoid -0.082 [-0.179, +0.007].
+- **Decision:**
+  - Both remaining September slots use v0.3 (`v0.3-a15int8-1hz`, digest 29a4f9c2…) with default controller gains; no v0.4.
+  - The fresh-scene confirmation (curated val 41-70, prefetched: 150 usdz, 120 GB total) is not needed now; kept for October.
+- **Lesson:** always run an A/A (same-config) rerun before believing a local gain. Here a +0.03 "gain" was exactly the size of rerun noise.
+- **October candidates:**
+  - Reduce local noise: more scenes; 2 seeds per scene.
+  - Fine-tune the action expert on NuRec/PAI data (the nuReasoning fine-tune fixed Alpamayo's speed profile).
+  - Selective (not uniform) conservatism for the at-fault collisions.
+  - The gRPC robustness hardening.
