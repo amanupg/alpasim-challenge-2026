@@ -62,8 +62,10 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Earlier notes said "3 per rolling 30 days" for official submissions. That's wrong.** Only warmups are rolling-30-day.
 - **Evidence:**
   - The CLI's `limits` prints "Monthly submission limit / Submitted this month / Remaining this month".
-  - NVlabs/alpasim#171: teams losing "remaining August submissions" before month end, with the "September submission limit reduced to 3".
-  - The organiser in #170/#158: "3 per month"; soft-open allocations were reset.
+  - NVlabs/alpasim#170 (2026-08-31): a team asked whether "unused August submissions" would carry over, noting "the September submission limit is planned to be reduced to 3". The organiser replied "No... all team allocations will be reset". (#171 is the same question, closed by the asker with no reply.)
+  - NVlabs/alpasim#158 (organiser, 2026-08-24): "submissions per month(3)".
+  - Contestant Guide: official limits "are shared across tracks"; only warmups are "rolling 30-day". It never states the official period itself; re-checked 2026-09-29.
+  - Still unconfirmed by us: that the counter resets on Oct 1. Check `limits` on Oct 1.
 - **Consequence:** the 3 September slots expire at month end (Sep 30), and October brings 3 more. Unused slots don't carry over.
 - **Other facts from the upstream issues:**
   - #185: warmups were wrongly counted against the official quota; fixed 2026-09-18.
