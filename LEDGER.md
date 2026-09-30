@@ -455,3 +455,19 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Some offroad failures look like map artifacts:** e65021 sits on the recorded path (dist 0.0-0.1 m) and is flagged offroad from the first frame.
 - Routes arrive as 20 slots with about 10 real points and NaN padding; the chooser and route text both drop the NaNs (now covered by a test).
 - **Queued (100 scenes, paired vs 0.759):** chooser margin 0.5 m (12997155); route text v3 (12997156); both (12997157).
+
+## 2026-09-30 nuPlan route runs, round 2 (100 scenes, paired vs bench 0.759; all "0 sessions with fallback")
+| Variant | Mean | Diff vs bench [90%] | W/L/T |
+|---|---|---|---|
+| chooser K=6, margin 0.5 m (12997155) | 0.786 | +0.027 [-0.015, +0.070] | 7/8/85 |
+| route text v3, turn distance fixed (12997156) | 0.749 | -0.010 [-0.039, +0.019] | 3/4/93 |
+| text v3 + chooser margin 0.5 (12997157) | 0.762 | +0.002 [-0.034, +0.039] | 6/9/85 |
+- **Margin 0.5 vs 2.0:** -0.001 [-0.032, +0.030], identical. The chooser's gain is stable across two runs (+0.028, +0.027); the margin doesn't matter.
+- **Route text doesn't help Alpamayo on nuPlan, even with the distance fixed:** 93/100 scenes tie. The model mostly ignores the route text, and adding it to the chooser costs ~0.025.
+- Text v3 fired in 39/100 first routes, with distances 26-68 m.
+- **Where nuPlan stands:** the chooser (K=6, +0.028) is the one validated part. The remaining junction failures need the model to propose the turn, which neither the text input nor more samples (K=16) achieves.
+
+## 2026-09-30 PAI chooser batch 1 lost to a renderer crash (12996946)
+- 26/40 rollouts errored: the NRE renderer hit "CUDA error: an illegal memory access" in its own camera kernel (`generate_image_points`), after which every rollout failed.
+- Not memory pressure: the driver peaked at 15.1 GB and the renderer at 20.6 GB, on a 96 GB card. Our driver logged no errors.
+- The batch is rerun after batches 2-3 (12996947 running, clean so far).
