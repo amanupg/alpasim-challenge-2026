@@ -20,6 +20,8 @@ import time
 import numpy as np
 import torch
 
+from .route_choice import choose as route_choose
+
 LOGGER = logging.getLogger("a15_policy")
 
 # Alpamayo camera slots (alpasim_driver.models.alpamayo_base.CAMERA_NAME_TO_INDEX)
@@ -91,7 +93,8 @@ class Alpamayo15Policy:
 
     def __init__(self, *, model_dir: str, vlm_dir: str, processor_dir: str,
                  quant: str = "int8wo", reasoning: bool = False, seed: int = 42,
-                 embed_cpu: bool = True, cuda_graph: bool = False, num_samples: int = 1) -> None:
+                 embed_cpu: bool = True, cuda_graph: bool = False, num_samples: int = 1,
+                 chooser: str = "medoid") -> None:
         from alpamayo1_5 import helper
         from alpamayo1_5.models.alpamayo1_5 import Alpamayo1_5
 
@@ -121,6 +124,7 @@ class Alpamayo15Policy:
         self._reasoning, self._seed = reasoning, seed
         self._eos = model.tokenizer.convert_tokens_to_ids("<|traj_future_start|>")
         self._num_samples, self._hist = max(1, int(num_samples)), None
+        self._chooser, self._route, self.last_choice = chooser, None, 0
         if self._num_samples > 1:
             self._wrap_diffusion_medoid()
         LOGGER.info("Alpamayo 1.5 loaded in %.0fs, quantized %s (%.2fB params) in %.0fs, reserved %.2f GiB",
@@ -128,7 +132,9 @@ class Alpamayo15Policy:
                     torch.cuda.memory_reserved() / 2**30)
 
     def _wrap_diffusion_medoid(self) -> None:
-        """K trajectory samples per plan, keep the medoid (least total xy distance to the others).
+        """K trajectory samples per plan. chooser "medoid": keep the medoid (least total xy distance
+        to the others). chooser "route": keep sample 0 (the K=1 plan) unless another sample follows
+        the route waypoints clearly better (route_choice.choose).
         The VLM prompt runs ONCE; only the flow-matching sampler repeats, reusing the prompt KV cache
         (sample_trajectories_from_data_with_vlm_rollout's step_fn crops the cache back after every
         expert call). Sampling K sequences through the VLM instead would copy the ~470 MB prompt
@@ -143,18 +149,24 @@ class Alpamayo15Policy:
             xyz, _ = model.action_space.action_to_traj(S, hx[:, -1].repeat(K, *[1] * (hx.dim() - 2)),
                                                        hr[:, -1].repeat(K, *[1] * (hr.dim() - 2)))
             xy = xyz[..., :2].reshape(K, -1).float()
-            i = int(torch.cdist(xy, xy).sum(1).argmin())
+            if self._chooser == "route":
+                i = route_choose(xy.reshape(K, -1, 2).cpu().numpy(), self._route)
+            else:
+                i = int(torch.cdist(xy, xy).sum(1).argmin())
+            self.last_choice = i
             self._last_spread = float(torch.cdist(xy, xy).max()) / max(xyz.shape[-2], 1) ** 0.5
             return S[i:i + 1]
         model.diffusion.sample = sample
 
     @torch.no_grad()
     def predict(self, frames: torch.Tensor, cam_slots: list[int],
-                hist_xyz: torch.Tensor, hist_rot: torch.Tensor, nav_text: str | None = None
-                ) -> tuple[np.ndarray, np.ndarray, dict]:
+                hist_xyz: torch.Tensor, hist_rot: torch.Tensor, nav_text: str | None = None,
+                route_xy: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray, dict]:
         """frames: (n_cam, 4, 3, H, W) uint8 ordered as cam_slots (ascending);
         hist_*: (1, 1, 16, 3) / (1, 1, 16, 3, 3) ego history in the t0 rig frame;
-        nav_text: optional route instruction ("Turn left in 30m"), Alpamayo 1.5's navigation input."""
+        nav_text: optional route instruction ("Turn left in 30m"), Alpamayo 1.5's navigation input;
+        route_xy: route waypoints in the rig frame, used by the "route" chooser."""
+        self._route, self.last_choice = route_xy, 0
         msgs = self._helper.create_message(frames.flatten(0, 1), camera_indices=torch.tensor(cam_slots),
                                            nav_text=nav_text)
         if not self._reasoning:
@@ -173,4 +185,4 @@ class Alpamayo15Policy:
         r = rot[0, 0, 0].float()
         yaw = torch.atan2(r[:, 1, 0], r[:, 0, 0]).cpu().numpy()
         cot = str(np.array(extra.get("cot", [""]), dtype=object).ravel()[0]) if self._reasoning else ""
-        return xy, yaw, {"prompt_tokens": int(tok["input_ids"].shape[1]), "cot": cot}
+        return xy, yaw, {"prompt_tokens": int(tok["input_ids"].shape[1]), "cot": cot, "choice": self.last_choice}

@@ -193,7 +193,7 @@ class SessionState:
     route_xy: np.ndarray | None = None                      # latest route waypoints, rig frame
     last_nav: str | None = None
     stats: dict = field(default_factory=lambda: {"drive": 0, "infer": 0, "infer_err": 0, "fallback": 0,
-                                                 "cached": 0, "infer_s": 0.0})
+                                                 "cached": 0, "rerouted": 0, "infer_s": 0.0})
 
 
 class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
@@ -230,9 +230,9 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             s = self._sessions.pop(request.session_uuid, None)
         if s is not None:
             st = s.stats
-            LOGGER.info("closed session %s: drive %d, inferences %d (errors %d, mean %.3fs), cached %d, fallback %d, last nav %r",
-                        request.session_uuid, st["drive"], st["infer"], st["infer_err"],
-                        st["infer_s"] / max(st["infer"], 1), st["cached"], st["fallback"], s.last_nav)
+            LOGGER.info("closed session %s: drive %d, inferences %d (errors %d, mean %.3fs), cached %d, fallback %d, "
+                        "rerouted %d, last nav %r", request.session_uuid, st["drive"], st["infer"], st["infer_err"],
+                        st["infer_s"] / max(st["infer"], 1), st["cached"], st["fallback"], st["rerouted"], s.last_nav)
         return common_pb2.Empty()
 
     # ------------------------------------------------------------ observations
@@ -312,16 +312,16 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         if batch is None:
             return
         frames, hx, hr, t0, anchor = batch
+        with self._lock:
+            route = s.route_xy
         nav = None
         if self._nav:
-            with self._lock:
-                route = s.route_xy
             nav = route_nav_text(route) if route is not None else None
             s.last_nav = nav
         t = time.time()
         try:
             with self._infer_lock:
-                xy, yaw, info = policy.predict(frames, s.slots, hx, hr, nav_text=nav)
+                xy, yaw, info = policy.predict(frames, s.slots, hx, hr, nav_text=nav, route_xy=route)
         except Exception:                                    # noqa: BLE001
             LOGGER.exception("inference failed")
             with self._lock:
@@ -331,6 +331,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                                source_frequency_hz=policy.output_frequency_hz)
         with self._lock:
             s.stats["infer"] += 1; s.stats["infer_s"] += time.time() - t
+            s.stats["rerouted"] += int(info.get("choice", 0) != 0)
             if new is not None:
                 s.cached_plan = new
 
@@ -417,7 +418,8 @@ def main() -> None:
         reasoning=os.environ.get("A15_REASONING", "0") == "1",
         embed_cpu=os.environ.get("A15_EMBED_CPU", "1") == "1",
         cuda_graph=os.environ.get("A15_CUDA_GRAPH", "0") == "1",
-        num_samples=int(os.environ.get("A15_NUM_SAMPLES", "1"))))
+        num_samples=int(os.environ.get("A15_NUM_SAMPLES", "1")),
+        chooser=os.environ.get("A15_CHOOSER", "medoid")))
     service = A15ChallengeDriver(
         handle=handle,
         pai_cameras=[c.strip() for c in os.environ.get("A15_PAI_CAMERAS", DEFAULT_PAI_CAMERAS).split(",") if c.strip()],
