@@ -442,3 +442,6 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   3. Frame timing and camera set: nuScenes Motional rig (older vehicle) vs nuPlan's Motional rig.
 - **Licence question for Aman before any submission:** nuScenes is CC BY-NC-SA. A model fine-tuned on it, submitted under the challenge terms (Apache-2.0 plus a broad NVIDIA licence), may not be allowed. Local tests are fine.
 - **Plan:** first a 100-scene nuPlan test of the expert swap with the prompt format matched (camera ids off), at our 576x320; then 896x592 if memory allows.
+- **Update after reading `nureasoning/src/a15ft_infer.py`:** the fine-tune is a recipes `TrainableAlpamayoR1` checkpoint with the recipes' VLA processor (its own prompt build at 896x592) and the R1 sampler, not a drop-in expert for our `Alpamayo1_5` path. A faithful port means bringing the recipes processor and model class into the driver.
+- On nuReasoning, in-domain, it beat zero-shot by only +0.002 to +0.0085. And it calibrates speed, while nuPlan loses mostly to wrong-branch choices.
+- **Decision:** deprioritised. nuPlan effort goes to route intent (chooser geometry and consistency) first.
