@@ -369,3 +369,12 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - **Low progress:** short-route scenes (GT 7-20 m in the window); in two the car never moves (progress 0.00 and 0.03).
 - **Route chooser written** (`src/a15_driver/route_choice.py`, `A15_CHOOSER=route` with `A15_NUM_SAMPLES=K`): K diffusion samples, keep sample 0 (the K=1 plan) unless another is closer to the route polyline [car, waypoints 40-80 m] by more than 2 m. Unit tests on synthetic junctions: picks the turning sample for a left-turn route, the straight one for a straight route, and keeps sample 0 under jitter, short plans or no route. Off by default. Not yet run closed loop.
 - Three nuPlan runs of it (nav v2, chooser K=6, both) are queued on the same 100 scenes; the first attempt (12995295-97) was cancelled before starting and requeued as 12995325 (nav v2), 12995326 (chooser K=6), 12995327 (both).
+
+### nuPlan route runs (same 100 scenes, paired vs bench 12991555 = 0.759)
+| Variant | Mean | Diff [90%] | W/L/T | Notes |
+|---|---|---|---|---|
+| nav v2 text (12995325) | 0.739 | -0.020 [-0.047, -0.000] | 2/4/94 | text alone slightly hurts |
+| route chooser K=6 (12995326) | 0.787 | **+0.028 [+0.005, +0.059]** | 3/5/92 | 66 plans rerouted over 100 sessions; offroad 6 to 4, corridor 9 to 8, low progress 19 to 22 |
+| nav v2 + chooser (12995327) | 0.767 | +0.007 [-0.005, +0.027] | 4/5/91 | text cancels most of the chooser gain |
+- All drivers served their own 100 sessions. 92-94 ties: closed loop on nuPlan is near-deterministic, so paired diffs are sharp.
+- **Reading:** the chooser helps a little but fixes few of the 15 wrong-branch scenes; most samples probably agree on the wrong branch. Next: look at the per-scene candidate spread at the junction scenes before going further.
