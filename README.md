@@ -207,6 +207,10 @@ Local PAI, paired against v0.3. Scene score differences on 40 scenes; the noise 
 | At-fault collision | 2 | |
 | Pass | 22 | |
 
+**nuPlan bench** (v0.3, 100 navtest scenes, mean 0.759): pass 63, low progress 19, corridor 9, offroad 6, collision 3. The rollout videos show corridor exits and offroad are almost all **wrong-branch choices at junctions** (15 of the 24 lost points); the 3 collisions are rear-ends.
+
+On the same 100 scenes, the separate `alpasim-jepa` thread's **WA-JEPA driver scores 0.958**: +0.198 [90% +0.131, +0.265], 35 wins, 2 losses. We re-checked it with our own scripts. It uses 5.4 GB of GPU memory and 0.2 s per plan. For nuPlan, that beats anything we could add to Alpamayo, so nuPlan work on Alpamayo is parked. A route chooser (K samples, keep the one that follows the route) is written for PAI (`A15_CHOOSER=route`, off by default).
+
 ## 8. Timeline and submissions
 
 ```mermaid
