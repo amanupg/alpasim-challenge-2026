@@ -368,14 +368,4 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - **All 3 collisions are rear-ends** on straight multi-lane roads (ego closes on the lead car).
   - **Low progress:** short-route scenes (GT 7-20 m in the window); in two the car never moves (progress 0.00 and 0.03).
 - **Route chooser written** (`src/a15_driver/route_choice.py`, `A15_CHOOSER=route` with `A15_NUM_SAMPLES=K`): K diffusion samples, keep sample 0 (the K=1 plan) unless another is closer to the route polyline [car, waypoints 40-80 m] by more than 2 m. Unit tests on synthetic junctions: picks the turning sample for a left-turn route, the straight one for a straight route, and keeps sample 0 under jitter, short plans or no route. Off by default. Not yet run closed loop.
-- Three nuPlan runs of it (nav v2, chooser K=6, both; 12995295-97) were queued, then **cancelled before starting** because of the result below.
-
-## 2026-09-29 Cross-check: WA-JEPA (the alpasim-jepa thread) on the same 100 nuPlan scenes
-- The separate `../alpasim-jepa` thread (Aman-approved) ran WA-JEPA (V-JEPA 2.1 ViT-L + flow planner, Apache-2.0 weights) as a nuPlan driver: job 12994594, run `alpasim-jepa/runs/nuplan_wajepa_v1_12994594`.
-- **Verified here, read-only:**
-  - same scene list as 12991555 (diff empty);
-  - no time overlap with our bench run (ours ended 21:23, theirs started 22:24, both on ins063), and it uses per-job port blocks;
-  - its driver log shows the WA-JEPA checkpoint loaded and 100 sessions closed.
-- **Our `compare_runs.py`:** 0.958 vs 0.759, **+0.198 [90% +0.131, +0.265]**, wins 35, losses 2, ties 63. Taxonomy: pass 93, low progress 3, offroad 3, corridor 1, collision 0.
-- **Consequence:** for nuPlan, WA-JEPA beats Alpamayo v0.3 by far more than any lever we could add to Alpamayo. The nuPlan Alpamayo work (route chooser on nuPlan, nuPlan fine-tune) is parked. The route chooser moves to PAI once the PAI bench shows how many PAI corridor exits are branch errors.
-- **Open for Aman:** who builds and submits the nuPlan image, and how the 3 shared October slots are split.
+- Three nuPlan runs of it (nav v2, chooser K=6, both) are queued on the same 100 scenes; the first attempt (12995295-97) was cancelled before starting and requeued as 12995325 (nav v2), 12995326 (chooser K=6), 12995327 (both).

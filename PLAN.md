@@ -31,11 +31,9 @@
 3. **Ablations plus the first October submission (Oct 13 to 19):** one bundled step-up per track.
 4. **Fix what the official results reveal; last two slots (Oct 20 to 28),** well before the Oct 31 close.
 
-## Side bet (only if the main line is on track by mid-October)
+## Out of scope here
 
-- A JEPA world model imagining each candidate trajectory's future in latent space, to pick the safest one.
-- Innovation-prize angle.
-- Public V-JEPA 2/2.1 encoders are usable. Meta's JEPA-WMs are CC-BY-NC, which likely conflicts with the Apache-2.0 submission terms.
+- JEPA models are a separate thread run by another agent (`../alpasim-jepa`). This repo stays on the Alpamayo 1.5 line for both tracks.
 
 ## Constraints
 
