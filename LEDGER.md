@@ -66,6 +66,8 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - NVlabs/alpasim#158 (organiser, 2026-08-24): "submissions per month(3)".
   - Contestant Guide: official limits "are shared across tracks"; only warmups are "rolling 30-day". It never states the official period itself; re-checked 2026-09-29.
   - Still unconfirmed by us: that the counter resets on Oct 1. Check `limits` on Oct 1.
+  - `limits` on 2026-09-29 (Aman): official 3 used / 0 remaining; pai-warmup 2 used / 1 left; nuplan-warmup 1 used / 2 left.
+  - Worst case if it is really rolling 30 days: slots free up on Oct 27 (starter, sent Sep 27) and Oct 29/30 (the two v0.3 entries), still before the Oct 31 close.
 - **Consequence:** the 3 September slots expire at month end (Sep 30), and October brings 3 more. Unused slots don't carry over.
 - **Other facts from the upstream issues:**
   - #185: warmups were wrongly counted against the official quota; fixed 2026-09-18.
