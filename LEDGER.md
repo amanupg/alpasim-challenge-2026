@@ -378,3 +378,10 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 | nav v2 + chooser (12995327) | 0.767 | +0.007 [-0.005, +0.027] | 4/5/91 | text cancels most of the chooser gain |
 - All drivers served their own 100 sessions. 92-94 ties: closed loop on nuPlan is near-deterministic, so paired diffs are sharp.
 - **Reading:** the chooser helps a little but fixes few of the 15 wrong-branch scenes; most samples probably agree on the wrong branch. Next: look at the per-scene candidate spread at the junction scenes before going further.
+
+### Storage cleanup (2026-09-30, approved by Aman per item)
+- Deleted only the raw `rollout.asl` logs (~60 GB) of:
+  - the 5 port-contaminated runs: 12959802, 12959803, 12959804, 12964410, 12964411;
+  - the three superseded 10-scene PAI runs: 12952257, 12952258, 12952259.
+- Kept each run's aggregate, configs and logs. The two runs cancelled mid-way (12964410, 12964411) never had a summary.
+- Everything else stays: scene data (exactly the 120 PAI + 100 nuPlan bench scenes), simulator sandboxes, valid runs.
