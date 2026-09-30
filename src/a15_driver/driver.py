@@ -87,27 +87,30 @@ def _interp_poses(ts: np.ndarray, pos: np.ndarray, quat: np.ndarray, t: np.ndarr
 
 
 def route_nav_text(xy: np.ndarray, turn_deg: float = 30.0, max_dist_m: float = 100.0) -> str | None:
-    """'Turn left in 30m' style instruction (Alpamayo 1.5's navigation input) from route waypoints in
-    the rig frame: distance along the route to the first point whose heading departs more than
-    turn_deg from the route's initial heading ahead of the car. None for no turn within max_dist_m.
-    Same rule as nureasoning/src/a15_infer.py::route_nav_text (borrowed idea)."""
-    pts = xy[xy[:, 0] > -2.0]
+    """'Turn left in 30m' style instruction (Alpamayo 1.5's navigation input) from the route waypoints
+    in the rig frame (x forward, y left).
+
+    The challenge runtime trims the first `route_start_offset_m` (40 m) of the route, so a turn that
+    starts inside that window is already behind the first waypoint. Headings are therefore measured
+    against the CAR's heading (rig x axis), not the route's first segment: the first route segment
+    heading more than turn_deg off the car's heading marks the turn, and its distance is the Euclidean
+    distance to that segment's start. None if the route runs straight ahead within max_dist_m.
+    (v1 compared against the route's own first segment and fired in only 2/40 PAI sessions.)"""
+    pts = xy[xy[:, 0] > -2.0] if len(xy) else xy
     if len(pts) < 2:
         return None
     seg = np.diff(pts, axis=0); L = np.linalg.norm(seg, axis=1)
     keep = L > 0.2
-    if keep.sum() < 2:
+    if keep.sum() < 1:
         return None
-    seg, L = seg[keep], L[keep]
-    hd = np.arctan2(seg[:, 1], seg[:, 0]); s = np.concatenate([[0.0], np.cumsum(L)])
-    d0 = float(np.linalg.norm(pts[0]))                 # route start relative to the car
-    for i in range(1, len(hd)):
-        dh = (hd[i] - hd[0] + np.pi) % (2 * np.pi) - np.pi
-        if abs(dh) > math.radians(turn_deg):
-            d = s[i] + d0 if pts[0][0] > 0 else s[i]
-            if d > max_dist_m:
-                return None
-            return f"Turn {'left' if dh > 0 else 'right'} in {int(round(d))}m"
+    starts, seg = pts[:-1][keep], seg[keep]
+    hd = np.arctan2(seg[:, 1], seg[:, 0])                  # relative to the car's heading
+    for i in range(len(hd)):
+        d = float(np.linalg.norm(starts[i]))
+        if d > max_dist_m:
+            return None
+        if abs(hd[i]) > math.radians(turn_deg):
+            return f"Turn {'left' if hd[i] > 0 else 'right'} in {int(round(d))}m"
     return None
 
 
@@ -272,7 +275,12 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         s = self._get_session(request.session_uuid, context)
         wps = np.array([[w.x, w.y] for w in request.route.waypoints], dtype=np.float64).reshape(-1, 2)
         with self._lock:
+            first = s.route_xy is None
             s.route_xy = wps
+        if first and self._nav:
+            LOGGER.info("session %s first route: %d waypoints, first %s last %s -> nav %r", request.session_uuid,
+                        len(wps), np.round(wps[0], 1).tolist() if len(wps) else None,
+                        np.round(wps[-1], 1).tolist() if len(wps) else None, route_nav_text(wps))
         return common_pb2.Empty()
 
     def submit_recording_ground_truth(self, request, context):

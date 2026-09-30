@@ -349,3 +349,8 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   1. Speed / progress is the largest reliable bucket, and the driver has no speed handling at all. Candidates: a fine-tuned action expert, or speed as a chooser feature.
   2. Route adherence: nav text fired in only 2/40 sessions; check how the route arrives (start offset 40 m) before judging nav.
 - **Next:** view rollout videos (bench run 12991558 renders them) for these 15 scenes.
+- **Nav text v1 was misplaced, not refuted.**
+  - The runtime's route has 20 waypoints over 80 m, but the challenge trims the first 40 m (`route_start_offset_m: 40`, `route_generator.py`).
+  - v1 measured turns against the route's own first segment, which already points the new way when the turn is inside the trimmed window. So it fired in only 2/40 sessions.
+  - v2 measures route headings against the car's heading and logs each session's first route. Unit tests: straight none; turn inside the window "Turn left in 29m"; turn at 60 m "Turn right in 60m"; gentle 10° curve none.
+  - Nav gets re-tested in the week-2 full system.
