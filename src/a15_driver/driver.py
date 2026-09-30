@@ -192,6 +192,7 @@ class SessionState:
     cached_plan: CachedPlan | None = None
     route_xy: np.ndarray | None = None                      # latest route waypoints, rig frame
     sid: str = ""
+    plan_nframes: int = 0                                   # distinct frames per camera behind the cached plan
     last_nav: str | None = None
     stats: dict = field(default_factory=lambda: {"drive": 0, "infer": 0, "infer_err": 0, "fallback": 0,
                                                  "cached": 0, "rerouted": 0, "infer_s": 0.0})
@@ -199,9 +200,9 @@ class SessionState:
 
 class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
     def __init__(self, *, handle: PolicyHandle, pai_cameras: list[str], interval_us: int, frame_dt_s: float,
-                 nav: bool = False, log_choices: bool = False):
+                 nav: bool = False, log_choices: bool = False, early_replan: bool = False):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
-        self._log_choices = log_choices
+        self._log_choices, self._early_replan = log_choices, early_replan
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -308,7 +309,11 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             return
         with self._lock:
             plan = s.cached_plan
-            if plan is not None and now - plan.created_time_us < self._interval_us:
+            nfr = min((len(s.frames[c]) for c in s.cams), default=0)
+            # early replan: while the plan was made from fewer than N_FRAMES distinct frames (session
+            # start; on nuPlan the first plan sees ONE frame), replan as soon as a new frame arrives
+            early = self._early_replan and s.plan_nframes < N_FRAMES and nfr > s.plan_nframes
+            if plan is not None and now - plan.created_time_us < self._interval_us and not early:
                 return
             batch = self._gather(s)
         if batch is None:
@@ -343,7 +348,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         if self._log_choices and info.get("costs") is not None:
             LOGGER.info("choice %s t0 %d: costs %s ends %s -> %d", s.sid, t0, info["costs"], info["ends"], info["choice"])
             if new is not None:
-                s.cached_plan = new
+                s.cached_plan, s.plan_nframes = new, nfr
 
     def _gather(self, s: SessionState):
         """Frames (n_cam, 4, 3, H, W), ego history, t0 and the anchor pose; None if not ready."""
@@ -436,7 +441,8 @@ def main() -> None:
         interval_us=int(os.environ.get("A15_INFERENCE_INTERVAL_US", "500000")),
         frame_dt_s=float(os.environ.get("A15_FRAME_DT_S", "0.1")),
         nav=os.environ.get("A15_NAV", "0") == "1",
-        log_choices=os.environ.get("A15_LOG_CHOICES", "0") == "1")
+        log_choices=os.environ.get("A15_LOG_CHOICES", "0") == "1",
+        early_replan=os.environ.get("A15_EARLY_REPLAN", "0") == "1")
     host, port = os.environ.get("ALPASIM_DRIVER_HOST", "0.0.0.0"), int(os.environ.get("ALPASIM_DRIVER_PORT", "6789"))
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=int(os.environ.get("ALPASIM_DRIVER_GRPC_WORKERS", "8"))))
     egodriver_pb2_grpc.add_EgodriverServiceServicer_to_server(service, server)
