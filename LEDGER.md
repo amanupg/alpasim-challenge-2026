@@ -432,3 +432,13 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **1 Hz stays.** Early replanning is noise: the one-frame first plan is real, but it is not what loses the junction scenes. Replanning less often clearly hurts.
 - With the 2 Hz vs 1 Hz result (0.728 vs 0.784, 30 scenes), 1 Hz is the best of 0.5, 1 and 2 Hz on nuPlan.
 - The earlier line "replanning more often hurts" came from the void run and is withdrawn.
+
+## 2026-09-30 Assessment: borrowing nuReasoning's fine-tuned Alpamayo for nuPlan (read-only look, nothing run)
+- `nureasoning/runs_a15ft/all/checkpoint-30573`: alpamayo-recipes stage 2 on nuScenes train (VLM frozen, action expert trained with flow matching), 3 epochs, loss 4.15 to 3.34. The h0/h1 halves are the same recipe on half the data.
+- **Only the expert changed:** 396 `expert.layers` tensors plus `action_in_proj` / `action_out_proj` (~2.3B trainable params). So the swap is: base Alpamayo, same int8 VLM, fine-tuned expert. The image stays small (only the expert weights are added).
+- **Mismatches to resolve before a fair nuPlan test:**
+  1. Prompt format: trained with `include_camera_ids: false`, `include_frame_nums: false`; our driver sends camera indices.
+  2. Image size: trained at 896x592; we feed 576x320 to fit 16 GiB. The larger size means more vision tokens, so the memory cap must be re-measured.
+  3. Frame timing and camera set: nuScenes Motional rig (older vehicle) vs nuPlan's Motional rig.
+- **Licence question for Aman before any submission:** nuScenes is CC BY-NC-SA. A model fine-tuned on it, submitted under the challenge terms (Apache-2.0 plus a broad NVIDIA licence), may not be allowed. Local tests are fine.
+- **Plan:** first a 100-scene nuPlan test of the expert swap with the prompt format matched (camera ids off), at our 576x320; then 896x592 if memory allows.
