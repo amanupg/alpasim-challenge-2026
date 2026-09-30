@@ -385,3 +385,13 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - the three superseded 10-scene PAI runs: 12952257, 12952258, 12952259.
 - Kept each run's aggregate, configs and logs. The two runs cancelled mid-way (12964410, 12964411) never had a summary.
 - Everything else stays: scene data (exactly the 120 PAI + 100 nuPlan bench scenes), simulator sandboxes, valid runs.
+
+### Why the route chooser fixes so few wrong-branch scenes (15 nuPlan corridor/offroad scenes, `A15_LOG_CHOICES=1`)
+- Jobs 12996572 (K=6) and 12996573 (K=16). Pass 2/15 in both, vs 0/15 at baseline. K=16 is no better than K=6.
+- **The candidates are diverse:** at a scene's first plan the 16 end points span up to ±40 m laterally, so the right branch is usually on the menu.
+- **The chooser does switch** (3-4 of 5 plans per scene), yet 13/15 still fail. Suspected reasons:
+  1. nuPlan scenes are short: 10 steps at 2 Hz, so only 5 plans at 1 Hz. The first plan is by far the most uncertain (widest spread, highest route cost), and the car commits during that first second.
+  2. Picking a different candidate each replan gives inconsistent plans (left-ish, then right-ish).
+  3. Alpamayo expects 4 frames 0.1 s apart. On nuPlan (2 Hz cameras) it gets frames 0.5 s apart, plus a short pose history at the session start.
+- **Cost:** K=6 takes 2.37 s per plan vs 0.80 s at K=1 (L40S). v0.3 used 1,268 of the 3,000 s nuPlan budget, so K=6 is borderline and K=16 (5.8 s) is out.
+- **Next:** log the first plan's inputs (frames and poses available) and try a temporally consistent chooser (stay near the previous plan unless the route clearly disagrees).
