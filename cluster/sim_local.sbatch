@@ -81,7 +81,7 @@ fi
   echo "cd $RUN"
   echo "export HF_HOME=$A/.cache/hf"
   echo "exec /repo/.venv/bin/alpasim_wizard $PRESET wizard.run_method=NONE wizard.log_dir=$RUN" \
-       "defines.filesystem=$A/data/fs hydra.run.dir=$RUN/hydra eval.video.render_video=false wizard.baseport=$PORT_BASE" \
+       "defines.filesystem=$A/data/fs hydra.run.dir=$RUN/hydra eval.video.render_video=${VIDEO:-false} wizard.baseport=$PORT_BASE" \
        "runtime.endpoints.driver.n_concurrent_rollouts=$ROLLOUTS $SEL $EXTRA_OVERRIDES"
 } > $RUN/wizard.sh
 apptainer exec -B $A $SIF bash $RUN/wizard.sh > $RUN/wizard.log 2>&1 || { tail -40 $RUN/wizard.log; exit 1; }

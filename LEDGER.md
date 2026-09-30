@@ -321,3 +321,14 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - Our scene score beats go-straight, but our incident spacing is lower (0.234), and the IRT fit weights it.
   - nuPlan is off-domain for Alpamayo (Motional rig, 2 Hz frames). The fix is more data-side work than tuning.
 - **Quota:** September's 3/3 used. October: 3.
+
+## October, week 1: test bench (started 2026-09-29, PLAN.md)
+- **Storage:** the department filesystem is at **90%** (541 GB free of 5.0 TB; ~1 TB free on 2026-09-27). AlpaSim holds ~210 GB (scene data 162 GB, sandboxes 47 GB).
+  - The nuPlan shard-2 fetch was cancelled before extracting. nuPlan bench = the 100 scenes of shard 001.
+  - The PAI bench grows to 120 curated-val scenes (prefetch 71-120, job 12991537, ~100 GB).
+- **v0.3 baselines with rollout videos** (VIDEO=true) for the failure taxonomy:
+  - nuPlan 100 scenes: 12991555 (L40S, 2 rollouts).
+  - PAI 1-40: 12991558 (third same-config run on these scenes).
+  - PAI 41-80: 12991556.
+  - PAI 81-120: 12991557.
+  - PAI runs: Blackwell, 4 rollouts, per-job ports.
