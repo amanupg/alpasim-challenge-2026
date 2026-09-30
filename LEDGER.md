@@ -395,3 +395,17 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   3. Alpamayo expects 4 frames 0.1 s apart. On nuPlan (2 Hz cameras) it gets frames 0.5 s apart, plus a short pose history at the session start.
 - **Cost:** K=6 takes 2.37 s per plan vs 0.80 s at K=1 (L40S). v0.3 used 1,268 of the 3,000 s nuPlan budget, so K=6 is borderline and K=16 (5.8 s) is out.
 - **Next:** log the first plan's inputs (frames and poses available) and try a temporally consistent chooser (stay near the previous plan unless the route clearly disagrees).
+
+## 2026-09-30 Week-1 bench: PAI baseline complete (v0.3, 120 curated-val scenes; jobs 12991558, 12991556, 12991557; 40 sessions each, own drivers)
+- **Mean scene score 0.638** (batches 0.668 / 0.579 / 0.667). Official v0.3 PAI scene score 0.611, so the local bench tracks the hidden set closely.
+- **Taxonomy (120):** pass 63, left corridor 24, low progress 24, at-fault collision 5, offroad 4.
+- **Score lost (43.4 in total):** corridor **24.0**, low progress 10.4, collision 5.0, offroad 4.0. Corridor exits are more than half of what PAI loses.
+- **Corridor exits (videos, 17 in 41-120):** mostly lane choice on straight roads (the recorded driver changes lane, ours stays, ending 4.0-4.3 m off); a few are junction turns. Unlike nuPlan, where they are nearly all junction branches.
+- **Low progress:** progress 0.01-0.78 over GT distances of 12-275 m; several nearly stop on long routes (0.01-0.2).
+- Scenes 1-40 vs the two earlier same-config runs: 35/40 in the same category in all three; the new run is -0.025 [-0.100, +0.049] vs the A/A rerun (noise).
+- **PAI route chooser (K=6, logged)** on all 120 scenes is queued one batch at a time: 12996677-79.
+
+## 2026-09-30 nuPlan first-plan inputs (job 12996681, `A15_LOG_CHOICES=1`)
+- At every session's first plan: **1 frame per camera** (the 4-frame input is one frame repeated) and **2 poses 0.02 s apart**; the 1.5 s history is extrapolated from that 20 ms segment.
+- That plan drives for 1 s = 20% of a 5 s nuPlan scene, and it is the least certain plan (widest candidate spread).
+- **Test:** `A15_EARLY_REPLAN=1` replans on each new frame until 4 distinct frames exist, then 1 Hz. 100 nuPlan scenes, job 12996703.
