@@ -36,6 +36,10 @@ echo "ports: services from $PORT_BASE, driver $ALPASIM_DRIVER_PORT"
 
 # ---- driver
 if [ $DRIVER = a15 ]; then
+  # CPU regression test of the driver logic (fake policy) before spending GPU time
+  PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$A/envs/overlay_driver:$A/envs/overlay_torchao:$A/src:$SIF/repo/src/grpc \
+    $NR/ext/a15env/bin/python $A/tests/test_driver_plan_storage.py > $RUN/driver_test.txt 2>&1 \
+    || { echo "driver regression test failed"; tail -5 $RUN/driver_test.txt; exit 4; }
   HUB=$NR/.cache/hf/hub
   export A15_MODEL_DIR=$(ls -d $HUB/models--nvidia--Alpamayo-1.5-10B/snapshots/*/ | head -1)
   export A15_VLM_DIR=$(ls -d $HUB/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/*/ | head -1)
@@ -92,4 +96,10 @@ echo "runtime exit $RC"
 python3 $A/src/summarize_run.py $RUN
 echo "driver (pid $DRV) peak GPU memory: $(grep "^$DRV," $RUN/gpu_mem.log | sort -t, -k2 -n | tail -1)"
 grep "closed session\|inference failed" $RUN/driver.log | tail -20
+# driver health: a session that drove on the straight fallback means plans were not used (see 2026-09-30 bug)
+if [ $DRIVER = a15 ]; then
+  NS=$(grep -c "closed session" $RUN/driver.log); NF=$(grep -o "fallback [0-9]*" $RUN/driver.log | awk '$2>1' | wc -l)
+  echo "driver health: $NS sessions, $NF with >1 fallback step" | tee $RUN/driver_health.txt
+  [ "$NF" -gt 0 ] && echo "WARNING: $NF sessions used the fallback plan; results do not measure the policy" | tee -a $RUN/driver_health.txt
+fi
 exit $RC

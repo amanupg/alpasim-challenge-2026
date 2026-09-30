@@ -409,7 +409,17 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - At every session's first plan: **1 frame per camera** (the 4-frame input is one frame repeated) and **2 poses 0.02 s apart**; the 1.5 s history is extrapolated from that 20 ms segment.
 - That plan drives for 1 s = 20% of a 5 s nuPlan scene, and it is the least certain plan (widest candidate spread).
 - **Test:** `A15_EARLY_REPLAN=1` replans on each new frame until 4 distinct frames exist, then 1 Hz. 100 nuPlan scenes, job 12996703.
-- **Result (12996703): early replan -0.083 [-0.137, -0.034]**, wins 8, losses 23 (0.676 vs 0.759). Corridor 9 to 14, pass 63 to 54. **Rejected.**
+- ~~Result (12996703): early replan -0.083~~ **VOID, see the plan-storage bug below.**
   - It made 10 plans per scene (one per step), not the ~7 expected; the trigger behaved differently from its design, not yet explained. Either way it replanned more often.
   - Same direction as the earlier nuPlan test (2 Hz 0.728 vs 1 Hz 0.784 on 30 scenes): **on nuPlan, replanning more often hurts**, plausibly because each replan draws a fresh sample and the car jitters between them.
 - **Next probe:** replan every 2 s (job 12996906). If fewer replans help, plan consistency (blending with or staying near the previous plan) becomes a full-system part for both tracks.
+
+## 2026-09-30 BUG: plans not stored when chooser logging was off (commit be21c0c to c722a2a)
+- **What:** adding the chooser log (be21c0c) nested `s.cached_plan = new` inside `if log_choices and costs`. Any run without chooser costs computed plans but never stored them, so the car drove the whole scene on the straight constant-velocity fallback ("cached 0, fallback 10").
+- **Found by:** the early-replan run made 10 plans per scene instead of 7; a 3-scene debug log (12996909) showed plan_nframes stuck at 0 and no cached plan.
+- **Void results:** early replan 12996703 (the -0.083); 2 s interval 12996906 (cancelled); PAI chooser 12996677-79 (cancelled; its plans were dropped whenever no route had arrived yet). The first-plan input finding (12996681) stands, because it was logged before storing.
+- **Unaffected (verified "cached 10, fallback 0" or older code):** the week-1 bench (12991555-58), nuPlan route tests 12995325-27, the 15-scene K=6/K=16 runs, and every submitted image (v0.3 is e7a75d6).
+- **Fix and guards:**
+  - plan storage moved back inside the stats lock, logging after it;
+  - `tests/test_driver_plan_storage.py` drives the real `_maybe_infer` with a fake policy under all 16 flag combinations (log, costs, early, nav): plan stored every step, and 5 plans per 5 s scene (7 with early replan). PASS (job 12996940);
+  - `sim_local.sbatch` now runs that test before starting (exit 4 on failure) and writes `driver_health.txt` (sessions with >1 fallback step; good runs have 0).

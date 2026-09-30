@@ -316,6 +316,10 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             if plan is not None and now - plan.created_time_us < self._interval_us and not early:
                 return
             batch = self._gather(s)
+            if self._log_choices:
+                LOGGER.info("plan %s now %d: frames/cam %s, plan_nframes %d, early %s, since last %s",
+                            s.sid[:8], now, {c: len(s.frames[c]) for c in s.cams}, s.plan_nframes, early,
+                            None if plan is None else now - plan.created_time_us)
         if batch is None:
             return
         frames, hx, hr, t0, anchor = batch
@@ -345,10 +349,10 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         with self._lock:
             s.stats["infer"] += 1; s.stats["infer_s"] += time.time() - t
             s.stats["rerouted"] += int(info.get("choice", 0) != 0)
-        if self._log_choices and info.get("costs") is not None:
-            LOGGER.info("choice %s t0 %d: costs %s ends %s -> %d", s.sid, t0, info["costs"], info["ends"], info["choice"])
             if new is not None:
                 s.cached_plan, s.plan_nframes = new, nfr
+        if self._log_choices and info.get("costs") is not None:
+            LOGGER.info("choice %s t0 %d: costs %s ends %s -> %d", s.sid, t0, info["costs"], info["ends"], info["choice"])
 
     def _gather(self, s: SessionState):
         """Frames (n_cam, 4, 3, H, W), ego history, t0 and the anchor pose; None if not ready."""
