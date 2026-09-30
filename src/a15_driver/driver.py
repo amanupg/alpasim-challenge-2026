@@ -86,7 +86,8 @@ def _interp_poses(ts: np.ndarray, pos: np.ndarray, quat: np.ndarray, t: np.ndarr
     return out_p, out_q
 
 
-def route_nav_text(xy: np.ndarray, turn_deg: float = 30.0, max_dist_m: float = 100.0) -> str | None:
+def route_nav_text(xy: np.ndarray, turn_deg: float = 30.0, max_dist_m: float = 100.0,
+                   dist_mode: str = "euclid") -> str | None:
     """'Turn left in 30m' style instruction (Alpamayo 1.5's navigation input) from the route waypoints
     in the rig frame (x forward, y left).
 
@@ -110,6 +111,15 @@ def route_nav_text(xy: np.ndarray, turn_deg: float = 30.0, max_dist_m: float = 1
         if d > max_dist_m:
             return None
         if abs(hd[i]) > math.radians(turn_deg):
+            if dist_mode == "intersect":
+                # v3: the turn is where the turned road, extended back along this segment, meets the
+                # car's forward axis (y = 0). v2 reported the distance to the first route waypoint,
+                # which sits >= 40 m out even when the turn starts 15 m ahead.
+                x1, y1 = starts[i]; dx, dy = seg[i]
+                if abs(dy) > 1e-6:
+                    xi = x1 - y1 * dx / dy
+                    if 0.0 < xi <= x1:
+                        d = xi
             return f"Turn {'left' if hd[i] > 0 else 'right'} in {int(round(d))}m"
     return None
 
@@ -200,9 +210,10 @@ class SessionState:
 
 class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
     def __init__(self, *, handle: PolicyHandle, pai_cameras: list[str], interval_us: int, frame_dt_s: float,
-                 nav: bool = False, log_choices: bool = False, early_replan: bool = False):
+                 nav: bool = False, log_choices: bool = False, early_replan: bool = False,
+                 nav_dist: str = "euclid"):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
-        self._log_choices, self._early_replan = log_choices, early_replan
+        self._log_choices, self._early_replan, self._nav_dist = log_choices, early_replan, nav_dist
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -283,7 +294,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         if first and self._nav:
             LOGGER.info("session %s first route: %d waypoints, first %s last %s -> nav %r", request.session_uuid,
                         len(wps), np.round(wps[0], 1).tolist() if len(wps) else None,
-                        np.round(wps[-1], 1).tolist() if len(wps) else None, route_nav_text(wps))
+                        np.round(wps[-1], 1).tolist() if len(wps) else None, route_nav_text(wps, dist_mode=self._nav_dist))
         return common_pb2.Empty()
 
     def submit_recording_ground_truth(self, request, context):
@@ -333,7 +344,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             route = s.route_xy
         nav = None
         if self._nav:
-            nav = route_nav_text(route) if route is not None else None
+            nav = route_nav_text(route, dist_mode=self._nav_dist) if route is not None else None
             s.last_nav = nav
         t = time.time()
         try:
@@ -352,7 +363,8 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             if new is not None:
                 s.cached_plan, s.plan_nframes = new, nfr
         if self._log_choices and info.get("costs") is not None:
-            LOGGER.info("choice %s t0 %d: costs %s ends %s -> %d", s.sid, t0, info["costs"], info["ends"], info["choice"])
+            LOGGER.info("choice %s t0 %d: costs %s ends %s -> %d route %s", s.sid, t0, info["costs"], info["ends"],
+                        info["choice"], None if route is None else np.round(route, 1).tolist())
 
     def _gather(self, s: SessionState):
         """Frames (n_cam, 4, 3, H, W), ego history, t0 and the anchor pose; None if not ready."""
@@ -438,7 +450,8 @@ def main() -> None:
         embed_cpu=os.environ.get("A15_EMBED_CPU", "1") == "1",
         cuda_graph=os.environ.get("A15_CUDA_GRAPH", "0") == "1",
         num_samples=int(os.environ.get("A15_NUM_SAMPLES", "1")),
-        chooser=os.environ.get("A15_CHOOSER", "medoid")))
+        chooser=os.environ.get("A15_CHOOSER", "medoid"),
+        route_margin=float(os.environ.get("A15_ROUTE_MARGIN", "2.0"))))
     service = A15ChallengeDriver(
         handle=handle,
         pai_cameras=[c.strip() for c in os.environ.get("A15_PAI_CAMERAS", DEFAULT_PAI_CAMERAS).split(",") if c.strip()],
@@ -446,7 +459,8 @@ def main() -> None:
         frame_dt_s=float(os.environ.get("A15_FRAME_DT_S", "0.1")),
         nav=os.environ.get("A15_NAV", "0") == "1",
         log_choices=os.environ.get("A15_LOG_CHOICES", "0") == "1",
-        early_replan=os.environ.get("A15_EARLY_REPLAN", "0") == "1")
+        early_replan=os.environ.get("A15_EARLY_REPLAN", "0") == "1",
+        nav_dist=os.environ.get("A15_NAV_DIST", "euclid"))
     host, port = os.environ.get("ALPASIM_DRIVER_HOST", "0.0.0.0"), int(os.environ.get("ALPASIM_DRIVER_PORT", "6789"))
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=int(os.environ.get("ALPASIM_DRIVER_GRPC_WORKERS", "8"))))
     egodriver_pb2_grpc.add_EgodriverServiceServicer_to_server(service, server)

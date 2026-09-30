@@ -38,7 +38,7 @@ echo "ports: services from $PORT_BASE, driver $ALPASIM_DRIVER_PORT"
 if [ $DRIVER = a15 ]; then
   # CPU regression test of the driver logic (fake policy) before spending GPU time
   PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$A/envs/overlay_driver:$A/envs/overlay_torchao:$A/src:$SIF/repo/src/grpc \
-    $NR/ext/a15env/bin/python $A/tests/test_driver_plan_storage.py > $RUN/driver_test.txt 2>&1 \
+    bash -c "$NR/ext/a15env/bin/python $A/tests/test_driver_plan_storage.py && $NR/ext/a15env/bin/python $A/tests/test_route_nav.py" > $RUN/driver_test.txt 2>&1 \
     || { echo "driver regression test failed"; tail -5 $RUN/driver_test.txt; exit 4; }
   HUB=$NR/.cache/hf/hub
   export A15_MODEL_DIR=$(ls -d $HUB/models--nvidia--Alpamayo-1.5-10B/snapshots/*/ | head -1)

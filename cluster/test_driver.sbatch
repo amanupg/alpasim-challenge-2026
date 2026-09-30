@@ -11,4 +11,4 @@ source /etc/profile
 A=/insomnia001/depts/edu/users/au2327/alpasim; NR=/insomnia001/depts/edu/users/au2327/nureasoning
 SIF=$A/sandbox/alpasim-base
 cd $A && PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$A/envs/overlay_driver:$A/envs/overlay_torchao:$A/src:$SIF/repo/src/grpc \
-  $NR/ext/a15env/bin/python -u tests/test_driver_plan_storage.py
+  $NR/ext/a15env/bin/python -u tests/test_driver_plan_storage.py && PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$A/envs/overlay_driver:$A/envs/overlay_torchao:$A/src:$SIF/repo/src/grpc $NR/ext/a15env/bin/python -u tests/test_route_nav.py
