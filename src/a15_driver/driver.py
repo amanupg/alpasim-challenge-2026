@@ -314,6 +314,12 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         if batch is None:
             return
         frames, hx, hr, t0, anchor = batch
+        if self._log_choices and s.stats["infer"] == 0:
+            with self._lock:
+                LOGGER.info("first plan %s: now %d t0 %d, poses %d spanning %.2fs, frames/cam %s, hist x %s",
+                            s.sid, now, t0, len(s.poses), (s.poses[-1][0] - s.poses[0][0]) / 1e6,
+                            {c: [round((f[0] - t0) / 1e6, 2) for f in s.frames[c]] for c in s.cams[:1]},
+                            np.round(hx[0, 0, ::5, 0].numpy(), 1).tolist())
         with self._lock:
             route = s.route_xy
         nav = None
