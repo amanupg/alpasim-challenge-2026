@@ -409,3 +409,7 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - At every session's first plan: **1 frame per camera** (the 4-frame input is one frame repeated) and **2 poses 0.02 s apart**; the 1.5 s history is extrapolated from that 20 ms segment.
 - That plan drives for 1 s = 20% of a 5 s nuPlan scene, and it is the least certain plan (widest candidate spread).
 - **Test:** `A15_EARLY_REPLAN=1` replans on each new frame until 4 distinct frames exist, then 1 Hz. 100 nuPlan scenes, job 12996703.
+- **Result (12996703): early replan -0.083 [-0.137, -0.034]**, wins 8, losses 23 (0.676 vs 0.759). Corridor 9 to 14, pass 63 to 54. **Rejected.**
+  - It made 10 plans per scene (one per step), not the ~7 expected; the trigger behaved differently from its design, not yet explained. Either way it replanned more often.
+  - Same direction as the earlier nuPlan test (2 Hz 0.728 vs 1 Hz 0.784 on 30 scenes): **on nuPlan, replanning more often hurts**, plausibly because each replan draws a fresh sample and the car jitters between them.
+- **Next probe:** replan every 2 s (job 12996906). If fewer replans help, plan consistency (blending with or staying near the previous plan) becomes a full-system part for both tracks.
