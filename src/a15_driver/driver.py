@@ -191,6 +191,7 @@ class SessionState:
     latest_pose: common_pb2.PoseAtTime | None = None
     cached_plan: CachedPlan | None = None
     route_xy: np.ndarray | None = None                      # latest route waypoints, rig frame
+    sid: str = ""
     last_nav: str | None = None
     stats: dict = field(default_factory=lambda: {"drive": 0, "infer": 0, "infer_err": 0, "fallback": 0,
                                                  "cached": 0, "rerouted": 0, "infer_s": 0.0})
@@ -198,8 +199,9 @@ class SessionState:
 
 class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
     def __init__(self, *, handle: PolicyHandle, pai_cameras: list[str], interval_us: int, frame_dt_s: float,
-                 nav: bool = False):
+                 nav: bool = False, log_choices: bool = False):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
+        self._log_choices = log_choices
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -218,7 +220,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             chosen = sorted(((CAMERA_NAME_TO_INDEX[c], c) for c in pai))
         else:
             chosen = sorted(((NUPLAN_TO_SLOT[c], c) for c in avail if c in NUPLAN_TO_SLOT))
-        s = SessionState(cams=[c for _, c in chosen], slots=[k for k, _ in chosen])
+        s = SessionState(cams=[c for _, c in chosen], slots=[k for k, _ in chosen], sid=request.session_uuid)
         s.frames = {c: deque(maxlen=24) for c in s.cams}
         with self._lock:
             self._sessions[request.session_uuid] = s
@@ -332,6 +334,8 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         with self._lock:
             s.stats["infer"] += 1; s.stats["infer_s"] += time.time() - t
             s.stats["rerouted"] += int(info.get("choice", 0) != 0)
+        if self._log_choices and info.get("costs") is not None:
+            LOGGER.info("choice %s t0 %d: costs %s ends %s -> %d", s.sid, t0, info["costs"], info["ends"], info["choice"])
             if new is not None:
                 s.cached_plan = new
 
@@ -425,7 +429,8 @@ def main() -> None:
         pai_cameras=[c.strip() for c in os.environ.get("A15_PAI_CAMERAS", DEFAULT_PAI_CAMERAS).split(",") if c.strip()],
         interval_us=int(os.environ.get("A15_INFERENCE_INTERVAL_US", "500000")),
         frame_dt_s=float(os.environ.get("A15_FRAME_DT_S", "0.1")),
-        nav=os.environ.get("A15_NAV", "0") == "1")
+        nav=os.environ.get("A15_NAV", "0") == "1",
+        log_choices=os.environ.get("A15_LOG_CHOICES", "0") == "1")
     host, port = os.environ.get("ALPASIM_DRIVER_HOST", "0.0.0.0"), int(os.environ.get("ALPASIM_DRIVER_PORT", "6789"))
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=int(os.environ.get("ALPASIM_DRIVER_GRPC_WORKERS", "8"))))
     egodriver_pb2_grpc.add_EgodriverServiceServicer_to_server(service, server)

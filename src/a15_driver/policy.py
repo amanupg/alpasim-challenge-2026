@@ -20,7 +20,7 @@ import time
 import numpy as np
 import torch
 
-from .route_choice import choose as route_choose
+from .route_choice import choose as route_choose, route_costs
 
 LOGGER = logging.getLogger("a15_policy")
 
@@ -150,7 +150,11 @@ class Alpamayo15Policy:
                                                        hr[:, -1].repeat(K, *[1] * (hr.dim() - 2)))
             xy = xyz[..., :2].reshape(K, -1).float()
             if self._chooser == "route":
-                i = route_choose(xy.reshape(K, -1, 2).cpu().numpy(), self._route)
+                cand = xy.reshape(K, -1, 2).cpu().numpy()
+                i = route_choose(cand, self._route)
+                if self._route is not None:
+                    self.last_costs = route_costs(cand, self._route).round(1).tolist()
+                    self.last_ends = cand[:, -1].round(1).tolist()
             else:
                 i = int(torch.cdist(xy, xy).sum(1).argmin())
             self.last_choice = i
@@ -166,7 +170,7 @@ class Alpamayo15Policy:
         hist_*: (1, 1, 16, 3) / (1, 1, 16, 3, 3) ego history in the t0 rig frame;
         nav_text: optional route instruction ("Turn left in 30m"), Alpamayo 1.5's navigation input;
         route_xy: route waypoints in the rig frame, used by the "route" chooser."""
-        self._route, self.last_choice = route_xy, 0
+        self._route, self.last_choice, self.last_costs, self.last_ends = route_xy, 0, None, None
         msgs = self._helper.create_message(frames.flatten(0, 1), camera_indices=torch.tensor(cam_slots),
                                            nav_text=nav_text)
         if not self._reasoning:
@@ -185,4 +189,5 @@ class Alpamayo15Policy:
         r = rot[0, 0, 0].float()
         yaw = torch.atan2(r[:, 1, 0], r[:, 0, 0]).cpu().numpy()
         cot = str(np.array(extra.get("cot", [""]), dtype=object).ravel()[0]) if self._reasoning else ""
-        return xy, yaw, {"prompt_tokens": int(tok["input_ids"].shape[1]), "cot": cot, "choice": self.last_choice}
+        return xy, yaw, {"prompt_tokens": int(tok["input_ids"].shape[1]), "cot": cot, "choice": self.last_choice,
+                          "costs": self.last_costs, "ends": self.last_ends}
