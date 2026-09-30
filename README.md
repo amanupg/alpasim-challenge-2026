@@ -209,7 +209,9 @@ Local PAI, paired against v0.3. Scene score differences on 40 scenes; the noise 
 
 **nuPlan bench** (v0.3, 100 navtest scenes, mean 0.759): pass 63, low progress 19, corridor 9, offroad 6, collision 3. The rollout videos show corridor exits and offroad are almost all **wrong-branch choices at junctions** (15 of the 24 lost points); the 3 collisions are rear-ends.
 
-Next for nuPlan: route text (nav v2) and a route chooser (K samples, keep the one that follows the route; `A15_CHOOSER=route`, off by default), tested on the same 100 scenes.
+**nuPlan route tests** (same 100 scenes): route chooser (6 candidates, keep the one that follows the route) **+0.028** [+0.005, +0.059]; route text alone -0.020; both +0.007. The candidates do include the right branch; the chooser loses mainly because the first plan of each 5 s scene is made from a single camera frame. Replanning early is being tested.
+
+**PAI bench** (v0.3, 120 scenes, mean 0.638 vs 0.611 official): pass 63, corridor 24, low progress 24, collision 5, offroad 4. Corridor exits are 55% of the lost score, mostly lane choice on straight roads. The route chooser is running on all 120.
 
 ## 8. Timeline and submissions
 
