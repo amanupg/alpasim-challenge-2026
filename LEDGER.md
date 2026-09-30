@@ -445,3 +445,13 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Update after reading `nureasoning/src/a15ft_infer.py`:** the fine-tune is a recipes `TrainableAlpamayoR1` checkpoint with the recipes' VLA processor (its own prompt build at 896x592) and the R1 sampler, not a drop-in expert for our `Alpamayo1_5` path. A faithful port means bringing the recipes processor and model class into the driver.
 - On nuReasoning, in-domain, it beat zero-shot by only +0.002 to +0.0085. And it calibrates speed, while nuPlan loses mostly to wrong-branch choices.
 - **Decision:** deprioritised. nuPlan effort goes to route intent (chooser geometry and consistency) first.
+
+## 2026-09-30 What the chooser sees at nuPlan junctions (job 12997073: 15 wrong-branch scenes, K=6, route and candidates logged)
+- Plots of the first two plans per scene (candidates, pick, route):
+  - **About a third of scenes have no candidate turning the route's way** at the first plan. The chooser can't fix those; the model has to propose the turn.
+  - **Where a turning candidate exists, the chooser picks it** (88a82b, aa575f, 11939e, 558367, 7923af).
+- **Videos:** in f357ff and f95146 the car now takes the right branch but turns wider and later than the recorded driver, ending 4.1-4.5 m off. With a 2 m margin, later plans fall back to sample 0 (the wide turn).
+- **Route text v2 misstates the distance:** it said "Turn left in 40m" for turns about 15 m ahead, because it measured to the first route waypoint, which is always ≥40 m out. v3 (`A15_NAV_DIST=intersect`) uses where the turned road, extended back, meets the car's forward axis. On the logged 88a82b route that gives 15 m instead of 42 m.
+- **Some offroad failures look like map artifacts:** e65021 sits on the recorded path (dist 0.0-0.1 m) and is flagged offroad from the first frame.
+- Routes arrive as 20 slots with about 10 real points and NaN padding; the chooser and route text both drop the NaNs (now covered by a test).
+- **Queued (100 scenes, paired vs 0.759):** chooser margin 0.5 m (12997155); route text v3 (12997156); both (12997157).
