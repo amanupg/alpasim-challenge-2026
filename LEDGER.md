@@ -332,3 +332,20 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - PAI 41-80: 12991556.
   - PAI 81-120: 12991557.
   - PAI runs: Blackwell, 4 rollouts, per-job ports.
+
+### Failure taxonomy, first pass (`src/failure_taxonomy.py`; PAI scenes 1-40; two same-config v0.3 runs, 12959800 and 12965006)
+- **Primary categories** (run 1 / run 2):
+  - at-fault collision 2/2;
+  - offroad 0/0;
+  - left corridor 8/6;
+  - low progress (progress_clipped_rel < 0.8) 7/9;
+  - pass 23/23.
+- **Stability:** 37/40 scenes land in the same category in both runs, so failures are mostly systematic, not simulator noise.
+- **Reliable failure set** (same category in both runs):
+  - **Low progress, 7 scenes:** dist_to_gt 0.02-0.35 m (on the human path) but progress 0.16-0.75. The car is too slow or stops. That matches the nuReasoning finding that Alpamayo's path is good and its speed is weak (their stage-2 fine-tune fixed the speed profile).
+  - **Left corridor, 6 scenes:** dist_to_gt 4.06-4.25 m, just past the 4 m corridor (`max_dist_to_gt_trajectory: 4.0`). The car diverges from the recorded route (lane or branch choice).
+  - **At-fault collision, 2 scenes.**
+- **Implications for the full system:**
+  1. Speed / progress is the largest reliable bucket, and the driver has no speed handling at all. Candidates: a fine-tuned action expert, or speed as a chooser feature.
+  2. Route adherence: nav text fired in only 2/40 sessions; check how the route arrives (start offset 40 m) before judging nav.
+- **Next:** view rollout videos (bench run 12991558 renders them) for these 15 scenes.
