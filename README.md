@@ -6,6 +6,10 @@ Every number below comes from [`LEDGER.md`](LEDGER.md), the measurement log; thi
 This is a **separate project** from our nuReasoning entry: [`BORROWED.md`](BORROWED.md) lists
 exactly what it reads from nuReasoning (read-only).
 
+**Scope (from 2026-09-30): the PAI track only, with Alpamayo 1.5.** The nuPlan track moved to a
+separate JEPA thread (`../alpasim-jepa`, another agent). Our nuPlan results and diagnosis stay below
+and in the ledger as history. October's 3 official slots are shared by both threads: up to 2 for PAI.
+
 **Standing, as of 2026-09-29** (the leaderboard is open until 2026-10-31):
 
 | Track | Entry | PCS | Rank | Avg scene score | At-fault incident spacing |
@@ -207,9 +211,7 @@ Local PAI, paired against v0.3. Scene score differences on 40 scenes; the noise 
 | At-fault collision | 2 | |
 | Pass | 22 | |
 
-**nuPlan bench** (v0.3, 100 navtest scenes, mean 0.759): pass 63, low progress 19, corridor 9, offroad 6, collision 3. The rollout videos show corridor exits and offroad are almost all **wrong-branch choices at junctions** (15 of the 24 lost points); the 3 collisions are rear-ends.
-
-**nuPlan route tests** (same 100 scenes): route chooser (6 candidates, keep the one that follows the route) **+0.028** [+0.005, +0.059]; route text alone -0.020; both +0.007. The candidates do include the right branch; the chooser loses mainly because the first plan of each 5 s scene is made from a single camera frame. Replanning early is being tested.
+**nuPlan (handed over 2026-09-30; history).** v0.3 bench 0.759 on 100 navtest scenes. Corridor exits and offroad were mostly **wrong-branch choices at junctions** (15 of 24 lost points). A route chooser (6 candidates, keep the one that follows the route) gave **+0.028** and +0.027 in two runs. Route text (even with the turn distance fixed), early replanning and a 2 s replan interval did not help. About a third of junction scenes have no candidate that turns the route's way.
 
 **PAI bench** (v0.3, 120 scenes, mean 0.638 vs 0.611 official): pass 63, corridor 24, low progress 24, collision 5, offroad 4. Corridor exits are 55% of the lost score, mostly lane choice on straight roads. The route chooser is running on all 120.
 
@@ -221,6 +223,7 @@ timeline
   2026-09-27 : Feasibility test (simulator on Slurm, Alpamayo fit) : nuplan-warmup starter 32/32 : Official 1 - PAI starter, PCS 1491 (rank 38/52)
   2026-09-28 : pai-warmup v0.2 (2 Hz), 552 s per wave : pai-warmup v0.3 (1 Hz), 536 s per wave : Local PAI and nuPlan benches
   2026-09-29 : Official 2 - PAI v0.3, PCS 2143, rank 2/58 : Official 3 - nuPlan v0.3, PCS 1296, rank 19/71 : Sprint verdict, failure taxonomy, October plan
+  2026-09-30 : 120-scene PAI + 100-scene nuPlan bench : Plan-storage bug found and guarded by tests : Scope set to PAI only
 ```
 
 ## 9. Where things live

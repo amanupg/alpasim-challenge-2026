@@ -471,3 +471,15 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - 26/40 rollouts errored: the NRE renderer hit "CUDA error: an illegal memory access" in its own camera kernel (`generate_image_points`), after which every rollout failed.
 - Not memory pressure: the driver peaked at 15.1 GB and the renderer at 20.6 GB, on a 96 GB card. Our driver logged no errors.
 - The batch is rerun after batches 2-3 (12996947 running, clean so far).
+
+## 2026-09-30 Scope change (Aman): PAI only
+- This repo now works on the PAI track only, with Alpamayo 1.5. The nuPlan track moved to the JEPA thread (`../alpasim-jepa`, another agent). That folder and its cluster folder are read-only for us; the thread reads this repo read-only.
+- **Aman's figures from that thread, not measured here:**
+  - WA-JEPA 0.958 vs v0.3 0.759 on our 100-scene nuPlan bench, and 0.729 vs 0.510 on a held-out shard;
+  - zero-shot WA-JEPA on PAI (our bench1 scenes): 0.25-0.30 vs v0.3 0.668. The per-scene best of both is 0.762, a possible low-priority extra candidate later.
+- **Slots:** October's 3 official slots are shared. PAI plans for up to 2; the JEPA thread takes 1 nuPlan warmup and 1 official nuPlan slot early in October. Aman submits; nothing goes in without his go-ahead.
+- **nuPlan wrap-up here:**
+  - no nuPlan jobs were queued or running;
+  - deleted the raw `rollout.asl` logs of the 21 nuPlan experiment runs (~30 GB), as allowed for our own scratch outputs;
+  - kept every run's aggregate, videos, configs and driver logs, plus the whole bench baseline `local_nuplan_a15_bench_12991555` (the JEPA thread pairs against it);
+  - scene data (`data/nuplan_track`, 43 GB, shard 001) is untouched; deleting it needs Aman's go-ahead.
