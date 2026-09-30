@@ -423,3 +423,12 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - plan storage moved back inside the stats lock, logging after it;
   - `tests/test_driver_plan_storage.py` drives the real `_maybe_infer` with a fake policy under all 16 flag combinations (log, costs, early, nav): plan stored every step, and 5 plans per 5 s scene (7 with early replan). PASS (job 12996940);
   - `sim_local.sbatch` now runs that test before starting (exit 4 on failure) and writes `driver_health.txt` (sessions with >1 fallback step; good runs have 0).
+
+## 2026-09-30 Replan timing on nuPlan, fixed driver (100 scenes, paired vs bench 0.759; both "0 sessions with fallback")
+| Variant | Plans/scene | Mean | Diff [90%] | W/L/T |
+|---|---|---|---|---|
+| early replan until 4 frames (12996944) | 7 | 0.767 | +0.008 [-0.025, +0.043] | 10/15/75 |
+| replan every 2 s (12996945) | 3 | 0.688 | **-0.072 [-0.123, -0.022]** | 7/22/71 |
+- **1 Hz stays.** Early replanning is noise: the one-frame first plan is real, but it is not what loses the junction scenes. Replanning less often clearly hurts.
+- With the 2 Hz vs 1 Hz result (0.728 vs 0.784, 30 scenes), 1 Hz is the best of 0.5, 1 and 2 Hz on nuPlan.
+- The earlier line "replanning more often hurts" came from the void run and is withdrawn.
