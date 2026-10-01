@@ -483,3 +483,7 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - deleted the raw `rollout.asl` logs of the 21 nuPlan experiment runs (~30 GB), as allowed for our own scratch outputs;
   - kept every run's aggregate, videos, configs and driver logs, plus the whole bench baseline `local_nuplan_a15_bench_12991555` (the JEPA thread pairs against it);
   - scene data (`data/nuplan_track`, 43 GB, shard 001) is untouched; deleting it needs Aman's go-ahead.
+
+## 2026-10-01 Quota reset confirmed
+- `limits` on Oct 1 (Aman): official **0 used / 3 remaining**, so the counter resets per calendar month. Warmups unchanged (rolling 30 days): pai-warmup 2 used / 1 left, nuplan-warmup 1 used / 2 left.
+- October split per the scope note: PAI up to 2 official; nuPlan (JEPA thread) 1 official and 1 warmup. Aman submits.
