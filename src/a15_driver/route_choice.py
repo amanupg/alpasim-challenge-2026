@@ -35,10 +35,23 @@ def route_costs(xy: np.ndarray, route: np.ndarray, min_dist_m: float = 8.0) -> n
     return out
 
 
-def choose(xy: np.ndarray, route: np.ndarray | None, margin_m: float = 2.0) -> int:
-    """Index of the sample to drive: 0 unless another is closer to the route by more than margin_m."""
+def path_lengths(xy: np.ndarray) -> np.ndarray:
+    """Length of each sample's path from the car (origin) through its points, in metres."""
+    xy = np.asarray(xy, dtype=np.float64)
+    pts = np.concatenate([np.zeros((len(xy), 1, 2)), xy], 1)
+    return np.linalg.norm(np.diff(pts, axis=1), axis=2).sum(1)
+
+
+def choose(xy: np.ndarray, route: np.ndarray | None, margin_m: float = 2.0, min_len_ratio: float = 0.0) -> int:
+    """Index of the sample to drive: 0 unless another is closer to the route by more than margin_m.
+    min_len_ratio > 0 is a speed guard: only samples whose path is at least that fraction of sample 0's
+    are eligible (PAI 2026-10-01: frequent switching to slower samples turned 4 passes into low progress)."""
     if route is None or len(xy) < 2:
         return 0
     c = route_costs(xy, route)
+    if min_len_ratio > 0:
+        L = path_lengths(xy)
+        c = np.where(L >= min_len_ratio * L[0], c, np.inf)
+        c[0] = route_costs(xy[:1], route)[0]
     j = int(c.argmin())
     return j if c[0] - c[j] > margin_m else 0
