@@ -503,3 +503,13 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - remaining corridor exits: 8 of 13 had 0 switches. A lane change moves the route only ~3.5 m sideways, under the 2 m switching margin.
 - **Cost:** Drive RPC mean 0.44 s vs 0.17 s; batch wall time ~2.5-3.2 h vs ~2 h. PAI's time limit (v0.3 used 9,474 of 14,400 s) needs checking before any K=6 image.
 - **v2 queued (13060758-60, one GPU at a time):** margin 1.0 m plus a speed guard (`A15_ROUTE_MIN_LEN=0.9`: only samples whose path is at least 90% of sample 0's are eligible).
+
+## 2026-10-01 PAI low-progress scenes (videos of the 8 worst, baseline bench)
+- Progress 0.01-0.28 of 29-275 m recorded distance.
+- **Seen:**
+  - waiting at red lights or in queues, then setting off later and slower than the recorded driver;
+  - general slowness on open roads;
+  - one night intersection where the car never moves for the whole 20 s (the recorded driver turned left);
+  - two scenes where the car drifts off the mapped road late on.
+- Consistent with the nuReasoning finding (Alpamayo's path is good, its speed weak).
+- **Probe queued:** `A15_SPEED_SCALE=1.15`, the same planned path driven 15% faster (time-stretched; horizon 6.4 s / 1.15). Runs after chooser v2, one GPU at a time (13061277-79). The progress score saturates at 80% of the recorded distance, so only slow scenes can gain; the risk is more collisions and corridor exits.
