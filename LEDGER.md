@@ -487,3 +487,19 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 ## 2026-10-01 Quota reset confirmed
 - `limits` on Oct 1 (Aman): official **0 used / 3 remaining**, so the counter resets per calendar month. Warmups unchanged (rolling 30 days): pai-warmup 2 used / 1 left, nuplan-warmup 1 used / 2 left.
 - October split per the scope note: PAI up to 2 official; nuPlan (JEPA thread) 1 official and 1 warmup. Aman submits.
+
+## 2026-10-01 PAI route chooser v1, all 120 scenes (K=6, margin 2 m; 12997585 rerun of 1-40, 12996947, 12996948; all "0 sessions with fallback")
+- **Paired vs the v0.3 bench: 0.651 vs 0.638, +0.013 [90% -0.040, +0.066]**, wins 19, losses 22. Noise-level.
+  - By batch: 1-40 +0.055, 41-80 -0.065, 81-120 +0.048.
+- **Categories (base to chooser):** corridor 24 to **14**, offroad 4 to 8, low progress 24 to 29, collision 5 to 6, pass 63 to 63.
+- **Transitions:**
+  - corridor to pass: 5 (+5.0);
+  - pass to offroad: 4 (-4.0);
+  - pass to low progress: 4 (-3.0);
+  - corridor to collision/offroad: 5 (no score change).
+- **Switching (rerouted plans out of 20 per scene):**
+  - scenes that pass both ways: mostly 0, so the chooser leaves normal driving alone;
+  - pass to low progress: 4-16 (mean 11), i.e. the scenes where it switches most;
+  - remaining corridor exits: 8 of 13 had 0 switches. A lane change moves the route only ~3.5 m sideways, under the 2 m switching margin.
+- **Cost:** Drive RPC mean 0.44 s vs 0.17 s; batch wall time ~2.5-3.2 h vs ~2 h. PAI's time limit (v0.3 used 9,474 of 14,400 s) needs checking before any K=6 image.
+- **v2 queued (13060758-60, one GPU at a time):** margin 1.0 m plus a speed guard (`A15_ROUTE_MIN_LEN=0.9`: only samples whose path is at least 90% of sample 0's are eligible).
