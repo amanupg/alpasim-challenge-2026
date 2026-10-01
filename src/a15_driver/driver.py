@@ -124,6 +124,21 @@ def route_nav_text(xy: np.ndarray, turn_deg: float = 30.0, max_dist_m: float = 1
     return None
 
 
+def speed_scale_plan(xy: np.ndarray, yaw: np.ndarray, scale: float) -> tuple[np.ndarray, np.ndarray]:
+    """Drive the same path `scale` times faster: point k of the new plan is point k*scale of the old one
+    (linear interpolation), so the horizon shrinks to 6.4 s / scale. scale 1.0 returns the plan unchanged.
+    PAI bench 2026-10-01: low progress cost 10.4 of 43.4 lost points; Alpamayo's path is good, its speed weak."""
+    if scale == 1.0:
+        return xy, yaw
+    n = len(xy)
+    src = np.arange(n) * scale
+    src = src[src <= n - 1]
+    i0 = np.floor(src).astype(int); i1 = np.minimum(i0 + 1, n - 1); a = (src - i0)[:, None]
+    new_xy = xy[i0] * (1 - a) + xy[i1] * a
+    dyaw = np.angle(np.exp(1j * (yaw[i1] - yaw[i0])))
+    return new_xy, yaw[i0] + a[:, 0] * dyaw
+
+
 def _yaw_of(q: np.ndarray) -> float:
     w, x, y, z = q
     return math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
@@ -211,9 +226,10 @@ class SessionState:
 class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
     def __init__(self, *, handle: PolicyHandle, pai_cameras: list[str], interval_us: int, frame_dt_s: float,
                  nav: bool = False, log_choices: bool = False, early_replan: bool = False,
-                 nav_dist: str = "euclid"):
+                 nav_dist: str = "euclid", speed_scale: float = 1.0):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
         self._log_choices, self._early_replan, self._nav_dist = log_choices, early_replan, nav_dist
+        self._speed_scale = speed_scale
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -355,6 +371,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             with self._lock:
                 s.stats["infer_err"] += 1
             return
+        xy, yaw = speed_scale_plan(np.asarray(xy), np.asarray(yaw), self._speed_scale)
         new = make_cached_plan(created_time_us=t0, anchor_pose=anchor, trajectory_xy=xy, headings=yaw,
                                source_frequency_hz=policy.output_frequency_hz)
         with self._lock:
@@ -461,7 +478,8 @@ def main() -> None:
         nav=os.environ.get("A15_NAV", "0") == "1",
         log_choices=os.environ.get("A15_LOG_CHOICES", "0") == "1",
         early_replan=os.environ.get("A15_EARLY_REPLAN", "0") == "1",
-        nav_dist=os.environ.get("A15_NAV_DIST", "euclid"))
+        nav_dist=os.environ.get("A15_NAV_DIST", "euclid"),
+        speed_scale=float(os.environ.get("A15_SPEED_SCALE", "1.0")))
     host, port = os.environ.get("ALPASIM_DRIVER_HOST", "0.0.0.0"), int(os.environ.get("ALPASIM_DRIVER_PORT", "6789"))
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=int(os.environ.get("ALPASIM_DRIVER_GRPC_WORKERS", "8"))))
     egodriver_pb2_grpc.add_EgodriverServiceServicer_to_server(service, server)

@@ -5,7 +5,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-from a15_driver.driver import route_nav_text  # noqa: E402
+from a15_driver.driver import route_nav_text, speed_scale_plan  # noqa: E402
 from a15_driver.route_choice import choose  # noqa: E402
 
 bad = 0
@@ -40,5 +40,12 @@ slow = np.hstack([t * 0.5, 0 * t])
 check("no guard picks the slower sample", choose(np.stack([s0, slow]), route, margin_m=0.5), 1)
 check("guard 0.9 keeps sample 0", choose(np.stack([s0, slow]), route, margin_m=0.5, min_len_ratio=0.9), 0)
 check("guard 0.9 allows an equally fast sample", choose(np.stack([s0, s1]), route, margin_m=0.5, min_len_ratio=0.9), 1)
+# speed scale: 5 m/s straight plan at 10 Hz; scale 1.2 -> 6 m/s, horizon 6.4/1.2 s
+tt = np.arange(64) * 0.1
+pxy, pyaw = np.stack([5 * tt, 0 * tt], 1), np.zeros(64)
+q, qy = speed_scale_plan(pxy, pyaw, 1.2)
+check("scale 1.2 speed m/s", round(float(q[1, 0] - q[0, 0]) / 0.1, 2), 6.0)
+check("scale 1.2 points", len(q), 53)
+check("scale 1.0 unchanged", speed_scale_plan(pxy, pyaw, 1.0)[0] is pxy, True)
 print("PASS" if bad == 0 else f"FAIL ({bad})")
 sys.exit(bad > 0)
