@@ -547,3 +547,13 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **v3 batch 41-80 (13141882) FAILED:** loading the model shards took 4 min 36 s (normally ~14 s), so the driver missed the 20-minute readiness window. Slow storage, not our code. Requeued as 13146500 after batch 81-120 (13141883, running).
 - **v3 batch 1-40 (13141881):** 0.795 vs bench 0.668, +0.127 [+0.006, +0.250]. vs v2 on the same scenes: **+0.002 [-0.050, +0.055]** (7/4/29). Corridor 0, pass 28, low progress 8, collision 2, offroad 2. Clean driver health, no renderer crash.
 - **Auto-delete works:** the batch run dir is 130 MB (raw logs removed after the summary).
+
+## 2026-10-03 Chooser v3 verdict (120 PAI scenes; 13141881, 13146500 rerun of 41-80, 13141883; all clean, no renderer crash)
+| Comparison | Means | Diff [90%] | W/L |
+|---|---|---|---|
+| v3 vs bench | 0.638 to 0.699 | **+0.061 [+0.008, +0.117]** | 25/19 |
+| v3 vs v2 | 0.692 to 0.699 | +0.007 [-0.025, +0.039] | 17/14 |
+| v2 vs bench | 0.638 to 0.692 | +0.054 [+0.005, +0.105] | 21/18 |
+- v3 categories: pass 69, low progress 26, corridor 14, offroad 7, collision 4.
+- **The graded guard adds nothing measurable over v2;** corridor exits stay at 14. Both clear the bench noise floor.
+- **Keep v2** (fewer knobs) as the chooser part of the full system. v3 stays available as an option.
