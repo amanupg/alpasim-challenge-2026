@@ -513,3 +513,23 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - two scenes where the car drifts off the mapped road late on.
 - Consistent with the nuReasoning finding (Alpamayo's path is good, its speed weak).
 - **Probe queued:** `A15_SPEED_SCALE=1.15`, the same planned path driven 15% faster (time-stretched; horizon 6.4 s / 1.15). Runs after chooser v2, one GPU at a time (13061277-79). The progress score saturates at 80% of the recorded distance, so only slow scenes can gain; the risk is more collisions and corridor exits.
+
+## 2026-10-01 PAI chooser v2 and speed probe (120-scene bench, paired vs v0.3 0.638; "0 sessions with fallback")
+| Variant | n | Mean | Diff [90%] | W/L | Categories |
+|---|---|---|---|---|---|
+| **chooser v2**: K=6, margin 1 m, speed guard 0.9 (13060758-60) | 120 | **0.692** | **+0.054 [+0.005, +0.105]** | 21/18 | pass 69, low progress 24, corridor 14, offroad 8, collision 5 |
+| speed scale 1.15, K=1 (13061278-79) | 80 | 0.316 | **-0.307 [-0.418, -0.199]** | 14/33 | collision 19, corridor 25, offroad 9, pass 25 |
+- **Chooser v2 is the first PAI part to clear the noise floor.** Against v1 (+0.013), the speed guard removed the extra slow scenes (29 back to 24) and the 1 m margin kept the corridor gain (24 to 14).
+- **Speed scaling is rejected:** driving the planned path 15% faster causes collisions and corridor exits. Speed has to come from the model's own judgement (chooser feature or fine-tune), not a global stretch.
+- **Renderer crash again:** speed batch 1-40 (13061277) lost 28/40 rollouts to the NRE "illegal memory access" (105 log lines). That's now 2 of the last 12 PAI batches. Not rerun, given the verdict.
+- Timing: v2 batches took 2.3 h each (v1 2.5-3.2 h, baseline ~2 h).
+
+## 2026-10-03 Disk-full incident and storage cleanup (approved by Aman: A, B, C)
+- The shared /insomnia001 hit 100% on 2026-10-02 ~22:17 UTC (heads-up from the alpasim-jepa thread). **None of our jobs ran then:** the last ended 2026-10-01 14:05 UTC, and all outputs were checked (health files, summaries).
+- Our folder was 595 GB: runs 304, data 246, sandboxes 46. Free space was 185 GB, under the ~200 GB everyone keeps.
+- **Deleted the raw `rollout.asl` logs only** (kept aggregate, configs, driver logs, videos):
+  - A: speed probe 13061277-79, crashed 12996946, buggy-driver 12996677;
+  - B: chooser v1 12996947, 12996948, 12997585;
+  - C: September tuning runs 12959800, 12959801, 12959805, 12964412, 12965003-06.
+- After: runs 97 GB; filesystem **391 GB free**.
+- Kept raw logs: baseline bench (12991556-58) and chooser v2 (13060758-60).
