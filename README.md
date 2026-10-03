@@ -213,7 +213,7 @@ Local PAI, paired against v0.3. Scene score differences on 40 scenes; the noise 
 
 **nuPlan (handed over 2026-09-30; history).** v0.3 bench 0.759 on 100 navtest scenes. Corridor exits and offroad were mostly **wrong-branch choices at junctions** (15 of 24 lost points). A route chooser (6 candidates, keep the one that follows the route) gave **+0.028** and +0.027 in two runs. Route text (even with the turn distance fixed), early replanning and a 2 s replan interval did not help. About a third of junction scenes have no candidate that turns the route's way.
 
-**PAI bench** (v0.3, 120 scenes, mean 0.638 vs 0.611 official): pass 63, corridor 24, low progress 24, collision 5, offroad 4. Corridor exits are 55% of the lost score, mostly lane choice on straight roads. Route chooser v1 (6 candidates, keep the one that follows the route): **+0.013** [-0.040, +0.066], noise-level. It cut corridor exits from 24 to 14 but added offroads and slow scenes where it switched often. v2 (1 m margin plus a speed guard) is running.
+**PAI bench** (v0.3, 120 scenes, mean 0.638 vs 0.611 official): pass 63, corridor 24, low progress 24, collision 5, offroad 4. Corridor exits are 55% of the lost score, mostly lane choice on straight roads. Route chooser v1 (6 candidates, keep the one that follows the route): **+0.013** [-0.040, +0.066], noise-level. It cut corridor exits from 24 to 14 but added offroads and slow scenes where it switched often. **v2** (1 m margin, and never switch to a slower candidate): **+0.054** [+0.005, +0.105] on 120 scenes, our first PAI part above the noise floor (passes 63 to 69). Driving the planned path 15% faster was rejected (-0.307: collisions).
 
 ## 8. Timeline and submissions
 
