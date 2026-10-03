@@ -10,6 +10,7 @@
 # Local closed-loop evaluation on Insomnia (Apptainer simulator stack + our driver).
 #   DRIVER=starter|a15   TRACK=nuplan|pai   NSCENES=N   ROLLOUTS=2 (concurrent, as officially)
 #   SCENES_FROM=<run dir>: reuse that run's scene list (same scenes for a fair comparison)
+#   KEEP_ASL=1: keep the raw rollout.asl logs (default: deleted once the summary exists)
 #   EXTRA_OVERRIDES="controller.gains.lat_position_weight=3.0 ..." extra wizard overrides (no commas:
 #   sbatch --export splits on them); TAG=name appended to the run dir
 #   A15_* variables are passed through to the a15 driver (A15_NUM_SAMPLES, A15_NAV, A15_REASONING, ...)
@@ -101,5 +102,12 @@ if [ $DRIVER = a15 ]; then
   NS=$(grep -c "closed session" $RUN/driver.log); NF=$(grep -o "fallback [0-9]*" $RUN/driver.log | awk '$2>1' | wc -l)
   echo "driver health: $NS sessions, $NF with >1 fallback step" | tee $RUN/driver_health.txt
   [ "$NF" -gt 0 ] && echo "WARNING: $NF sessions used the fallback plan; results do not measure the policy" | tee -a $RUN/driver_health.txt
+fi
+# raw rollout logs (rollout.asl, ~15 GB per 40 PAI scenes, mostly embedded camera images) are deleted
+# once the aggregate summary exists, unless KEEP_ASL=1 (shared filesystem; Aman 2026-10-03).
+# Scores, metrics.parquet, videos, configs and service logs stay. A run without a summary keeps them.
+if [ "${KEEP_ASL:-0}" != 1 ] && [ -f $RUN/aggregate/results-summary.json ]; then
+  N=$(find $RUN/rollouts -name "*.asl" | wc -l); find $RUN/rollouts -name "*.asl" -delete
+  echo "deleted $N raw rollout logs (KEEP_ASL=1 keeps them); run dir now $(du -sh $RUN | cut -f1)"
 fi
 exit $RC
