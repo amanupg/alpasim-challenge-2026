@@ -541,3 +541,9 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Remaining corridor exits are knife-edge:** all 14 end 4.01-4.24 m off (limit 4.0). In several, a candidate >1 m closer to the route was refused because it was slower (7 plans in b8f636; 4 each in 52364e, 7ca7da, e7c20a). The speed guard that fixed v1's slow scenes also blocks some lane-change fixes.
 - **v3 (13141881-83, one GPU at a time):** v2 plus a graded guard. A sample more than 3 m closer to the route (lane-sized) may be as short as 0.75x sample 0; otherwise 0.9x as before. Tests cover both thresholds.
 - `sim_local.sbatch` now deletes raw `rollout.asl` logs once the summary exists (`KEEP_ASL=1` keeps them), approved by Aman.
+
+## 2026-10-03 Chooser v3 progress and cluster events
+- **Cluster unreachable ~2.5 h** (2026-10-03, SSH to insomnia timed out from the Mac; DNS fine). Jobs kept running on Slurm. The watchers now report reachability changes; the old ones hid SSH failures.
+- **v3 batch 41-80 (13141882) FAILED:** loading the model shards took 4 min 36 s (normally ~14 s), so the driver missed the 20-minute readiness window. Slow storage, not our code. Requeued as 13146500 after batch 81-120 (13141883, running).
+- **v3 batch 1-40 (13141881):** 0.795 vs bench 0.668, +0.127 [+0.006, +0.250]. vs v2 on the same scenes: **+0.002 [-0.050, +0.055]** (7/4/29). Corridor 0, pass 28, low progress 8, collision 2, offroad 2. Clean driver health, no renderer crash.
+- **Auto-delete works:** the batch run dir is 130 MB (raw logs removed after the summary).
