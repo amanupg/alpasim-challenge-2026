@@ -533,3 +533,11 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - C: September tuning runs 12959800, 12959801, 12959805, 12964412, 12965003-06.
 - After: runs 97 GB; filesystem **391 GB free**.
 - Kept raw logs: baseline bench (12991556-58) and chooser v2 (13060758-60).
+
+## 2026-10-03 Chooser v2 diagnostics and v3
+- **Memory:** v2's driver peaks at 15,052 MiB in all three batches, identical to K=1. Only the flow sampler repeats, so the 16 GiB cap holds.
+- **Time (estimate, not measured on official hardware):** the warmups showed halving model work (2 Hz to 1 Hz) changed wave time only 552 to 536 s, so model work is ~16 s per wave and rendering dominates. K=6 multiplies model work ~2.5-3.5x, which puts the official PAI run near 10,000-10,500 s of 14,400 (v0.3: 9,474). To confirm with the last PAI warmup, on the full-system image only.
+- **Faster candidates are not on offer:** in low-progress scenes the longest of the 6 candidates is a median 1.06x sample 0's length (p90 1.28x; pass scenes 1.00x / 1.13x). The samples agree on speed, mostly on stopping. A "pick the fastest" chooser would gain little.
+- **Remaining corridor exits are knife-edge:** all 14 end 4.01-4.24 m off (limit 4.0). In several, a candidate >1 m closer to the route was refused because it was slower (7 plans in b8f636; 4 each in 52364e, 7ca7da, e7c20a). The speed guard that fixed v1's slow scenes also blocks some lane-change fixes.
+- **v3 (13141881-83, one GPU at a time):** v2 plus a graded guard. A sample more than 3 m closer to the route (lane-sized) may be as short as 0.75x sample 0; otherwise 0.9x as before. Tests cover both thresholds.
+- `sim_local.sbatch` now deletes raw `rollout.asl` logs once the summary exists (`KEEP_ASL=1` keeps them), approved by Aman.
