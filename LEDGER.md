@@ -557,3 +557,6 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - v3 categories: pass 69, low progress 26, corridor 14, offroad 7, collision 4.
 - **The graded guard adds nothing measurable over v2;** corridor exits stay at 14. Both clear the bench noise floor.
 - **Keep v2** (fewer knobs) as the chooser part of the full system. v3 stays available as an option.
+- **Next (13150825-27, one GPU at a time):** route text v3 (`A15_NAV=1`, `A15_NAV_DIST=intersect`) plus chooser v2, on 120 PAI scenes.
+  - On nuPlan the model ignored route text, but PAI is Alpamayo 1.5's training domain, where its navigation input was trained.
+  - The only earlier PAI nav test used v1, which fired in 2/40 scenes.
