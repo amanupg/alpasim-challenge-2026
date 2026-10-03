@@ -40,6 +40,12 @@ slow = np.hstack([t * 0.5, 0 * t])
 check("no guard picks the slower sample", choose(np.stack([s0, slow]), route, margin_m=0.5), 1)
 check("guard 0.9 keeps sample 0", choose(np.stack([s0, slow]), route, margin_m=0.5, min_len_ratio=0.9), 0)
 check("guard 0.9 allows an equally fast sample", choose(np.stack([s0, s1]), route, margin_m=0.5, min_len_ratio=0.9), 1)
+# graded guard: a slower sample (0.85x) that is a lane (3.5 m) closer to the route
+lane = np.hstack([t * 0.85, 0 * t])  # 34 m vs 43.5 m (s0far starts 3.5 m to the side): ratio 0.78
+s0far = np.hstack([t, 0 * t + 3.5])
+check("guard 0.9 blocks slower lane-change sample", choose(np.stack([s0far, lane]), route, 1.0, 0.9), 0)
+check("graded guard (gap 3 m, 0.75) allows it", choose(np.stack([s0far, lane]), route, 1.0, 0.9, 3.0, 0.75), 1)
+check("graded guard still blocks a much slower one", choose(np.stack([s0far, np.hstack([t * 0.5, 0 * t])]), route, 1.0, 0.9, 3.0, 0.75), 0)
 # speed scale: 5 m/s straight plan at 10 Hz; scale 1.2 -> 6 m/s, horizon 6.4/1.2 s
 tt = np.arange(64) * 0.1
 pxy, pyaw = np.stack([5 * tt, 0 * tt], 1), np.zeros(64)

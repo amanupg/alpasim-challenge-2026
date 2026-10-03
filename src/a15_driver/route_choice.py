@@ -42,16 +42,23 @@ def path_lengths(xy: np.ndarray) -> np.ndarray:
     return np.linalg.norm(np.diff(pts, axis=1), axis=2).sum(1)
 
 
-def choose(xy: np.ndarray, route: np.ndarray | None, margin_m: float = 2.0, min_len_ratio: float = 0.0) -> int:
+def choose(xy: np.ndarray, route: np.ndarray | None, margin_m: float = 2.0, min_len_ratio: float = 0.0,
+           big_gap_m: float = 0.0, big_gap_min_len: float = 0.0) -> int:
     """Index of the sample to drive: 0 unless another is closer to the route by more than margin_m.
     min_len_ratio > 0 is a speed guard: only samples whose path is at least that fraction of sample 0's
-    are eligible (PAI 2026-10-01: frequent switching to slower samples turned 4 passes into low progress)."""
+    are eligible (PAI 2026-10-01: frequent switching to slower samples turned 4 passes into low progress).
+    big_gap_m > 0 grades the guard: a sample closer to the route than sample 0 by more than big_gap_m (a lane
+    change) only needs big_gap_min_len of sample 0's length (PAI v2: the guard blocked such samples in
+    corridor-exit scenes that ended 4.0-4.2 m off)."""
     if route is None or len(xy) < 2:
         return 0
     c = route_costs(xy, route)
     if min_len_ratio > 0:
         L = path_lengths(xy)
-        c = np.where(L >= min_len_ratio * L[0], c, np.inf)
+        ok = L >= min_len_ratio * L[0]
+        if big_gap_m > 0:
+            ok |= (c[0] - c > big_gap_m) & (L >= big_gap_min_len * L[0])
+        c = np.where(ok, c, np.inf)
         c[0] = route_costs(xy[:1], route)[0]
     j = int(c.argmin())
     return j if c[0] - c[j] > margin_m else 0

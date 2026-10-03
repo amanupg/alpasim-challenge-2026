@@ -94,7 +94,8 @@ class Alpamayo15Policy:
     def __init__(self, *, model_dir: str, vlm_dir: str, processor_dir: str,
                  quant: str = "int8wo", reasoning: bool = False, seed: int = 42,
                  embed_cpu: bool = True, cuda_graph: bool = False, num_samples: int = 1,
-                 chooser: str = "medoid", route_margin: float = 2.0, route_min_len: float = 0.0) -> None:
+                 chooser: str = "medoid", route_margin: float = 2.0, route_min_len: float = 0.0,
+                 route_big_gap: float = 0.0, route_big_gap_min_len: float = 0.0) -> None:
         from alpamayo1_5 import helper
         from alpamayo1_5.models.alpamayo1_5 import Alpamayo1_5
 
@@ -126,6 +127,7 @@ class Alpamayo15Policy:
         self._num_samples, self._hist = max(1, int(num_samples)), None
         self._chooser, self._route, self.last_choice = chooser, None, 0
         self._route_margin, self._route_min_len = route_margin, route_min_len
+        self._route_big_gap, self._route_big_gap_min_len = route_big_gap, route_big_gap_min_len
         if self._num_samples > 1:
             self._wrap_diffusion_medoid()
         LOGGER.info("Alpamayo 1.5 loaded in %.0fs, quantized %s (%.2fB params) in %.0fs, reserved %.2f GiB",
@@ -152,7 +154,8 @@ class Alpamayo15Policy:
             xy = xyz[..., :2].reshape(K, -1).float()
             if self._chooser == "route":
                 cand = xy.reshape(K, -1, 2).cpu().numpy()
-                i = route_choose(cand, self._route, margin_m=self._route_margin, min_len_ratio=self._route_min_len)
+                i = route_choose(cand, self._route, margin_m=self._route_margin, min_len_ratio=self._route_min_len,
+                                 big_gap_m=self._route_big_gap, big_gap_min_len=self._route_big_gap_min_len)
                 if self._route is not None:
                     self.last_costs = route_costs(cand, self._route).round(1).tolist()
                     self.last_ends = cand[:, ::8].round(1).tolist()           # 8 points per candidate
