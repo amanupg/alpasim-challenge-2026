@@ -572,3 +572,9 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 | v0.3-a15int8-1hz | PAI, nuPlan | Alpamayo 1.5 int8, 1 Hz (git e7a75d6) |
 | v4 | nuPlan | JEPA thread's entry (see `../alpasim-jepa`) |
 | v5 | PAI | reserved for the first PAI full-system image |
+
+## 2026-10-04 Slot plan change (Aman)
+- **PAI gets exactly one official October slot.** nuPlan (JEPA thread) gets one; the third is Aman's call.
+- So no learn-and-resubmit loop for PAI: the single entry must be the best system verified on the local bench.
+  - Freeze and verify Oct 18-24 (ablations, exact-image local run, the last PAI warmup for timing).
+  - Submit Oct 25-27, with buffer before the Oct 31 close, because a failed official run still counts.

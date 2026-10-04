@@ -8,7 +8,10 @@
 - **This repo:** PAI only.
 - **nuPlan:** moved to the JEPA thread (`../alpasim-jepa`, another agent) on 2026-09-30. No nuPlan runs here. Our nuPlan notes stay in LEDGER.md for that thread to read.
 - **`../alpasim-jepa`** and its cluster folder are read-only for this repo.
-- **Slots:** October has 3 official slots shared by both tracks. PAI plans for up to 2 of them; the JEPA thread takes 1 nuPlan slot and 1 nuPlan warmup early in October. Nothing is submitted without Aman's go-ahead; Aman submits.
+- **Slots (Aman, 2026-10-04): PAI gets exactly ONE official October slot.**
+  - nuPlan (JEPA thread) gets one; the third is Aman's call.
+  - No "submit, learn, fix, resubmit": the one PAI entry must be our best verified system, decided on the local bench.
+  - Nothing is submitted without Aman's go-ahead; Aman submits.
 
 ## Principles
 
@@ -30,22 +33,21 @@
 | At-fault collision | 5 | 5.0 | |
 | Offroad | 4 | 4.0 | |
 
-## Weeks
+## Weeks (one PAI slot)
 
-1. **Bench and failure analysis (to Oct 5)**
-   - Done: 120-scene PAI baseline, taxonomy, corridor-exit videos.
-   - Running: route chooser (K=6) on all 120 scenes.
-   - Next:
-     - per-scene look at lane-change corridor exits (does the route show the lane change? do candidates include it?);
-     - the low-progress scenes (why the car slows or stops);
-     - the PAI time budget for any K>1 chooser (v0.3 used 9,474 of 14,400 s).
-2. **Full system (Oct 6 to 12)**, one part per failure cause:
-   - route-consistent candidate choice for lane choice;
-   - speed / progress handling (chooser feature or a fine-tuned action expert on PAI-domain data);
-   - controller gains tuned jointly.
-   - Low priority: a JEPA plan as an extra candidate (the per-scene best of JEPA and v0.3 on 40 PAI scenes was 0.762 vs 0.668). Only via the JEPA thread's published outputs, read-only.
-3. **Ablations and the first October PAI submission (Oct 13 to 19):** one bundled step-up, after Aman's go-ahead.
-4. **Fix what the official result reveals; second PAI slot (Oct 20 to 28),** well before the Oct 31 close.
+1. **Bench and failure analysis (done Oct 3)**
+   - 120-scene baseline (0.638), taxonomy, videos.
+   - Chooser v2 +0.054 [+0.005, +0.105] (kept); v3 same as v2; speed scaling rejected; route text on PAI being measured.
+2. **Full system (Oct 4 to 17)**, one part per failure cause, each measured on the 120-scene bench against the current best:
+   - lane choice: chooser v2 (in);
+   - slow driving (26 scenes, ~10 points): needs a model-side fix, since candidates agree on speed. Options: a fine-tuned action expert on PAI-domain data; stop/go handling at lights and queues;
+   - remaining corridor exits (14, all 4.0-4.2 m: knife-edge): controller / lateral tracking with the chooser in place;
+   - low priority: a JEPA plan as an extra candidate, only via the JEPA thread's published outputs, read-only.
+3. **Freeze and verify (Oct 18 to 24)**
+   - Ablate the full system (remove one part at a time) on the 120-scene bench.
+   - Build the `v5` image from the frozen commit and run that exact image locally on the bench (it must reproduce the bench numbers).
+   - Spend the one remaining PAI warmup on it to check form factor and per-wave time against the 14,400 s limit. (The two September warmups free up again around Oct 28.)
+4. **One official PAI submission (target Oct 25 to 27),** after Aman's go-ahead. That leaves days of buffer before the Oct 31 close, since a failed official run still uses the slot.
 
 ## Constraints
 
