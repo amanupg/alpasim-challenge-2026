@@ -578,3 +578,11 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - So no learn-and-resubmit loop for PAI: the single entry must be the best system verified on the local bench.
   - Freeze and verify Oct 18-24 (ablations, exact-image local run, the last PAI warmup for timing).
   - Submit Oct 25-27, with buffer before the Oct 31 close, because a failed official run still counts.
+
+## 2026-10-04 Untried Alpamayo 1.5 sampler settings (from its own nav notebook and code, read-only)
+- **Diffusion temperature:** the flow sampler scales its initial noise by `temperature` (default 1.0, what we have always run). NVIDIA's nav notebook uses **0.6**: "more stable but less diverse" trajectories. Now `A15_DIFF_TEMP`.
+  - Lower temperature also narrows the chooser's candidate spread, so it is tested alone and with chooser v2.
+  - GPU check job 13153714 (runs, memory, trajectory change), then 120-scene runs.
+- **Classifier-free guidance on navigation** (`sample_trajectories_from_data_with_vlm_rollout_cfg_nav`, weight alpha > 1 amplifies the route instruction).
+  - It builds a second, nav-free prompt cache; the notebook warns 60 GB+ for its 16-sample demo. Memory at 1 sample is untested.
+  - Only matters where route text fires (9/40 PAI scenes). Parked until the plain route-text result is in.
