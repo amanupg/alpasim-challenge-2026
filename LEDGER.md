@@ -603,3 +603,14 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - Categories: pass 68 (bench 63), low progress 20 (24), corridor 23 (24), collision 4 (5), offroad 5 (4).
 - **Reading:** noise-level on its own, but it leans positive. More wins than losses (24/14), with fewer slow scenes and more passes. Corridor exits unchanged, so it doesn't touch lane choice.
 - Combined with chooser v2 is running next (13153939-41). That is the configuration that matters for the full system.
+
+## 2026-10-04 Diffusion temperature 0.6 + chooser v2, 120 PAI scenes (13153939-41; all clean, no renderer crash)
+| Comparison | Means | Diff [90%] | W/L |
+|---|---|---|---|
+| vs bench | 0.638 to 0.692 | +0.054 [-0.001, +0.110] | 28/14 |
+| vs chooser v2 (temp 1.0) | 0.692 to 0.692 | **-0.000 [-0.054, +0.054]** | 26/17 |
+| vs temp 0.6 alone | 0.654 to 0.692 | +0.038 [-0.002, +0.081] | 19/13 |
+- Categories: pass 68, low progress 25, corridor 16, offroad 7, collision 4.
+- **Verdict:** temperature adds nothing on top of the chooser. Keep the library default (1.0).
+- **The chooser is the only part so far that clears the noise floor** (~+0.05-0.06 vs bench). Route text, early replanning, speed scaling, temperature and the graded guard all sit at zero on top of it.
+- **Next:** replanning at 2 Hz with chooser v2 (more frequent route corrections and quicker restarts after stops). Then freeze and verify the `v5` image early, to leave buffer.
