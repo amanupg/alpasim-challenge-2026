@@ -1,0 +1,23 @@
+# PAI image v5 (tag is a neutral number; contents are recorded only in LEDGER.md).
+# Built on top of the submitted v0.3 image so its 21 GB weights and dependency layers are reused
+# (only the code layer below is new and pushed). v0.3 = Alpamayo 1.5 int8, no reasoning, 1 Hz.
+#   docker buildx build --platform linux/amd64 --load -f container/Dockerfile.v5 \
+#     --build-arg GIT_HASH=$(git rev-parse --short HEAD) --build-arg INTERVAL_US=<from LEDGER> -t <ecr>/teams/amanupg:v5 .
+# Added since v0.3: route chooser (6 flow samples, keep sample 0 unless another follows the route
+# waypoints >1 m better and is not slower than 0.9x), measured +0.054 [+0.005, +0.105] on the 120-scene
+# PAI bench (LEDGER 2026-10-01). Same 15,052 MiB driver peak as v0.3.
+ARG BASE=696254625193.dkr.ecr.us-east-1.amazonaws.com/teams/amanupg:v0.3-a15int8-1hz
+FROM ${BASE}
+
+USER root
+RUN rm -rf /app/a15_driver
+COPY src/a15_driver /app/a15_driver
+RUN python -c "import a15_driver.route_choice, a15_driver.policy, a15_driver.driver; print('driver imports ok')"
+
+ARG GIT_HASH=unknown
+ARG INTERVAL_US=1000000
+ENV A15_INFERENCE_INTERVAL_US=${INTERVAL_US} A15_NUM_SAMPLES=6 A15_CHOOSER=route \
+    A15_ROUTE_MARGIN=1.0 A15_ROUTE_MIN_LEN=0.9 A15_LOG_CHOICES=0 A15_NAV=0 A15_DIFF_TEMP=1.0 \
+    A15_SPEED_SCALE=1.0 A15_EARLY_REPLAN=0 A15_GIT_HASH=${GIT_HASH}
+USER alpasim
+CMD ["python", "-m", "a15_driver.driver"]
