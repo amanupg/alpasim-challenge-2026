@@ -139,6 +139,7 @@ flowchart LR
 ```
 
 - **Image:** `v0.3-a15int8-1hz`, 21.5 GB, digest `29a4f9c2…`. It runs read-only and offline; the git hash is baked in as `A15_GIT_HASH`.
+- **Tags from October on are neutral version numbers** (`v4`, `v5`, ...) because the leaderboard shows them publicly. The ledger maps each tag to its contents.
 - **Workflow:** every new image is checked in a free warmup before it takes an official slot.
 
 ## 5. Running the official simulator on a Slurm cluster

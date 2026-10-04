@@ -560,3 +560,15 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Next (13150825-27, one GPU at a time):** route text v3 (`A15_NAV=1`, `A15_NAV_DIST=intersect`) plus chooser v2, on 120 PAI scenes.
   - On nuPlan the model ignored route text, but PAI is Alpamayo 1.5's training domain, where its navigation input was trained.
   - The only earlier PAI nav test used v1, which fired in 2/40 scenes.
+
+## 2026-10-04 Image tag policy (Aman)
+- Submission tags are neutral version numbers, never method names; the leaderboard shows tags publicly. This applies to every future submission.
+- Tag register (one sequence for both threads, all in `teams/amanupg`):
+
+| Tag | Track | Contents (private) |
+|---|---|---|
+| v0.1-starter | PAI, nuPlan warmup | organisers' starter driver (straight line, current speed) |
+| v0.2-a15int8 | PAI warmup | Alpamayo 1.5 int8, 2 Hz |
+| v0.3-a15int8-1hz | PAI, nuPlan | Alpamayo 1.5 int8, 1 Hz (git e7a75d6) |
+| v4 | nuPlan | JEPA thread's entry (see `../alpasim-jepa`) |
+| v5 | PAI | reserved for the first PAI full-system image |

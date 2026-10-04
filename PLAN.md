@@ -54,3 +54,6 @@
   - GPU time, fair-share and storage are shared with the JEPA thread (department filesystem ~95% full). Keep PAI runs modest: one Blackwell GPU at a time (`--dependency=singleton`).
   - Local PAI runs need Blackwell nodes (driver 575). Per-job port blocks are mandatory.
 - Tell Aman before big GPU runs. Aman submits; Claude prepares verified images.
+- **Image tags are neutral version numbers** (`v5`, `v6`, ...), never method words: the leaderboard shows tags publicly.
+  - One sequence is shared with the JEPA thread, since both push to `teams/amanupg`. Public so far: `v0.1-starter`, `v0.3-a15int8-1hz` (already public, can't be renamed), and `v4` (JEPA thread, nuPlan). PAI's next is `v5` or the next free number; check the tag is unused before pushing.
+  - What each tag contains is recorded only in LEDGER.md (private repo). Local build names are neutral too.
