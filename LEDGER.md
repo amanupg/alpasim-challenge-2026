@@ -597,3 +597,9 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - Route text fired in ~9/40 sessions per batch (turns over 30 degrees are rare on PAI routes).
 - Categories: pass 70, low progress 21, corridor 18, offroad 7, collision 4.
 - **Verdict:** route text adds nothing measurable on top of chooser v2 on PAI either. Left out of the full system. CFG-nav stays parked: it can only act in the ~23% of scenes where text fires, and plain text shows no effect there.
+
+## 2026-10-04 Diffusion temperature 0.6, K=1, 120 PAI scenes (13153936-38; all clean, no renderer crash)
+- **vs bench: 0.638 to 0.654, +0.016 [-0.036, +0.068]**, W/L 24/14. By batch: +0.040, +0.013, -0.005.
+- Categories: pass 68 (bench 63), low progress 20 (24), corridor 23 (24), collision 4 (5), offroad 5 (4).
+- **Reading:** noise-level on its own, but it leans positive. More wins than losses (24/14), with fewer slow scenes and more passes. Corridor exits unchanged, so it doesn't touch lane choice.
+- Combined with chooser v2 is running next (13153939-41). That is the configuration that matters for the full system.
