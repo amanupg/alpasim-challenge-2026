@@ -586,3 +586,7 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Classifier-free guidance on navigation** (`sample_trajectories_from_data_with_vlm_rollout_cfg_nav`, weight alpha > 1 amplifies the route instruction).
   - It builds a second, nav-free prompt cache; the notebook warns 60 GB+ for its 16-sample demo. Memory at 1 sample is untested.
   - Only matters where route text fires (9/40 PAI scenes). Parked until the plain route-text result is in.
+- **GPU check (13153714, L40S, 12 validation clips):** temperature 0.6 runs at the same memory (14,236 MiB) and latency (0.955 s per plan), and changes the plans by up to 3.0 m. With 6 candidates, candidate 0 at 0.6 equals the 1-candidate plan at 0.6 (0.000 m), as designed.
+- **Queued, one GPU at a time after the route-text run:**
+  - temperature 0.6 alone: 13153936-38;
+  - temperature 0.6 with chooser v2: 13153939-41.
