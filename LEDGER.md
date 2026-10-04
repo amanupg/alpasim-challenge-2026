@@ -614,3 +614,10 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Verdict:** temperature adds nothing on top of the chooser. Keep the library default (1.0).
 - **The chooser is the only part so far that clears the noise floor** (~+0.05-0.06 vs bench). Route text, early replanning, speed scaling, temperature and the graded guard all sit at zero on top of it.
 - **Next:** replanning at 2 Hz with chooser v2 (more frequent route corrections and quicker restarts after stops). Then freeze and verify the `v5` image early, to leave buffer.
+
+## 2026-10-04 v5 image prepared (trial build only, not pushed)
+- `container/Dockerfile.v5` builds on the submitted v0.3 image: the 21 GB weights and dependency layers are reused, and only the driver code layer is new.
+- Settings baked in are chooser v2's: `A15_NUM_SAMPLES=6 A15_CHOOSER=route A15_ROUTE_MARGIN=1.0 A15_ROUTE_MIN_LEN=0.9`. Everything else is at the v0.3 behaviour: no nav, temperature 1.0, no speed scale, no early replan. The replan interval is a build argument, pending the 2 Hz result.
+- **Trial build** (local/pai:v5-trial, git 2323ace): builds, the driver imports, and all 5 driver files in the image match the repo byte for byte (sha256).
+- The code has gained options since the v2 bench runs (graded guard, temperature). At their defaults they are off, so v5 behaves as the benchmarked v2.
+- **Before submission:** push as `v5` only after confirming the tag is unused; the last PAI warmup checks form factor and per-wave time; Aman submits.
