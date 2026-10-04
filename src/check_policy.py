@@ -50,7 +50,17 @@ if __name__ == "__main__":
     # one configuration per process: a second model in the same process inherits the first
     # one's allocations and makes the memory numbers meaningless
     # argv[1] e.g. "embed_cpu=1,cuda_graph=0"
-    opts = {k: (v == "1" if v in ("0", "1") else int(v)) for k, v in (kv.split("=") for kv in sys.argv[1].split(","))}
+    def _val(v):
+        if v in ("0", "1"):
+            return v == "1"
+        try:
+            return int(v)
+        except ValueError:
+            try:
+                return float(v)
+            except ValueError:
+                return v
+    opts = {k: _val(v) for k, v in (kv.split("=") for kv in sys.argv[1].split(","))}
     out = sys.argv[2]
     xy, mem = run(opts)
     np.savez(out, xy=xy, mem=mem)

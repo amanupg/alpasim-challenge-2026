@@ -95,7 +95,8 @@ class Alpamayo15Policy:
                  quant: str = "int8wo", reasoning: bool = False, seed: int = 42,
                  embed_cpu: bool = True, cuda_graph: bool = False, num_samples: int = 1,
                  chooser: str = "medoid", route_margin: float = 2.0, route_min_len: float = 0.0,
-                 route_big_gap: float = 0.0, route_big_gap_min_len: float = 0.0) -> None:
+                 route_big_gap: float = 0.0, route_big_gap_min_len: float = 0.0,
+                 diffusion_temperature: float = 1.0) -> None:
         from alpamayo1_5 import helper
         from alpamayo1_5.models.alpamayo1_5 import Alpamayo1_5
 
@@ -128,6 +129,9 @@ class Alpamayo15Policy:
         self._chooser, self._route, self.last_choice = chooser, None, 0
         self._route_margin, self._route_min_len = route_margin, route_min_len
         self._route_big_gap, self._route_big_gap_min_len = route_big_gap, route_big_gap_min_len
+        # initial-noise temperature of the flow-matching sampler (Alpamayo 1.5 nav notebook uses 0.6:
+        # "more stable but less diverse" trajectories); 1.0 is the library default we ran until 2026-10-04
+        self._diff_kwargs = {} if diffusion_temperature == 1.0 else {"temperature": float(diffusion_temperature)}
         if self._num_samples > 1:
             self._wrap_diffusion_medoid()
         LOGGER.info("Alpamayo 1.5 loaded in %.0fs, quantized %s (%.2fB params) in %.0fs, reserved %.2f GiB",
@@ -187,7 +191,7 @@ class Alpamayo15Policy:
         torch.cuda.manual_seed_all(self._seed)
         with torch.autocast("cuda", dtype=torch.bfloat16):
             xyz, rot, extra = self._model.sample_trajectories_from_data_with_vlm_rollout(
-                data=inp, top_p=0.98, temperature=0.6, num_traj_samples=1,
+                data=inp, top_p=0.98, temperature=0.6, num_traj_samples=1, diffusion_kwargs=self._diff_kwargs,
                 max_generation_length=256 if self._reasoning else 4, return_extra=True)
         xy = xyz[0, 0, 0, :, :2].float().cpu().numpy()
         r = rot[0, 0, 0].float()

@@ -471,7 +471,8 @@ def main() -> None:
         route_margin=float(os.environ.get("A15_ROUTE_MARGIN", "2.0")),
         route_min_len=float(os.environ.get("A15_ROUTE_MIN_LEN", "0")),
         route_big_gap=float(os.environ.get("A15_ROUTE_BIG_GAP", "0")),
-        route_big_gap_min_len=float(os.environ.get("A15_ROUTE_BIG_GAP_MIN_LEN", "0"))))
+        route_big_gap_min_len=float(os.environ.get("A15_ROUTE_BIG_GAP_MIN_LEN", "0")),
+        diffusion_temperature=float(os.environ.get("A15_DIFF_TEMP", "1.0"))))
     service = A15ChallengeDriver(
         handle=handle,
         pai_cameras=[c.strip() for c in os.environ.get("A15_PAI_CAMERAS", DEFAULT_PAI_CAMERAS).split(",") if c.strip()],
