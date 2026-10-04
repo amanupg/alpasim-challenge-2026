@@ -590,3 +590,10 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Queued, one GPU at a time after the route-text run:**
   - temperature 0.6 alone: 13153936-38;
   - temperature 0.6 with chooser v2: 13153939-41.
+
+## 2026-10-04 Route text v3 + chooser v2 on PAI, 120 scenes (13150825-27; all clean, no renderer crash)
+- **vs chooser v2: 0.692 to 0.694, +0.002 [-0.040, +0.045]**, W/L 18/16. By batch: -0.052, +0.039, +0.019.
+- vs bench: +0.056 [+0.003, +0.107].
+- Route text fired in ~9/40 sessions per batch (turns over 30 degrees are rare on PAI routes).
+- Categories: pass 70, low progress 21, corridor 18, offroad 7, collision 4.
+- **Verdict:** route text adds nothing measurable on top of chooser v2 on PAI either. Left out of the full system. CFG-nav stays parked: it can only act in the ~23% of scenes where text fires, and plain text shows no effect there.
