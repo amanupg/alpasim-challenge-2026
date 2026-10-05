@@ -621,3 +621,12 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Trial build** (local/pai:v5-trial, git 2323ace): builds, the driver imports, and all 5 driver files in the image match the repo byte for byte (sha256).
 - The code has gained options since the v2 bench runs (graded guard, temperature). At their defaults they are off, so v5 behaves as the benchmarked v2.
 - **Before submission:** push as `v5` only after confirming the tag is unused; the last PAI warmup checks form factor and per-wave time; Aman submits.
+
+## 2026-10-05 Replanning at 2 Hz with chooser v2 (13160657-58; batch 81-120 13160659 cancelled after 1.4 h)
+| Scenes | vs chooser v2 at 1 Hz [90%] | W/L/T |
+|---|---|---|
+| 1-40 | **-0.097 [-0.203, +0.005]** | 4/13/23 |
+| 41-80 | +0.007 [-0.097, +0.114] | 6/8/26 |
+- **Cost:** Drive RPC mean 0.93 s vs 0.44 s at 1 Hz; 40 plans per session vs 20; batch wall time 2.8 h vs 2.3 h. That doubles model work against the PAI time limit.
+- **Verdict: 1 Hz stays.** Batch 3 was cancelled because no plausible result there could pay for 2x compute after -0.045 over 80 scenes (it would need about +0.09).
+- **v5 is frozen at chooser v2, 1 Hz.**
