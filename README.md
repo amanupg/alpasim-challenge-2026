@@ -214,7 +214,20 @@ Local PAI, paired against v0.3. Scene score differences on 40 scenes; the noise 
 
 **nuPlan (handed over 2026-09-30; history).** v0.3 bench 0.759 on 100 navtest scenes. Corridor exits and offroad were mostly **wrong-branch choices at junctions** (15 of 24 lost points). A route chooser (6 candidates, keep the one that follows the route) gave **+0.028** and +0.027 in two runs. Route text (even with the turn distance fixed), early replanning and a 2 s replan interval did not help. About a third of junction scenes have no candidate that turns the route's way.
 
-**PAI bench** (v0.3, 120 scenes, mean 0.638 vs 0.611 official): pass 63, corridor 24, low progress 24, collision 5, offroad 4. Corridor exits are 55% of the lost score, mostly lane choice on straight roads. Route chooser v1 (6 candidates, keep the one that follows the route): **+0.013** [-0.040, +0.066], noise-level. It cut corridor exits from 24 to 14 but added offroads and slow scenes where it switched often. **v2** (1 m margin, and never switch to a slower candidate): **+0.054** [+0.005, +0.105] on 120 scenes, our first PAI part above the noise floor (passes 63 to 69). Driving the planned path 15% faster was rejected (-0.307: collisions).
+**PAI bench, October** (120 curated-val scenes, paired per scene; v0.3 = 0.638 locally vs 0.611 official).
+Corridor exits were 55% of the lost score (mostly lane choice on straight roads), slow driving most of the rest.
+
+| Change (vs the stated reference) | Diff [90% interval] | Verdict |
+|---|---|---|
+| Route chooser v1: 6 samples, keep the one that follows the route, 2 m margin (vs v0.3) | +0.013 [-0.040, +0.066] | noise: corridor 24 to 14, but new offroads and slow scenes |
+| **Route chooser v2: 1 m margin, never pick a slower sample (vs v0.3)** | **+0.054 [+0.005, +0.105]** | **kept: passes 63 to 69** |
+| Chooser v3: lane-sized gain may use a slower sample (vs v2) | +0.007 [-0.025, +0.039] | no gain |
+| Route text "Turn left in X m", turn distance fixed (with v2, vs v2) | +0.002 [-0.040, +0.045] | no gain |
+| Sampler temperature 0.6, NVIDIA's notebook value (with v2, vs v2) | -0.000 [-0.054, +0.054] | no gain |
+| Replan at 2 Hz (with v2, vs v2; 80 scenes) | -0.045 | worse, and twice the compute |
+| Drive the planned path 15% faster (vs v0.3; 80 scenes) | -0.307 [-0.418, -0.199] | rejected: collisions |
+
+**Next image:** `v5` (neutral tag) = v0.3 plus chooser v2 at 1 Hz. It is built on the v0.3 image, so only a small code layer is new. Trial-built and hash-checked, not pushed. October has **one** official PAI slot, so `v5` is only submitted after a final check and Aman's go-ahead.
 
 ## 8. Timeline and submissions
 
@@ -225,6 +238,8 @@ timeline
   2026-09-28 : pai-warmup v0.2 (2 Hz), 552 s per wave : pai-warmup v0.3 (1 Hz), 536 s per wave : Local PAI and nuPlan benches
   2026-09-29 : Official 2 - PAI v0.3, PCS 2143, rank 2/58 : Official 3 - nuPlan v0.3, PCS 1296, rank 19/71 : Sprint verdict, failure taxonomy, October plan
   2026-09-30 : 120-scene PAI + 100-scene nuPlan bench : Plan-storage bug found and guarded by tests : Scope set to PAI only
+  2026-10-01 : Quota reset confirmed (3 per calendar month) : Route chooser v2, first PAI gain above noise
+  2026-10-04 : One official PAI slot for October : Route text, temperature, graded guard tested, no gain : v5 trial build
 ```
 
 ## 9. Where things live
