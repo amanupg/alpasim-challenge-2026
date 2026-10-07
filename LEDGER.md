@@ -639,3 +639,10 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Reading:** the two teams ahead win on scene score; we win on incident spacing. v5's local gain (+0.054 scene score, collisions not up) targets exactly the gap. This is an estimate, not a forecast: local-to-official transfer of a gain this size is unmeasured.
 - nuPlan (95 entries, JEPA thread's track): top PCS 1817 (scene 0.938); our v0.3 entry is rank 26 (1295).
 - No PAI GPU work ran Oct 5 11:00 to Oct 7 (after the 2 Hz cancel, v5 frozen; waiting on the SimForge decision).
+
+## 2026-10-07 Input contract re-checked; route pull queued
+- **Input contract vs NVIDIA's `load_physical_aiavdataset.py`: exact match.** Cameras cross-left, front-wide, cross-right, front-tele (slots 0, 1, 2, 6, sorted); 4 frames 0.1 s apart ending at t0; 16 history poses at 0.1 s ending at t0, in the t0 rig frame; 64 future steps at 0.1 s. No hidden input bug.
+- **Route pull (`A15_ROUTE_PULL`, new):** plan points beyond 30 m are blended toward the route waypoints, weight rising to the maximum by 45 m.
+  - The route is the recorded path 40-80 m ahead, and corridor exits are measured against that path. The remaining exits end 4.0-4.2 m off, mostly lane changes the car did not make.
+  - Points are pulled onto the route itself, never onto the car-to-route chord. Near points are untouched; headings are recomputed. 7 new unit tests pass.
+- **Queued:** chooser v2 + pull 0.6 on 120 PAI scenes, one GPU at a time.
