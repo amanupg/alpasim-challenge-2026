@@ -655,3 +655,9 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Mechanism (per-timestep metrics):** at the moment of each rear hit our car is 4-62 m behind where the recorded car was at that time, and the gap grew over the previous 2 s. The replayed follower keeps the recorded pace, so if we fall behind it runs into us.
 - **We drive blind to the rear:** PAI sends 6 cameras (adds rear_left_70fov, rear_right_70fov = Alpamayo slots 3 and 5); we use 4. A global speed-up already failed (-0.307, our own front collisions), so the next test is giving the model the rear cameras.
   - Check first: 6 cameras means 50% more image input, against ~1.3 GB of headroom under 16 GiB. 5-scene memory and latency check: 13244708.
+- **6-camera memory check (13245747, H100, synthetic frames, K=6 chooser):**
+  - 4 cameras: 14,578 MiB, 2.31 s per plan;
+  - 6 cameras (adds slots 3 and 5): **15,158 MiB, 2.51 s** (+580 MiB, +9%).
+  - Closed-loop peaks run ~470 MiB above this synthetic check (4 cameras: 15,052 vs 14,578), so ~15,600 MiB is expected under the 16,384 MiB cap. The 120-scene run logs the real peak.
+- Closed-loop PAI must stay on Blackwell: H100 nodes still run driver 550.54 (checked 2026-10-07), and the NRE renderer needs ≥570.
+- **Queued:** chooser v2 + 6 cameras on 120 scenes (as_pai_seq, after the route-pull run, one GPU at a time). The 5-scene closed-loop check 13244708 was cancelled as redundant.
