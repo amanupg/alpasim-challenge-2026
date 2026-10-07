@@ -8,10 +8,7 @@
 - **This repo:** PAI only.
 - **nuPlan:** moved to the JEPA thread (`../alpasim-jepa`, another agent) on 2026-09-30. No nuPlan runs here. Our nuPlan notes stay in LEDGER.md for that thread to read.
 - **`../alpasim-jepa`** and its cluster folder are read-only for this repo.
-- **Slots (Aman, 2026-10-04): PAI gets exactly ONE official October slot.**
-  - nuPlan (JEPA thread) gets one; the third is Aman's call.
-  - No "submit, learn, fix, resubmit": the one PAI entry must be our best verified system, decided on the local bench.
-  - Nothing is submitted without Aman's go-ahead; Aman submits.
+- **Slots (Aman, 2026-10-07):** 3 official October slots across both tracks. Which track gets 2 is Aman's call, not yet made. **No submission or warmup before mid-October.** Until then the motto is keep improving: the GPU is never idle, and v5 is the current best candidate, not a frozen final. Nothing is submitted without Aman's go-ahead; Aman submits.
 
 ## Principles
 
@@ -43,11 +40,8 @@
    - slow driving (26 scenes, ~10 points): needs a model-side fix, since candidates agree on speed. Options: a fine-tuned action expert on PAI-domain data; stop/go handling at lights and queues;
    - remaining corridor exits (14, all 4.0-4.2 m: knife-edge): controller / lateral tracking with the chooser in place;
    - low priority: a JEPA plan as an extra candidate, only via the JEPA thread's published outputs, read-only.
-3. **Freeze and verify (Oct 18 to 24)**
-   - Ablate the full system (remove one part at a time) on the 120-scene bench.
-   - Build the `v5` image from the frozen commit and run that exact image locally on the bench (it must reproduce the bench numbers).
-   - Spend the one remaining PAI warmup on it to check form factor and per-wave time against the 14,400 s limit. (The two September warmups free up again around Oct 28.)
-4. **One official PAI submission (target Oct 25 to 27),** after Aman's go-ahead. That leaves days of buffer before the Oct 31 close, since a failed official run still uses the slot.
+3. **Keep improving to mid-October and beyond.** Each candidate part is measured on the 120-scene bench against the current best. The image is built and checked only when Aman schedules a PAI slot.
+4. **When a PAI slot is scheduled:** build the image from the best commit, verify it (hashes, settings; the PAI warmup if Aman wants it), and Aman submits.
 
 ## Constraints
 
