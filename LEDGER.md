@@ -646,3 +646,12 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - The route is the recorded path 40-80 m ahead, and corridor exits are measured against that path. The remaining exits end 4.0-4.2 m off, mostly lane changes the car did not make.
   - Points are pulled onto the route itself, never onto the car-to-route chord. Near points are untouched; headings are recomputed. 7 new unit tests pass.
 - **Queued:** chooser v2 + pull 0.6 on 120 PAI scenes, one GPU at a time.
+
+## 2026-10-07 Slow-driving scenes are mostly rear-end collisions (analysis of chooser v2 logs, no GPU)
+- **The car is not mostly planning to stop.** Low-progress scenes average 1 stopped plan per 20; planned distance per 6.4 s averages 47 m (pass scenes 56 m). No candidate offered to move while the chosen plan stopped, except in 2 scenes.
+- **The safety monitor never fired** (0 in all 120 scenes).
+- **17 of 24 low-progress scenes (v2) had a not-at-fault collision that ended the rollout early** (mean duration 64% of 20 s). Example: 697226 ended at 16% after 2.5 m.
+- **All of them are rear collisions** (v2: 25 scenes, 25 rear / 0 front / 0 lateral; bench v0.3: 17 scenes, all rear). Score lost in those scenes: 8.1 (v2), 7.4 (v0.3). Most end as low progress, some still pass.
+- **Mechanism (per-timestep metrics):** at the moment of each rear hit our car is 4-62 m behind where the recorded car was at that time, and the gap grew over the previous 2 s. The replayed follower keeps the recorded pace, so if we fall behind it runs into us.
+- **We drive blind to the rear:** PAI sends 6 cameras (adds rear_left_70fov, rear_right_70fov = Alpamayo slots 3 and 5); we use 4. A global speed-up already failed (-0.307, our own front collisions), so the next test is giving the model the rear cameras.
+  - Check first: 6 cameras means 50% more image input, against ~1.3 GB of headroom under 16 GiB. 5-scene memory and latency check: 13244708.
