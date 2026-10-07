@@ -480,7 +480,9 @@ def main() -> None:
         diffusion_temperature=float(os.environ.get("A15_DIFF_TEMP", "1.0"))))
     service = A15ChallengeDriver(
         handle=handle,
-        pai_cameras=[c.strip() for c in os.environ.get("A15_PAI_CAMERAS", DEFAULT_PAI_CAMERAS).split(",") if c.strip()],
+        # "," or ";" separated (sbatch --export splits values on commas)
+        pai_cameras=[c.strip() for c in os.environ.get("A15_PAI_CAMERAS", DEFAULT_PAI_CAMERAS).replace(";", ",").split(",")
+                     if c.strip()],
         interval_us=int(os.environ.get("A15_INFERENCE_INTERVAL_US", "500000")),
         frame_dt_s=float(os.environ.get("A15_FRAME_DT_S", "0.1")),
         nav=os.environ.get("A15_NAV", "0") == "1",
