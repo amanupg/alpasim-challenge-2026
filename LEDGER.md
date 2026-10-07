@@ -630,3 +630,12 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **Cost:** Drive RPC mean 0.93 s vs 0.44 s at 1 Hz; 40 plans per session vs 20; batch wall time 2.8 h vs 2.3 h. That doubles model work against the PAI time limit.
 - **Verdict: 1 Hz stays.** Batch 3 was cancelled because no plausible result there could pay for 2x compute after -0.045 over 80 scenes (it would need about +0.09).
 - **v5 is frozen at chooser v2, 1 Hz.**
+
+## 2026-10-07 Leaderboard snapshot (challenge CLI `leaderboard`)
+- **PAI (84 entries): we are rank 3** with v0.3 (PCS 2138, scene 0.611, at-fault spacing 0.795). Rank 2 at submission; PCS values are re-estimated as entries arrive.
+  - #1 PCS 2234: scene 0.665, spacing 0.530 (Sep 28).
+  - #2 PCS 2195: scene 0.651, spacing 0.511 (Sep 30).
+  - October entries so far land at PCS 2098-2119. The highest scene score on the board is 0.706, at PCS 2098 (spacing 0.751).
+- **Reading:** the two teams ahead win on scene score; we win on incident spacing. v5's local gain (+0.054 scene score, collisions not up) targets exactly the gap. This is an estimate, not a forecast: local-to-official transfer of a gain this size is unmeasured.
+- nuPlan (95 entries, JEPA thread's track): top PCS 1817 (scene 0.938); our v0.3 entry is rank 26 (1295).
+- No PAI GPU work ran Oct 5 11:00 to Oct 7 (after the 2 Hz cancel, v5 frozen; waiting on the SimForge decision).
