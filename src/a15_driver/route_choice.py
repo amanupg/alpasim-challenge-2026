@@ -62,3 +62,41 @@ def choose(xy: np.ndarray, route: np.ndarray | None, margin_m: float = 2.0, min_
         c[0] = route_costs(xy[:1], route)[0]
     j = int(c.argmin())
     return j if c[0] - c[j] > margin_m else 0
+
+
+def route_pull(xy: np.ndarray, yaw: np.ndarray, route: np.ndarray | None, w_max: float,
+               d0_m: float = 30.0, d1_m: float = 45.0) -> tuple[np.ndarray, np.ndarray]:
+    """Blend the far part of a plan toward the route (the recorded path 40-80 m ahead).
+
+    PAI bench (2026-10-03): the remaining corridor exits end 4.0-4.2 m from the recorded path, mostly
+    where the recorded driver changed lane and ours did not. A point at distance d from the car moves a
+    fraction w(d) of the way to its nearest point ON the route waypoints (never onto the car-to-route
+    chord, which cuts corners), with w rising linearly from 0 at d0_m to w_max at d1_m. Near points are
+    untouched, so the next few seconds still follow the model; headings are recomputed where points moved.
+    xy: (T, 2) plan in the rig frame; yaw: (T,). Returns new (xy, yaw)."""
+    if route is None or w_max <= 0 or len(xy) < 2:
+        return xy, yaw
+    r = np.asarray(route, dtype=np.float64).reshape(-1, 2)
+    r = r[np.isfinite(r).all(1) & (r[:, 0] > -2.0)]
+    if len(r) < 2:
+        return xy, yaw
+    p = np.asarray(xy, dtype=np.float64)
+    d = np.linalg.norm(p, axis=1)
+    w = np.clip((d - d0_m) / max(d1_m - d0_m, 1e-6), 0.0, 1.0) * w_max
+    if not (w > 0).any():
+        return xy, yaw
+    a, b = r[:-1], r[1:]
+    ab = b - a
+    t = np.einsum("nmk,mk->nm", p[:, None] - a[None], ab) / np.maximum((ab * ab).sum(1), 1e-9)
+    q = a[None] + np.clip(t, 0, 1)[..., None] * ab[None]
+    near = q[np.arange(len(p)), np.linalg.norm(p[:, None] - q, axis=2).argmin(1)]
+    out = p + w[:, None] * (near - p)
+    new_yaw = np.asarray(yaw, dtype=np.float64).copy()
+    moved = np.nonzero(w > 0)[0]
+    if len(moved):
+        seg = np.diff(out, axis=0)
+        hd = np.arctan2(seg[:, 1], seg[:, 0])
+        for i in moved:
+            if np.linalg.norm(seg[min(i, len(seg) - 1)]) > 0.05:
+                new_yaw[i] = hd[min(i, len(seg) - 1)]
+    return out.astype(np.asarray(xy).dtype), new_yaw.astype(np.asarray(yaw).dtype)

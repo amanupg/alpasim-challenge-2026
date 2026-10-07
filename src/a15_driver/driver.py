@@ -47,6 +47,7 @@ from PIL import Image                                               # noqa: E402
 import grpc                                                         # noqa: E402
 
 from .policy import CAMERA_NAME_TO_INDEX, NUPLAN_TO_SLOT, Alpamayo15Policy  # noqa: E402
+from .route_choice import route_pull  # noqa: E402
 from .trajectory import CachedPlan, build_trajectory_from_plan, make_cached_plan  # noqa: E402
 
 LOGGER = logging.getLogger("a15_challenge_driver")
@@ -226,10 +227,12 @@ class SessionState:
 class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
     def __init__(self, *, handle: PolicyHandle, pai_cameras: list[str], interval_us: int, frame_dt_s: float,
                  nav: bool = False, log_choices: bool = False, early_replan: bool = False,
-                 nav_dist: str = "euclid", speed_scale: float = 1.0):
+                 nav_dist: str = "euclid", speed_scale: float = 1.0, route_pull: float = 0.0,
+                 route_pull_d0: float = 30.0, route_pull_d1: float = 45.0):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
         self._log_choices, self._early_replan, self._nav_dist = log_choices, early_replan, nav_dist
         self._speed_scale = speed_scale
+        self._route_pull, self._route_pull_d0, self._route_pull_d1 = route_pull, route_pull_d0, route_pull_d1
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -372,6 +375,8 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                 s.stats["infer_err"] += 1
             return
         xy, yaw = speed_scale_plan(np.asarray(xy), np.asarray(yaw), self._speed_scale)
+        if self._route_pull > 0:
+            xy, yaw = route_pull(xy, yaw, route, self._route_pull, self._route_pull_d0, self._route_pull_d1)
         new = make_cached_plan(created_time_us=t0, anchor_pose=anchor, trajectory_xy=xy, headings=yaw,
                                source_frequency_hz=policy.output_frequency_hz)
         with self._lock:
@@ -482,7 +487,10 @@ def main() -> None:
         log_choices=os.environ.get("A15_LOG_CHOICES", "0") == "1",
         early_replan=os.environ.get("A15_EARLY_REPLAN", "0") == "1",
         nav_dist=os.environ.get("A15_NAV_DIST", "euclid"),
-        speed_scale=float(os.environ.get("A15_SPEED_SCALE", "1.0")))
+        speed_scale=float(os.environ.get("A15_SPEED_SCALE", "1.0")),
+        route_pull=float(os.environ.get("A15_ROUTE_PULL", "0")),
+        route_pull_d0=float(os.environ.get("A15_ROUTE_PULL_D0", "30")),
+        route_pull_d1=float(os.environ.get("A15_ROUTE_PULL_D1", "45")))
     host, port = os.environ.get("ALPASIM_DRIVER_HOST", "0.0.0.0"), int(os.environ.get("ALPASIM_DRIVER_PORT", "6789"))
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=int(os.environ.get("ALPASIM_DRIVER_GRPC_WORKERS", "8"))))
     egodriver_pb2_grpc.add_EgodriverServiceServicer_to_server(service, server)

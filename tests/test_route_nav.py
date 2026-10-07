@@ -6,7 +6,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from a15_driver.driver import route_nav_text, speed_scale_plan  # noqa: E402
-from a15_driver.route_choice import choose  # noqa: E402
+from a15_driver.route_choice import choose, route_pull  # noqa: E402
 
 bad = 0
 
@@ -53,5 +53,21 @@ q, qy = speed_scale_plan(pxy, pyaw, 1.2)
 check("scale 1.2 speed m/s", round(float(q[1, 0] - q[0, 0]) / 0.1, 2), 6.0)
 check("scale 1.2 points", len(q), 53)
 check("scale 1.0 unchanged", speed_scale_plan(pxy, pyaw, 1.0)[0] is pxy, True)
+# route pull: straight 64-point plan at 10 m/s (0..63 m) in our lane; route one lane left (y=3.5) 40-80 m
+pl = np.stack([np.arange(64) * 1.0, np.zeros(64)], 1)
+ry = np.zeros(64)
+lane_route = np.array([[40.0 + 5 * k, 3.5] for k in range(9)])
+q, qy = route_pull(pl, ry, lane_route, 0.6)
+check("pull: near points untouched", float(np.abs(q[:31] - pl[:31]).max()), 0.0)
+check("pull: point at 55 m moves 0.6 of 3.5 m", round(float(q[55, 1]), 2), 2.1)
+check("pull: point at 37.5 m moves half of 0.6", round(float(q[37, 1] + q[38, 1]) / 2, 2), round(0.6 * 3.5 * (37.5 - 30) / 15, 2))
+check("pull: headings turn left where moved", bool(qy[35] > 0), True)
+check("pull: no route = unchanged", route_pull(pl, ry, None, 0.6)[0] is pl, True)
+short = pl[:25]
+check("pull: short plan (<30 m) unchanged", float(np.abs(route_pull(short, ry[:25], lane_route, 0.6)[0] - short).max()), 0.0)
+# turn route: points that would project onto the car-to-route chord are pulled to the route itself, not the chord
+turn_route = np.array([[15.0, 10.0 + 4 * k] for k in range(10)])
+q2, _ = route_pull(pl, ry, turn_route, 1.0)
+check("pull: far point lands on the turned road (x=15)", round(float(q2[60, 0]), 1), 15.0)
 print("PASS" if bad == 0 else f"FAIL ({bad})")
 sys.exit(bad > 0)
