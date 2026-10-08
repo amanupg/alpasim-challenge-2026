@@ -674,3 +674,19 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - Torch peak reserved at warm-up is 13.37 GiB on both, so the excess is outside the torch caching allocator.
   - The rule is "each driver instance must use no more than 16 GiB of VRAM", with enforcement unstated. v0.3 completed 987/987 official rollouts on H100.
   - Next: find what grows and cap it.
+
+## 2026-10-07 One GPU thread fixes H100 driver memory; experiments move to H100; storage
+- **Fix verified (13257188, H100, chooser v2, 5 scenes):** driver memory is flat at **14,580 MiB** (was climbing 14,578 to 17,340 MiB in 400 MiB steps), torch reserved 13.37 GiB, 5/5 passed.
+  - Cause: predict ran on whichever gRPC worker thread handled the request, and each new thread set up its own CUDA library state.
+  - Now load, warm-up and every predict run on one dedicated thread (`A15_ONE_GPU_THREAD=1`, default).
+  - v0.3 in the official H100 run most likely grew the same way and still completed. Every future image includes the fix.
+- **Experiments move to H100** (free, and the official hardware). Two lanes, one batch per lane at a time:
+  - lane A: chooser v2 as the H100 reference (13260244-46), then 6 cameras (13260250-52);
+  - lane B: route pull 0.6 (13260247-49).
+  - The Blackwell copies (13244073-75, 13245807-09) were cancelled.
+- **Storage:** the filesystem hit 29 GB free on Oct 7 evening (not from us: our folder stayed at 398 GB). Jobs were held until space returned.
+  - Deleted (Aman approved): the raw `.asl` logs of the bench (12991556-58) and chooser v2 (13060758-60), 96 GB. Summaries, videos and per-step metrics are kept.
+  - **No duplication between `alpasim` and `alpasim-jepa`:**
+    - their 468 navtest scenes share none with our 100;
+    - `nuplan_test` is a different format;
+    - their simulator runs read our nuPlan shard and sandboxes read-only, so those must stay here.
