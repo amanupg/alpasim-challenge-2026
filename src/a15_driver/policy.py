@@ -127,6 +127,7 @@ class Alpamayo15Policy:
         self._eos = model.tokenizer.convert_tokens_to_ids("<|traj_future_start|>")
         self._num_samples, self._hist = max(1, int(num_samples)), None
         self._chooser, self._route, self.last_choice = chooser, None, 0
+        self._k_now = self._num_samples
         self._route_margin, self._route_min_len = route_margin, route_min_len
         self._route_big_gap, self._route_big_gap_min_len = route_big_gap, route_big_gap_min_len
         # initial-noise temperature of the flow-matching sampler (Alpamayo 1.5 nav notebook uses 0.6:
@@ -147,10 +148,13 @@ class Alpamayo15Policy:
         expert call). Sampling K sequences through the VLM instead would copy the ~470 MB prompt
         cache K times and break the 16 GiB cap."""
         model, orig = self._model, self._model.diffusion.sample
-        K = self._num_samples
 
         def sample(*args, batch_size, **kw):
             assert batch_size == 1, "medoid wrapper expects one plan per call"
+            K = self._k_now                       # per-call sample count (predict(..., num_samples=...))
+            if K == 1:
+                self.last_choice = 0
+                return orig(*args, batch_size=1, **kw)
             S = torch.cat([orig(*args, batch_size=1, **kw) for _ in range(K)], 0)       # (K, *action_dims)
             hx, hr = self._hist
             xyz, _ = model.action_space.action_to_traj(S, hx[:, -1].repeat(K, *[1] * (hx.dim() - 2)),
@@ -173,12 +177,13 @@ class Alpamayo15Policy:
     @torch.no_grad()
     def predict(self, frames: torch.Tensor, cam_slots: list[int],
                 hist_xyz: torch.Tensor, hist_rot: torch.Tensor, nav_text: str | None = None,
-                route_xy: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray, dict]:
+                route_xy: np.ndarray | None = None, num_samples: int | None = None) -> tuple[np.ndarray, np.ndarray, dict]:
         """frames: (n_cam, 4, 3, H, W) uint8 ordered as cam_slots (ascending);
         hist_*: (1, 1, 16, 3) / (1, 1, 16, 3, 3) ego history in the t0 rig frame;
         nav_text: optional route instruction ("Turn left in 30m"), Alpamayo 1.5's navigation input;
         route_xy: route waypoints in the rig frame, used by the "route" chooser."""
         self._route, self.last_choice, self.last_costs, self.last_ends = route_xy, 0, None, None
+        self._k_now = self._num_samples if num_samples is None else max(1, int(num_samples))
         msgs = self._helper.create_message(frames.flatten(0, 1), camera_indices=torch.tensor(cam_slots),
                                            nav_text=nav_text)
         if not self._reasoning:

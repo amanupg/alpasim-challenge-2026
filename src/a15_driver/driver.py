@@ -47,7 +47,7 @@ from PIL import Image                                               # noqa: E402
 import grpc                                                         # noqa: E402
 
 from .policy import CAMERA_NAME_TO_INDEX, NUPLAN_TO_SLOT, Alpamayo15Policy  # noqa: E402
-from .route_choice import route_pull  # noqa: E402
+from .route_choice import retime_path, route_pull  # noqa: E402
 from .trajectory import CachedPlan, build_trajectory_from_plan, make_cached_plan  # noqa: E402
 
 LOGGER = logging.getLogger("a15_challenge_driver")
@@ -247,11 +247,12 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
     def __init__(self, *, handle: PolicyHandle, pai_cameras: list[str], interval_us: int, frame_dt_s: float,
                  nav: bool = False, log_choices: bool = False, early_replan: bool = False,
                  nav_dist: str = "euclid", speed_scale: float = 1.0, route_pull: float = 0.0,
-                 route_pull_d0: float = 30.0, route_pull_d1: float = 45.0):
+                 route_pull_d0: float = 30.0, route_pull_d1: float = 45.0, speed_cams: bool = False):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
         self._log_choices, self._early_replan, self._nav_dist = log_choices, early_replan, nav_dist
         self._speed_scale = speed_scale
         self._route_pull, self._route_pull_d0, self._route_pull_d1 = route_pull, route_pull_d0, route_pull_d1
+        self._speed_cams = speed_cams
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -394,7 +395,16 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         t = time.time()
         try:
             with self._infer_lock:
-                xy, yaw, info = on_gpu_thread(policy.predict, frames, s.slots, hx, hr, nav_text=nav, route_xy=route)
+                if self._speed_cams and len(s.slots) > 4:
+                    # hybrid: route (path) from the usual 4 cameras with the chooser; speed from a 1-sample
+                    # plan that also sees the rear cameras (PAI 2026-10-08: rear cameras cut rear-end hits)
+                    i4 = [i for i, sl in enumerate(s.slots) if sl in (0, 1, 2, 6)]
+                    xy, yaw, info = on_gpu_thread(policy.predict, frames[i4], [s.slots[i] for i in i4], hx, hr,
+                                                  nav_text=nav, route_xy=route)
+                    xs, _, _ = on_gpu_thread(policy.predict, frames, s.slots, hx, hr, route_xy=None, num_samples=1)
+                    xy, yaw = retime_path(np.asarray(xy), np.asarray(xs))
+                else:
+                    xy, yaw, info = on_gpu_thread(policy.predict, frames, s.slots, hx, hr, nav_text=nav, route_xy=route)
         except Exception:                                    # noqa: BLE001
             LOGGER.exception("inference failed")
             with self._lock:
@@ -518,7 +528,8 @@ def main() -> None:
         speed_scale=float(os.environ.get("A15_SPEED_SCALE", "1.0")),
         route_pull=float(os.environ.get("A15_ROUTE_PULL", "0")),
         route_pull_d0=float(os.environ.get("A15_ROUTE_PULL_D0", "30")),
-        route_pull_d1=float(os.environ.get("A15_ROUTE_PULL_D1", "45")))
+        route_pull_d1=float(os.environ.get("A15_ROUTE_PULL_D1", "45")),
+        speed_cams=os.environ.get("A15_SPEED_CAMS", "4") == "6")
     host, port = os.environ.get("ALPASIM_DRIVER_HOST", "0.0.0.0"), int(os.environ.get("ALPASIM_DRIVER_PORT", "6789"))
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=int(os.environ.get("ALPASIM_DRIVER_GRPC_WORKERS", "8"))))
     egodriver_pb2_grpc.add_EgodriverServiceServicer_to_server(service, server)

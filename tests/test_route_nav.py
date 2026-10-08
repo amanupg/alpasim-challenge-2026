@@ -6,7 +6,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from a15_driver.driver import route_nav_text, speed_scale_plan  # noqa: E402
-from a15_driver.route_choice import choose, route_pull  # noqa: E402
+from a15_driver.route_choice import choose, retime_path, route_pull  # noqa: E402
 
 bad = 0
 
@@ -69,5 +69,19 @@ check("pull: short plan (<30 m) unchanged", float(np.abs(route_pull(short, ry[:2
 turn_route = np.array([[15.0, 10.0 + 4 * k] for k in range(10)])
 q2, _ = route_pull(pl, ry, turn_route, 1.0)
 check("pull: far point lands on the turned road (x=15)", round(float(q2[60, 0]), 1), 15.0)
+# retime: a left-curving path at 10 m/s driven with a 5 m/s profile covers half the distance, same shape
+tt64 = np.arange(1, 65) * 0.1
+ang = tt64 * 0.1
+curve = np.stack([np.sin(ang) * 100, (1 - np.cos(ang)) * 100], 1)          # radius 100 m, 10 m/s
+slow_line = np.stack([5.0 * tt64, 0 * tt64], 1)
+rt, ryaw = retime_path(curve, slow_line)
+check("retime: covers 5 m/s * 6.4 s = 32 m", round(float(np.linalg.norm(np.diff(np.vstack([[0, 0], rt]), axis=0), axis=1).sum()), 1), 32.0)
+check("retime: stays on the curve (radius 100)", round(float(np.abs(np.linalg.norm(rt - [0, 100], axis=1) - 100).max()), 2), 0.0)
+fast_line = np.stack([20.0 * tt64, 0 * tt64], 1)
+rt2, _ = retime_path(curve, fast_line)
+check("retime: beyond the path end it extends straight", round(float(np.linalg.norm(rt2[-1] - curve[-1])), 1), 64.0)
+stop = np.zeros((64, 2))
+rt3, ry3 = retime_path(curve, stop)
+check("retime: stopped profile stays at the car", float(np.abs(rt3).max()), 0.0)
 print("PASS" if bad == 0 else f"FAIL ({bad})")
 sys.exit(bad > 0)

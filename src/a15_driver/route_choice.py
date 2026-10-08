@@ -100,3 +100,33 @@ def route_pull(xy: np.ndarray, yaw: np.ndarray, route: np.ndarray | None, w_max:
             if np.linalg.norm(seg[min(i, len(seg) - 1)]) > 0.05:
                 new_yaw[i] = hd[min(i, len(seg) - 1)]
     return out.astype(np.asarray(xy).dtype), new_yaw.astype(np.asarray(yaw).dtype)
+
+
+def retime_path(path_xy: np.ndarray, speed_xy: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Drive path_xy's geometry with speed_xy's progress over time.
+
+    Point k of the result lies on path_xy at the arc length speed_xy has covered by step k (both plans
+    share the 0.1 s step and start at the car). Beyond the end of path_xy the last segment's direction is
+    extended. Headings follow the path tangent. Used to take the route from the 4-camera plan and the
+    speed from the 6-camera plan, whose rear cameras see a vehicle closing from behind (PAI 2026-10-08:
+    6 cameras cut rear-end hits 9 to 3 on scenes 1-40 but added own collisions and corridor exits)."""
+    p = np.vstack([np.zeros((1, 2)), np.asarray(path_xy, dtype=np.float64)])
+    q = np.vstack([np.zeros((1, 2)), np.asarray(speed_xy, dtype=np.float64)])
+    seg = np.diff(p, axis=0); L = np.linalg.norm(seg, axis=1); S = np.concatenate([[0.0], np.cumsum(L)])
+    s_target = np.cumsum(np.linalg.norm(np.diff(q, axis=0), axis=1))          # (T,) progress per step
+    out = np.empty((len(s_target), 2))
+    last_dir = seg[-1] / max(L[-1], 1e-9) if len(L) else np.array([1.0, 0.0])
+    for k, s in enumerate(s_target):
+        if s >= S[-1]:
+            out[k] = p[-1] + (s - S[-1]) * last_dir
+        else:
+            i = int(np.searchsorted(S, s, side="right") - 1)
+            a = (s - S[i]) / max(L[i], 1e-9)
+            out[k] = p[i] + a * seg[i]
+    d = np.diff(np.vstack([np.zeros((1, 2)), out]), axis=0)
+    yaw = np.arctan2(d[:, 1], d[:, 0])
+    still = np.linalg.norm(d, axis=1) < 1e-3                                  # stopped: hold the path heading
+    if still.any():
+        path_yaw = np.arctan2(seg[0, 1], seg[0, 0]) if len(seg) else 0.0
+        yaw[still] = path_yaw
+    return out, yaw
