@@ -72,6 +72,11 @@ def build(name, svc, a, gpus):
         if not os.path.exists(hp) and not os.path.splitext(hp)[1]:
             os.makedirs(hp)          # docker creates missing bind sources as directories
         cmd += ["-B", ":".join([hp] + parts[1:])]
+    # Slurm's per-job TMPDIR (/local/slurm-job-N on the L40S/H100 nodes) is inherited by the services but not
+    # mounted, so compilers writing temp files there fail (Warp NVRTC "cannot open temporary file", 2026-10-07)
+    tmp = os.environ.get("TMPDIR")
+    if tmp and os.path.isdir(tmp) and not tmp.startswith("/tmp"):
+        cmd += ["-B", tmp]
     cmd += ["--pwd", svc.get("working_dir") or image_entry(svc["image"])[1]]
     env = {}
     for e in svc.get("environment") or []:
@@ -85,11 +90,23 @@ def build(name, svc, a, gpus):
         env["CUDA_VISIBLE_DEVICES"] = g
     for k, val in env.items():
         cmd += ["--env", f"{k}={val}"]
+    # CUDA forward compatibility (NVIDIA cuda-compat libcuda in front of the host's) so the PAI stack runs
+    # on datacenter GPUs with an older driver (L40S / H100 run 550): the NRE renderer needs CUDA 12.8
+    # (driver >= 570), and the physics service's Warp kernels failed to build on H100 without it
+    # ("CUDA kernel build failed with error code 6", 2026-10-07). Applied to every simulator service.
+    compat = a.cuda_compat
+    if compat:
+        cmd[3:3] = ["-B", f"{compat}:/opt/cuda-compat"]
     cmd.append(sif_for(svc["image"], a.sif_dir))
     c = svc.get("command")
     if c:
         assert svc.get("entrypoint") == "bash" and c[0] == "-c", (name, svc.get("entrypoint"), c[:1])
-        cmd += ["bash", "-c", c[1].replace("$$", "$")]
+        body = c[1].replace("$$", "$")
+        if compat:
+            body = 'export LD_LIBRARY_PATH=/opt/cuda-compat${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}; ' + body
+        cmd += ["bash", "-c", body]
+    elif compat:
+        raise SystemExit(f"{name}: --cuda-compat needs a bash -c command to prepend LD_LIBRARY_PATH")
     return cmd
 
 
@@ -112,6 +129,7 @@ def main():
     ap.add_argument("--cache-dir", default="/insomnia001/depts/edu/users/au2327/alpasim/cache/containers")
     ap.add_argument("--timeout", type=int, default=1800)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--cuda-compat", default=None, help="cuda-compat lib dir for the NRE renderer (driver < 570 GPUs)")
     a = ap.parse_args()
     services = json.load(open(a.compose))["services"]
     gpus = (os.environ.get("CUDA_VISIBLE_DEVICES") or "0").split(",")

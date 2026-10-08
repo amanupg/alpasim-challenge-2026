@@ -10,6 +10,7 @@
 # Local closed-loop evaluation on Insomnia (Apptainer simulator stack + our driver).
 #   DRIVER=starter|a15   TRACK=nuplan|pai   NSCENES=N   ROLLOUTS=2 (concurrent, as officially)
 #   SCENES_FROM=<run dir>: reuse that run's scene list (same scenes for a fair comparison)
+#   CUDA_COMPAT=1: PAI renderer via cuda-compat 12.8 (lets PAI run on L40S/H100)
 #   KEEP_ASL=1: keep the raw rollout.asl logs (default: deleted once the summary exists)
 #   EXTRA_OVERRIDES="controller.gains.lat_position_weight=3.0 ..." extra wizard overrides (no commas:
 #   sbatch --export splits on them); TAG=name appended to the run dir
@@ -91,7 +92,10 @@ fi
 } > $RUN/wizard.sh
 apptainer exec -B $A $SIF bash $RUN/wizard.sh > $RUN/wizard.log 2>&1 || { tail -40 $RUN/wizard.log; exit 1; }
 apptainer exec $SIF /repo/.venv/bin/python -c "import yaml,json; json.dump(yaml.safe_load(open('$RUN/docker-compose.yaml')), open('$RUN/docker-compose.json','w'), indent=1)"
-python3 $A/src/compose_apptainer.py $RUN/docker-compose.json --sif-dir $A/sandbox --repo-host $REPO --logdir $RUN/svc-logs
+# CUDA_COMPAT=1: run the PAI NRE renderer through NVIDIA's cuda-compat 12.8 so PAI also runs on L40S/H100 (driver 550)
+COMPAT_ARG=""; [ "${CUDA_COMPAT:-0}" = 1 ] && COMPAT_ARG="--cuda-compat $A/envs/cuda-compat-12-8/usr/local/cuda-12.8/compat --cache-dir $A/cache/containers_$(nvidia-smi --query-gpu=name --format=csv,noheader | head -1 | tr -c 'A-Za-z0-9' _)"   # own kernel cache per GPU type (NRE caches compiled kernels)
+nvidia-smi --query-gpu=name,driver_version --format=csv,noheader | head -1
+python3 $A/src/compose_apptainer.py $RUN/docker-compose.json --sif-dir $A/sandbox --repo-host $REPO --logdir $RUN/svc-logs $COMPAT_ARG
 RC=$?
 echo "runtime exit $RC"
 python3 $A/src/summarize_run.py $RUN
