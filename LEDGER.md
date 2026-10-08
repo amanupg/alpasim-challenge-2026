@@ -661,3 +661,16 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - Closed-loop peaks run ~470 MiB above this synthetic check (4 cameras: 15,052 vs 14,578), so ~15,600 MiB is expected under the 16,384 MiB cap. The 120-scene run logs the real peak.
 - Closed-loop PAI must stay on Blackwell: H100 nodes still run driver 550.54 (checked 2026-10-07), and the NRE renderer needs ≥570.
 - **Queued:** chooser v2 + 6 cameras on 120 scenes (as_pai_seq, after the route-pull run, one GPU at a time). The 5-scene closed-loop check 13244708 was cancelled as redundant.
+
+## 2026-10-07 PAI simulation now runs on H100 (not only Blackwell)
+- **Why:** both Blackwell nodes were full with 18 R6000 jobs queued (our priority 5051). H100/L40S/A6000 nodes run driver 550.54; the NRE renderer needs CUDA 12.8 (driver ≥570).
+- **What it took (Aman approved the download):**
+  1. NVIDIA `cuda-compat-12-8_570.211.01` from developer.download.nvidia.com (38 MB .deb, sha256 4363d39d…1493), unpacked to `envs/cuda-compat-12-8` (193 MB).
+  2. `compose_apptainer.py --cuda-compat` mounts it into every simulator service and prepends it to LD_LIBRARY_PATH. `sim_local.sbatch` sets this with `CUDA_COMPAT=1`, plus a separate kernel cache per GPU type.
+  3. **The real blocker** on L40S/H100 nodes: Slurm sets TMPDIR to `/local/slurm-job-N`, which was not mounted into the containers. The physics service's Warp NVRTC failed with "cannot open temporary file" (surfacing as "CUDA kernel build failed with error code 6"). The launcher now binds TMPDIR.
+- **Result (13256805, H100 PCIe, 2 scenes, v0.3 driver):** both rollouts ran, both passed (1.0, 1.0). On Blackwell the same scenes scored 0/0/1 (0ca514, knife-edge at 4.1-4.8 m) and 1/1/1 (52c68f).
+- **Memory finding (important: the official run is on H100):**
+  - The driver process peaked at **17,340 MiB** (nvidia-smi) on H100 in closed loop, vs 15,052 MiB on Blackwell, and 14,578 MiB in the synthetic H100 check.
+  - Torch peak reserved at warm-up is 13.37 GiB on both, so the excess is outside the torch caching allocator.
+  - The rule is "each driver instance must use no more than 16 GiB of VRAM", with enforcement unstated. v0.3 completed 987/987 official rollouts on H100.
+  - Next: find what grows and cap it.
