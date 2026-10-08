@@ -713,3 +713,25 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - 6 cameras: driver peak 14,972 MiB (Blackwell, one-thread driver). Route pull: 14,392 MiB.
 - Batch 1 holds only 1 v2 corridor exit, so route pull's test is batches 41-80 and 81-120.
 - **Idea if 6 cameras confirms this pattern over 120 scenes:** use the rear cameras only to detect a closing vehicle behind (keep the plan, and speed up or avoid braking when tailgated), while planning from the 4 front cameras.
+
+## 2026-10-08 Blackwell lanes, full 120 scenes (vs Blackwell chooser v2 13060758-60 = 0.692)
+Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already completed cleanly (40/40 sessions each, 0 fallbacks).
+
+| Variant | Mean | Diff vs v2 [90%] | W/L | Rear-ended | Categories | Wall per batch |
+|---|---|---|---|---|---|---|
+| v2 (reference) | 0.692 | | | 25 | pass 69, low progress 24, corridor 14, offroad 8, collision 5 | 2:17-2:20 |
+| v2 + route pull 0.6 (13266129-31) | 0.690 | -0.002 [-0.051, +0.047] | 19/20 | 22 | pass 68, low progress 24, corridor 15, offroad 9, collision 4 | 2:18-2:21 |
+| v2 + 6 cameras (13266132-34) | 0.670 | -0.023 [-0.095, +0.048] | 27/25 | **11** | pass 71, low progress **16**, corridor 16, offroad 10, collision 7 | 2:25-2:28 |
+
+- **By batch:** route pull -0.020 / +0.059 / -0.046; 6 cameras -0.112 / **+0.188** / -0.145.
+- **Route pull: no effect. Dropped.**
+- **6 cameras: the batch-1 pattern holds over all 120 scenes.**
+  - Rear-ended 25 → 11 and low progress 24 → 16.
+  - Our own failures rise: at-fault collision 5 → 7, offroad 8 → 10, corridor 14 → 16.
+  - v2 → 6-camera category changes: 11 low progress → pass, and 13 pass → own failure (4 offroad, 5 corridor, 4 collision).
+  - Net zero; not adopted as is.
+- **Next:** the hybrid (`A15_SPEED_CAMS=6`).
+  - Path from the 4 front cameras with chooser v2.
+  - Speed profile from a 6-camera K=1 sample, applied by re-timing along that path.
+  - Jobs 13279194 (1-40) and 13279196 (81-120) on lane as_bw_a; 13279195 (41-80) on lane as_bw_b.
+- **Watch the hybrid's wall time.** It runs one extra 6-camera inference per step. The official PAI limit is 14,400 s, and v0.3 used 9,474 s.
