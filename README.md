@@ -226,20 +226,24 @@ Corridor exits were 55% of the lost score (mostly lane choice on straight roads)
 | Sampler temperature 0.6, NVIDIA's notebook value (with v2, vs v2) | -0.000 [-0.054, +0.054] | no gain |
 | Replan at 2 Hz (with v2, vs v2; 80 scenes) | -0.045 | worse, and twice the compute |
 | Drive the planned path 15% faster (vs v0.3; 80 scenes) | -0.307 [-0.418, -0.199] | rejected: collisions |
+| Pull the far plan onto the route waypoints, weight 0.6 (with v2, vs v2) | -0.002 [-0.051, +0.047] | no gain |
+| All 6 cameras, adding rear-left and rear-right (with v2, vs v2) | -0.023 [-0.095, +0.048] | net zero: rear-ended 25 to 11, but more own collisions, offroad and corridor exits |
+| Hybrid: path from 4 front cameras, speed from all 6 (with v2, vs v2) | running | |
 
-**Next image:** `v5` (neutral tag) = v0.3 plus chooser v2 at 1 Hz. It is built on the v0.3 image, so only a small code layer is new. Trial-built and hash-checked, not pushed. October has **one** official PAI slot, so `v5` is only submitted after a final check and Aman's go-ahead.
+**Next image:** `v5` (neutral tag) = v0.3 plus chooser v2 at 1 Hz. It is built on the v0.3 image, so only a small code layer is new. Trial-built and hash-checked, not pushed. PAI gets 1 or 2 of October's 3 slots (Aman's call), with no submission before mid-October. `v5` is the current best candidate, not a final image, and is only submitted after a final check and Aman's go-ahead.
 
 ## 8. Timeline and submissions
 
 ```mermaid
 timeline
-  title AlpaSim, first three days
+  title AlpaSim timeline
   2026-09-27 : Feasibility test (simulator on Slurm, Alpamayo fit) : nuplan-warmup starter 32/32 : Official 1 - PAI starter, PCS 1491 (rank 38/52)
   2026-09-28 : pai-warmup v0.2 (2 Hz), 552 s per wave : pai-warmup v0.3 (1 Hz), 536 s per wave : Local PAI and nuPlan benches
   2026-09-29 : Official 2 - PAI v0.3, PCS 2143, rank 2/58 : Official 3 - nuPlan v0.3, PCS 1296, rank 19/71 : Sprint verdict, failure taxonomy, October plan
   2026-09-30 : 120-scene PAI + 100-scene nuPlan bench : Plan-storage bug found and guarded by tests : Scope set to PAI only
   2026-10-01 : Quota reset confirmed (3 per calendar month) : Route chooser v2, first PAI gain above noise
   2026-10-04 : One official PAI slot for October : Route text, temperature, graded guard tested, no gain : v5 trial build
+  2026-10-08 : Driver memory fixed on H100 (one GPU thread) : Route pull no gain : 6 cameras halve rear-ends but add own failures : Hybrid queued
 ```
 
 ## 9. Where things live
