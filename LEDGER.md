@@ -702,3 +702,14 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 - **2026-10-08: lanes moved back to Blackwell.** The H100 queue had 37 jobs pending, with our estimated starts on Oct 9 20:20 and Oct 10 06:15; `sbatch --test-only` showed R6000 could start sooner.
   - Route pull (13266129-31, lane as_bw_a) and 6 cameras (13266132-34, lane as_bw_b) are compared against the Blackwell chooser v2 reference (13060758-60). No CUDA_COMPAT on Blackwell (driver 575).
   - H100 reference batches 41-80 and 81-120 (13260245-46) are on hold; H100 batch 1-40 is kept.
+
+## 2026-10-08 Blackwell lanes, batch 1-40 (vs Blackwell chooser v2 13060758 = 0.793, a high draw; H100 v2 = 0.716)
+| Variant | Mean | Diff vs v2 [90%] | W/L | Rear-ended | Categories |
+|---|---|---|---|---|---|
+| v2 + route pull 0.6 (13266129) | 0.773 | -0.020 [-0.095, +0.054] | 9/4 | 8 | pass 26, low progress 9, corridor 3, offroad 1, collision 1 |
+| v2 + 6 cameras (13266132) | 0.681 | -0.112 [-0.244, +0.018] | 6/11 | **3** | pass 25, low progress 5, corridor 4, offroad 3, collision 3 |
+| v2 (reference) | 0.793 | | | 9 | pass 27, low progress 9, corridor 1, offroad 2, collision 1 |
+- **The rear cameras work as intended on rear-ends** (9 to 3, low progress 9 to 5), but at-fault collisions, offroad and corridor exits go up. Plausibly the 6-camera input is off the model's usual 4-camera setup.
+- 6 cameras: driver peak 14,972 MiB (Blackwell, one-thread driver). Route pull: 14,392 MiB.
+- Batch 1 holds only 1 v2 corridor exit, so route pull's test is batches 41-80 and 81-120.
+- **Idea if 6 cameras confirms this pattern over 120 scenes:** use the rear cameras only to detect a closing vehicle behind (keep the plan, and speed up or avoid braking when tailgated), while planning from the 4 front cameras.
