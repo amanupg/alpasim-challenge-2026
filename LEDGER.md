@@ -690,3 +690,12 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
     - their 468 navtest scenes share none with our 100;
     - `nuplan_test` is a different format;
     - their simulator runs read our nuPlan shard and sandboxes read-only, so those must stay here.
+
+## 2026-10-08 Run-to-run spread is larger than the 40-scene A/A suggested
+- H100 chooser v2 reference, batch 1-40 (13260244): **0.716** (clean; driver flat at 14,580 MiB; no renderer crash).
+- **Same 40 scenes, chooser-v2-like configs:** 0.793 (v2, Blackwell), 0.795 (v3), 0.741 (+nav), 0.719 (+temp 0.6), 0.696 (2 Hz), 0.716 (v2, H100). A range of ~0.10 for configs that are equal at 120 scenes.
+- **v0.3 on the same scenes:** 0.661, 0.668, 0.693.
+- **Reading:**
+  - The chooser's gain over v0.3 holds across all these runs (~0.74 vs ~0.67 on 1-40; ~0.69 vs 0.638 over 120).
+  - Single-run 40-scene differences under ~0.08 are noise, and v2's original batch-1 0.793 was a high draw.
+  - **Decision rule from now on:** a part counts only if its 120-scene paired gain is clearly above the ~0.05 spread of equivalent configs.
