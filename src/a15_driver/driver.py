@@ -155,7 +155,10 @@ class PolicyHandle:
         self._error: BaseException | None = None
 
     def start(self) -> None:
-        threading.Thread(target=self._load, name="a15-loader", daemon=True).start()
+        if _GPU_THREAD is not None:          # load + warm-up on the same thread that will run every predict
+            _GPU_THREAD.submit(self._load)
+        else:
+            threading.Thread(target=self._load, name="a15-loader", daemon=True).start()
 
     def get(self):
         with self._lock:
@@ -185,6 +188,22 @@ class PolicyHandle:
             return
         with self._lock:
             self._policy = p
+
+
+# All GPU work (model load, warm-up, every predict) runs on ONE dedicated thread. With predict called from
+# whichever gRPC worker thread handled the Drive request, each new thread set up its own CUDA library state:
+# on H100 the driver process grew in ~400 MiB steps from 14,578 to 17,340 MiB while torch's reserved memory
+# stayed flat at 13.58 GiB (2026-10-07, job 13256940), above the 16 GiB per-driver contract.
+# A15_ONE_GPU_THREAD=0 restores the old behaviour.
+_ONE_GPU_THREAD = os.environ.get("A15_ONE_GPU_THREAD", "1") == "1"
+_GPU_THREAD = futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="a15-gpu") if _ONE_GPU_THREAD else None
+
+
+def on_gpu_thread(fn, *args, **kwargs):
+    """Run fn on the dedicated GPU thread (or inline when disabled) and return its result."""
+    if _GPU_THREAD is None:
+        return fn(*args, **kwargs)
+    return _GPU_THREAD.submit(fn, *args, **kwargs).result()
 
 
 # Alpamayo 1.5 processor limits (alpamayo1_5.helper MIN_PIXELS / MAX_PIXELS) and the Qwen3-VL
@@ -263,6 +282,13 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             s = self._sessions.pop(request.session_uuid, None)
         if s is not None:
             st = s.stats
+            if torch.cuda.is_available():
+                free, total = torch.cuda.mem_get_info()
+                LOGGER.info("memory at close %s: torch reserved %.2f GiB (peak %.2f), allocated %.2f GiB (peak %.2f), "
+                            "device used %.2f GiB of %.2f, threads %d", request.session_uuid[:8],
+                            torch.cuda.memory_reserved() / 2**30, torch.cuda.max_memory_reserved() / 2**30,
+                            torch.cuda.memory_allocated() / 2**30, torch.cuda.max_memory_allocated() / 2**30,
+                            (total - free) / 2**30, total / 2**30, threading.active_count())
             LOGGER.info("closed session %s: drive %d, inferences %d (errors %d, mean %.3fs), cached %d, fallback %d, "
                         "rerouted %d, last nav %r", request.session_uuid, st["drive"], st["infer"], st["infer_err"],
                         st["infer_s"] / max(st["infer"], 1), st["cached"], st["fallback"], st["rerouted"], s.last_nav)
@@ -368,7 +394,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         t = time.time()
         try:
             with self._infer_lock:
-                xy, yaw, info = policy.predict(frames, s.slots, hx, hr, nav_text=nav, route_xy=route)
+                xy, yaw, info = on_gpu_thread(policy.predict, frames, s.slots, hx, hr, nav_text=nav, route_xy=route)
         except Exception:                                    # noqa: BLE001
             LOGGER.exception("inference failed")
             with self._lock:
