@@ -699,3 +699,6 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
   - The chooser's gain over v0.3 holds across all these runs (~0.74 vs ~0.67 on 1-40; ~0.69 vs 0.638 over 120).
   - Single-run 40-scene differences under ~0.08 are noise, and v2's original batch-1 0.793 was a high draw.
   - **Decision rule from now on:** a part counts only if its 120-scene paired gain is clearly above the ~0.05 spread of equivalent configs.
+- **2026-10-08: lanes moved back to Blackwell.** The H100 queue had 37 jobs pending, with our estimated starts on Oct 9 20:20 and Oct 10 06:15; `sbatch --test-only` showed R6000 could start sooner.
+  - Route pull (13266129-31, lane as_bw_a) and 6 cameras (13266132-34, lane as_bw_b) are compared against the Blackwell chooser v2 reference (13060758-60). No CUDA_COMPAT on Blackwell (driver 575).
+  - H100 reference batches 41-80 and 81-120 (13260245-46) are on hold; H100 batch 1-40 is kept.
