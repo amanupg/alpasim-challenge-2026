@@ -735,3 +735,23 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Speed profile from a 6-camera K=1 sample, applied by re-timing along that path.
   - Jobs 13279194 (1-40) and 13279196 (81-120) on lane as_bw_a; 13279195 (41-80) on lane as_bw_b.
 - **Watch the hybrid's wall time.** It runs one extra 6-camera inference per step. The official PAI limit is 14,400 s, and v0.3 used 9,474 s.
+
+## 2026-10-09 Hybrid (path from 4 front cameras, speed from 6), 120 scenes, vs Blackwell chooser v2 (0.692)
+| Variant | Mean | Diff vs v2 [90%] | W/L | Rear-ended | Categories |
+|---|---|---|---|---|---|
+| v2 (reference) | 0.692 | | | 25 | pass 69, low progress 24, corridor 14, offroad 8, collision 5 |
+| v2 + 6 cameras (13266132-34) | 0.670 | -0.023 [-0.095, +0.048] | 27/25 | 11 | pass 71, low progress 16, corridor 16, offroad 10, collision 7 |
+| **Hybrid (13279194-96)** | 0.640 | **-0.052 [-0.115, +0.013]** | 21/25 | 13 | pass 66, low progress 17, corridor 18, offroad 12, collision 7 |
+
+- **By batch:** -0.110 / +0.041 / -0.087. All 120 sessions were clean (0 fallbacks).
+  - Driver peak 14,972 MiB.
+  - Mean inference 7.0 s vs 4.5 s for v2 (4 concurrent sessions).
+  - Wall 2:29-2:33 per batch vs 2:17-2:20.
+- **Verdict: rejected.** Using the path from the usual 4 cameras did not remove the extra own failures; offroad and corridor exits are even higher.
+- **Reading:** the rear-cameras effect is a speed effect.
+  - Keeping pace avoids not-at-fault rear-ends (25 → 11-13).
+  - But driving that profile costs as many own failures (offroad, corridor, collisions), as the 15%-faster run showed in its extreme form (-0.307).
+  - Speed alone is not a free lever on this bench.
+- **Next:**
+  - Second v2 reference (13289312-14, lane as_bw_b), for a less noisy baseline.
+  - More flow samples for the route chooser (K = 10, 16): memory/latency check 13289753 first, then a bench if K fits under 16 GiB.
