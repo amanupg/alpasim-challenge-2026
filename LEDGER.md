@@ -768,3 +768,15 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Official v0.3 used 9,474 s of 14,400 s.
   - If the official time scales like local wall, K=12 is about 11-12k s. That's a guess, so check the official timing on any warmup before relying on it.
 - **Queued:** K=12 chooser v2 bench, 13289883-85 (lane as_bw_a).
+
+## 2026-10-09 Second chooser v2 reference on Blackwell (A/A), first 80 scenes
+| Batch | v2 (13060758-59) | v2 again (13289312-13) | Diff [90%] | W/L |
+|---|---|---|---|---|
+| 1-40 | 0.793 | 0.797 | +0.004 [-0.050, +0.058] | 8/3 |
+| 41-80 | 0.561 | 0.563 | +0.002 [-0.046, +0.052] | 3/7 |
+
+- **On the same hardware the batch mean repeats within 0.005.** About a quarter of scenes flip, but the flips cancel.
+- So the earlier "~0.10 spread" came from **different configs and different hardware**, not from rerunning one config:
+  - v2 scored 0.716 on H100 vs 0.793 on Blackwell for batch 1-40.
+  - Large per-batch differences between Blackwell configs (6 cameras: -0.112 / +0.188 / -0.145) are therefore mostly real config effects, not noise.
+- **Open question this raises:** the official evaluation runs on H100, and v2 was 0.077 lower there on batch 1. Before choosing an image, confirm the chooser's gain also holds on H100.
