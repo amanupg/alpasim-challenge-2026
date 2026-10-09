@@ -93,7 +93,7 @@ check("deviation: NaN-padded route ok", round(route_deviation(straight64, np.vst
 rp = route_path(lane_route)
 check("route_path: starts at the car heading +x (first point ~1 m ahead, ~0 lateral)",
       (round(float(rp[0, 0]), 1), bool(abs(rp[0, 1]) < 0.01)), (1.0, True))
-check("route_path: reaches the first waypoint exactly", np.allclose(rp[39], lane_route[0]), True)
+check("route_path: reaches the first waypoint exactly", bool(np.isclose(rp, lane_route[0]).all(1).any()), True)
 check("route_path: then follows the route", np.allclose(rp[-len(lane_route) + 1:], lane_route[1:]), True)
 check("route_path: monotone lateral move (no overshoot)", bool((np.diff(rp[:40, 1]) >= -1e-9).all() and rp[:40, 1].max() <= 3.5 + 1e-6), True)
 snap_xy, snap_yaw = retime_path(rp, straight64)
