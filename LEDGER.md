@@ -755,3 +755,16 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Next:**
   - Second v2 reference (13289312-14, lane as_bw_b), for a less noisy baseline.
   - More flow samples for the route chooser (K = 10, 16): memory/latency check 13289753 first, then a bench if K fits under 16 GiB.
+
+## 2026-10-09 More route-chooser samples: memory and time (check 13289753, L40S, single session)
+| K | nvidia-smi | Latency |
+|---|---|---|
+| 6 | 14,236 MiB | 2.45 s |
+| 10 | 14,236 MiB | 3.60 s |
+| 16 | 14,236 MiB | 5.40 s |
+
+- Memory is flat in K (samples don't add resident memory), so the limit is time, not VRAM.
+- **Time budget.** Local 40-scene wall vs mean inference: v0.3 2:02 at 1.6 s, v2 2:20 at 4.4 s, hybrid 2:33 at 7.0 s.
+  - Official v0.3 used 9,474 s of 14,400 s.
+  - If the official time scales like local wall, K=12 is about 11-12k s. That's a guess, so check the official timing on any warmup before relying on it.
+- **Queued:** K=12 chooser v2 bench, 13289883-85 (lane as_bw_a).
