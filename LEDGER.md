@@ -780,3 +780,13 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - v2 scored 0.716 on H100 vs 0.793 on Blackwell for batch 1-40.
   - Large per-batch differences between Blackwell configs (6 cameras: -0.112 / +0.188 / -0.145) are therefore mostly real config effects, not noise.
 - **Open question this raises:** the official evaluation runs on H100, and v2 was 0.077 lower there on batch 1. Before choosing an image, confirm the chooser's gain also holds on H100.
+
+## 2026-10-09 v2 rerun complete: 120-scene A/A on Blackwell
+- v2 (13060758-60) 0.692 vs v2 again (13289312-14) **0.692**: diff -0.000 [-0.032, +0.032], W/L 16/15, 89 ties.
+- By batch: +0.004 / +0.002 / -0.006.
+- **Decision rule, revised:** on the same hardware, a 120-scene paired gain above ~0.03 is a real effect. This replaces the ~0.05 rule, which mixed hardware and configs.
+- Earlier verdicts stand:
+  - real: chooser v2 +0.054; hybrid -0.052;
+  - zero: chooser v3, nav text, temperature, route pull;
+  - 6 cameras (-0.023) is borderline negative.
+- The last K=12 batch was moved to lane as_bw_b (13289885 cancelled, now 13298461) so it runs alongside 41-80.
