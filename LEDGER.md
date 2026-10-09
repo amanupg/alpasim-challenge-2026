@@ -790,3 +790,25 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - zero: chooser v3, nav text, temperature, route pull;
   - 6 cameras (-0.023) is borderline negative.
 - The last K=12 batch was moved to lane as_bw_b (13289885 cancelled, now 13298461) so it runs alongside 41-80.
+
+## 2026-10-09 Why corridor exits survive the chooser, and route snap
+**Analysis: v2 rerun choice logs, 120 scenes; plans vs route waypoints.**
+- In 11 of 14 corridor exits, every one of the 6 samples is 3-12 m off the route for most of the scene. The model's samples all keep the lane, so no choice among them can fix this.
+  - The recorded driver changed lane: 31f39b +3 to +6 m, d50172 +4 m.
+  - Or it bore off: 524a02 -6 to -12 m, likely an exit.
+  - Or it took a curve tighter than our plan: 451fc1 ~3 m.
+- This also explains why route pull failed (-0.002): it only bent plan points 30 m+ ahead, and since the car replans every second the bend never got closer.
+- K=12 on 41-80 confirms it: corridor 9 → 10. More samples don't add on-route options.
+
+**Route snap (`A15_ROUTE_SNAP=<m>`, `route_choice.route_deviation` / `route_path`):**
+- Measure the deviation from the route side: mean distance from the waypoints the plan reaches to the plan. This is not inflated by plan length, unlike the chooser cost at highway speed.
+- If the deviation exceeds the threshold (half the threshold while a snap is under way, as hysteresis), drive a cubic Hermite path from the car (current heading) onto the first waypoint along the route's direction, then the route, re-timed with the model's chosen plan (`retime_path`). The model keeps control of speed.
+- Offline calibration on the logged 8-point plans at 2 m:
+  - 11 of 14 corridor-exit scenes trigger at least 3 times;
+  - so do 18 of 68 passing scenes (partly from the coarse logged plans).
+  - The open risk is what snapping does in those passing scenes.
+- Tests: route_deviation/route_path/snap in `tests/test_route_nav.py`; the driver stores and counts snapped plans in `tests/test_driver_plan_storage.py`.
+
+**Queued:**
+- Route snap 2.0 m on 120 scenes: 13299355-57, lane as_bw_a, after test job 13299057 passes.
+- Margin 0.5 (13299358-60) moved to lane as_bw_b, after K=12 batch 81-120 (13298461).

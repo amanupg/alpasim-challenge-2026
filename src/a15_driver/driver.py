@@ -47,7 +47,7 @@ from PIL import Image                                               # noqa: E402
 import grpc                                                         # noqa: E402
 
 from .policy import CAMERA_NAME_TO_INDEX, NUPLAN_TO_SLOT, Alpamayo15Policy  # noqa: E402
-from .route_choice import retime_path, route_pull  # noqa: E402
+from .route_choice import retime_path, route_deviation, route_path, route_pull  # noqa: E402
 from .trajectory import CachedPlan, build_trajectory_from_plan, make_cached_plan  # noqa: E402
 
 LOGGER = logging.getLogger("a15_challenge_driver")
@@ -239,20 +239,23 @@ class SessionState:
     sid: str = ""
     plan_nframes: int = 0                                   # distinct frames per camera behind the cached plan
     last_nav: str | None = None
+    snapping: bool = False                                  # route snap active (hysteresis)
     stats: dict = field(default_factory=lambda: {"drive": 0, "infer": 0, "infer_err": 0, "fallback": 0,
-                                                 "cached": 0, "rerouted": 0, "infer_s": 0.0})
+                                                 "cached": 0, "rerouted": 0, "snapped": 0, "infer_s": 0.0})
 
 
 class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
     def __init__(self, *, handle: PolicyHandle, pai_cameras: list[str], interval_us: int, frame_dt_s: float,
                  nav: bool = False, log_choices: bool = False, early_replan: bool = False,
                  nav_dist: str = "euclid", speed_scale: float = 1.0, route_pull: float = 0.0,
-                 route_pull_d0: float = 30.0, route_pull_d1: float = 45.0, speed_cams: bool = False):
+                 route_pull_d0: float = 30.0, route_pull_d1: float = 45.0, speed_cams: bool = False,
+                 route_snap: float = 0.0):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
         self._log_choices, self._early_replan, self._nav_dist = log_choices, early_replan, nav_dist
         self._speed_scale = speed_scale
         self._route_pull, self._route_pull_d0, self._route_pull_d1 = route_pull, route_pull_d0, route_pull_d1
         self._speed_cams = speed_cams
+        self._route_snap = route_snap
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -291,8 +294,8 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                             torch.cuda.memory_allocated() / 2**30, torch.cuda.max_memory_allocated() / 2**30,
                             (total - free) / 2**30, total / 2**30, threading.active_count())
             LOGGER.info("closed session %s: drive %d, inferences %d (errors %d, mean %.3fs), cached %d, fallback %d, "
-                        "rerouted %d, last nav %r", request.session_uuid, st["drive"], st["infer"], st["infer_err"],
-                        st["infer_s"] / max(st["infer"], 1), st["cached"], st["fallback"], st["rerouted"], s.last_nav)
+                        "rerouted %d, snapped %d, last nav %r", request.session_uuid, st["drive"], st["infer"], st["infer_err"],
+                        st["infer_s"] / max(st["infer"], 1), st["cached"], st["fallback"], st["rerouted"], st["snapped"], s.last_nav)
         return common_pb2.Empty()
 
     # ------------------------------------------------------------ observations
@@ -413,11 +416,23 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         xy, yaw = speed_scale_plan(np.asarray(xy), np.asarray(yaw), self._speed_scale)
         if self._route_pull > 0:
             xy, yaw = route_pull(xy, yaw, route, self._route_pull, self._route_pull_d0, self._route_pull_d1)
+        snapped = False
+        if self._route_snap > 0:
+            # drive onto the route when the plan leaves it by more than route_snap metres (half that while a
+            # snap is under way, so a lane change is not abandoned halfway); the model's plan keeps the speed
+            dev = route_deviation(xy, route)
+            limit = self._route_snap / 2 if s.snapping else self._route_snap
+            path = route_path(route) if dev is not None and dev > limit else None
+            if path is not None:
+                xy, yaw = retime_path(path, np.asarray(xy))
+                snapped = True
+            s.snapping = snapped
         new = make_cached_plan(created_time_us=t0, anchor_pose=anchor, trajectory_xy=xy, headings=yaw,
                                source_frequency_hz=policy.output_frequency_hz)
         with self._lock:
             s.stats["infer"] += 1; s.stats["infer_s"] += time.time() - t
             s.stats["rerouted"] += int(info.get("choice", 0) != 0)
+            s.stats["snapped"] += int(snapped)
             if new is not None:
                 s.cached_plan, s.plan_nframes = new, nfr
         if self._log_choices and info.get("costs") is not None:
@@ -529,7 +544,8 @@ def main() -> None:
         route_pull=float(os.environ.get("A15_ROUTE_PULL", "0")),
         route_pull_d0=float(os.environ.get("A15_ROUTE_PULL_D0", "30")),
         route_pull_d1=float(os.environ.get("A15_ROUTE_PULL_D1", "45")),
-        speed_cams=os.environ.get("A15_SPEED_CAMS", "4") == "6")
+        speed_cams=os.environ.get("A15_SPEED_CAMS", "4") == "6",
+        route_snap=float(os.environ.get("A15_ROUTE_SNAP", "0")))
     host, port = os.environ.get("ALPASIM_DRIVER_HOST", "0.0.0.0"), int(os.environ.get("ALPASIM_DRIVER_PORT", "6789"))
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=int(os.environ.get("ALPASIM_DRIVER_GRPC_WORKERS", "8"))))
     egodriver_pb2_grpc.add_EgodriverServiceServicer_to_server(service, server)

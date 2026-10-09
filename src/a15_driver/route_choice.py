@@ -130,3 +130,48 @@ def retime_path(path_xy: np.ndarray, speed_xy: np.ndarray) -> tuple[np.ndarray, 
         path_yaw = np.arctan2(seg[0, 1], seg[0, 0]) if len(seg) else 0.0
         yaw[still] = path_yaw
     return out, yaw
+
+
+def _route_points(route: np.ndarray | None) -> np.ndarray | None:
+    if route is None:
+        return None
+    r = np.asarray(route, dtype=np.float64).reshape(-1, 2)
+    r = r[np.isfinite(r).all(1) & (r[:, 0] > 0.0)]
+    return r if len(r) >= 2 else None
+
+
+def route_deviation(xy: np.ndarray, route: np.ndarray | None) -> float | None:
+    """Mean distance from the route waypoints the plan reaches (within its path length) to the plan.
+
+    Measured from the route side, so a plan that runs past the route's end is not penalised (the
+    chooser's route_costs grows with plan length at highway speed). None if no waypoint is in reach."""
+    r = _route_points(route)
+    if r is None or len(xy) < 2:
+        return None
+    poly = np.vstack([np.zeros((1, 2)), np.asarray(xy, dtype=np.float64)])
+    reach = np.linalg.norm(np.diff(poly, axis=0), axis=1).sum()
+    r = r[np.linalg.norm(r, axis=1) <= reach]
+    if len(r) == 0:
+        return None
+    return float(_dist_to_polyline(r, poly).mean())
+
+
+def route_path(route: np.ndarray | None, step_m: float = 1.0) -> np.ndarray | None:
+    """A drivable path from the car onto the route: a cubic Hermite curve from the car (heading +x) to the
+    first waypoint, arriving along the route's direction, then the route waypoints. Excludes the origin.
+
+    PAI v2 rerun (2026-10-09): in 11 of 14 corridor exits every one of the 6 samples stayed 3-12 m off the
+    route (the recorded driver changed lane or took an exit; ours kept its lane), so no choice among samples
+    can fix them. route_pull bent only points 30 m+ ahead and the car replans every second, so the bend
+    never came closer; this path starts bending at the car."""
+    r = _route_points(route)
+    if r is None:
+        return None
+    p1 = r[0]
+    d = np.linalg.norm(p1)
+    t1 = (r[1] - r[0]) / max(np.linalg.norm(r[1] - r[0]), 1e-9)
+    n = max(int(np.ceil(d / step_m)), 2)
+    s = np.linspace(0.0, 1.0, n + 1)[1:, None]
+    h00, h10, h01, h11 = 2 * s**3 - 3 * s**2 + 1, s**3 - 2 * s**2 + s, -2 * s**3 + 3 * s**2, s**3 - s**2
+    curve = h10 * np.array([d, 0.0]) + h01 * p1 + h11 * (t1 * d)              # h00 * origin = 0
+    return np.vstack([curve, r[1:]])

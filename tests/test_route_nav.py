@@ -6,7 +6,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from a15_driver.driver import route_nav_text, speed_scale_plan  # noqa: E402
-from a15_driver.route_choice import choose, retime_path, route_pull  # noqa: E402
+from a15_driver.route_choice import choose, retime_path, route_deviation, route_path, route_pull  # noqa: E402
 
 bad = 0
 
@@ -83,5 +83,23 @@ check("retime: beyond the path end it extends straight", round(float(np.linalg.n
 stop = np.zeros((64, 2))
 rt3, ry3 = retime_path(curve, stop)
 check("retime: stopped profile stays at the car", float(np.abs(rt3).max()), 0.0)
+# route snap: deviation is measured from the route points the plan reaches
+straight64 = np.stack([10.0 * tt64, 0 * tt64], 1)                         # 64 m straight plan
+check("deviation: plan on the route", route_deviation(straight64, np.array([[40.0, 0.0], [80.0, 0.0]])), 0.0)
+check("deviation: route one lane left", round(route_deviation(straight64, lane_route), 2), 3.5)
+check("deviation: plan too short to reach the route", route_deviation(straight64[:30], lane_route), None)
+check("deviation: no route", route_deviation(straight64, None), None)
+check("deviation: NaN-padded route ok", round(route_deviation(straight64, np.vstack([lane_route, np.full((5, 2), np.nan)])), 2), 3.5)
+rp = route_path(lane_route)
+check("route_path: starts at the car heading +x (first point ~1 m ahead, ~0 lateral)",
+      (round(float(rp[0, 0]), 1), bool(abs(rp[0, 1]) < 0.01)), (1.0, True))
+check("route_path: reaches the first waypoint exactly", np.allclose(rp[39], lane_route[0]), True)
+check("route_path: then follows the route", np.allclose(rp[-len(lane_route) + 1:], lane_route[1:]), True)
+check("route_path: monotone lateral move (no overshoot)", bool((np.diff(rp[:40, 1]) >= -1e-9).all() and rp[:40, 1].max() <= 3.5 + 1e-6), True)
+snap_xy, snap_yaw = retime_path(rp, straight64)
+check("snap: model speed kept (64 m along the new path)", round(float(np.linalg.norm(np.diff(np.vstack([[0, 0], snap_xy]), axis=0), axis=1).sum()), 1), 64.0)
+check("snap: ends in the route's lane", round(float(snap_xy[-1, 1]), 1), 3.5)
+check("snap: deviation after snapping ~0", round(route_deviation(snap_xy, lane_route), 2), 0.0)
+check("route_path: no route", route_path(None), None)
 print("PASS" if bad == 0 else f"FAIL ({bad})")
 sys.exit(bad > 0)

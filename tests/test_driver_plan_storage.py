@@ -38,13 +38,14 @@ class FakeHandle:
         return self.p
 
 
-def run(log_choices, with_costs, early, nav):
+def run(log_choices, with_costs, early, nav, route_snap=0.0, route=None):
     pol = FakePolicy(with_costs)
     drv = D.A15ChallengeDriver(handle=FakeHandle(pol), pai_cameras=[], interval_us=1_000_000,
-                               frame_dt_s=0.1, nav=nav, log_choices=log_choices, early_replan=early)
+                               frame_dt_s=0.1, nav=nav, log_choices=log_choices, early_replan=early,
+                               route_snap=route_snap)
     s = D.SessionState(cams=["CAM_F0"], slots=[1], sid="test-session")
     s.frames = {"CAM_F0": D.deque(maxlen=24)}
-    s.route_xy = np.array([[40.0, 0.0], [80.0, 0.0]])
+    s.route_xy = np.array([[40.0, 0.0], [80.0, 0.0]]) if route is None else route
     q = np.array([1.0, 0.0, 0.0, 0.0])
     stored = []
     for k in range(10):                                   # nuPlan-like: 2 Hz steps, 5 s
@@ -68,6 +69,14 @@ def main():
               f"inferences {calls} (want {want}), plan stored every step {all(stored)}"
               + ("" if ok and ok_calls else "   <-- FAIL"))
         bad += not (ok and ok_calls)
+    # route snap: route one lane left (3.5 m) within the 32 m plan's reach -> every plan is snapped and stored
+    for snap, want_snaps in [(2.0, 5), (0.0, 0)]:
+        calls, stored, s = run(True, True, False, False, route_snap=snap,
+                               route=np.array([[20.0, 3.5], [40.0, 3.5], [80.0, 3.5]]))
+        ok = calls == 5 and all(stored) and s.stats["snapped"] == want_snaps
+        print(f"route_snap={snap}: inferences {calls}, snapped {s.stats['snapped']} (want {want_snaps}), "
+              f"plan stored every step {all(stored)}" + ("" if ok else "   <-- FAIL"))
+        bad += not ok
     print("PASS" if bad == 0 else f"FAIL ({bad} combinations)")
     sys.exit(bad > 0)
 
