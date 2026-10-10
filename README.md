@@ -229,6 +229,8 @@ Corridor exits were 55% of the lost score (mostly lane choice on straight roads)
 | Pull the far plan onto the route waypoints, weight 0.6 (with v2, vs v2) | -0.002 [-0.051, +0.047] | no gain |
 | All 6 cameras, adding rear-left and rear-right (with v2, vs v2) | -0.023 [-0.095, +0.048] | net zero: rear-ended 25 to 11, but more own collisions, offroad and corridor exits |
 | Hybrid: path from 4 front cameras, speed from all 6 (with v2, vs v2) | -0.052 [-0.115, +0.013] | rejected: rear-ends down, but offroad and corridor exits up |
+| Chooser margin 0.5 m instead of 1 m (vs v2) | +0.013 [-0.031, +0.058] | no gain (a second v2 run scored 0.692 exactly, so ~0.03 is the bar) |
+| Route snap: drive onto the route when every sample leaves it, lane changes only (15 deg guard) (vs v2) | running | corridor exits are lane changes no sample makes |
 
 **Next image:** `v5` (neutral tag) = v0.3 plus chooser v2 at 1 Hz. It is built on the v0.3 image, so only a small code layer is new. Trial-built and hash-checked, not pushed. PAI gets 1 or 2 of October's 3 slots (Aman's call), with no submission before mid-October. `v5` is the current best candidate, not a final image, and is only submitted after a final check and Aman's go-ahead.
 

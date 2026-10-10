@@ -857,3 +857,9 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - It scored 1.0 in v2, margin 0.5, 6 cameras, hybrid and route pull.
   - Excluding it, guarded snap is about +0.03 on this batch.
 - Batches 41-80 (13311490) and 1-40 (13311491) are next.
+
+## 2026-10-10 Chooser margin 0.5 m, 120 scenes (13299358-60): no gain
+- **0.706 vs v2 0.692: +0.013 [-0.031, +0.058]**, W/L 17/19. This is below the ~0.03 same-hardware threshold.
+- By batch: -0.023 / +0.059 / +0.003.
+- Categories: pass 69, low progress 25, corridor 12, offroad 10, collision 4. Corridor 14 → 12, offroad 8 → 10.
+- **Kept margin 1.0.**
