@@ -47,7 +47,7 @@ from PIL import Image                                               # noqa: E402
 import grpc                                                         # noqa: E402
 
 from .policy import CAMERA_NAME_TO_INDEX, NUPLAN_TO_SLOT, Alpamayo15Policy  # noqa: E402
-from .route_choice import retime_path, route_deviation, route_path, route_pull  # noqa: E402
+from .route_choice import retime_path, route_deviation, route_parallel, route_path, route_pull  # noqa: E402
 from .trajectory import CachedPlan, build_trajectory_from_plan, make_cached_plan  # noqa: E402
 
 LOGGER = logging.getLogger("a15_challenge_driver")
@@ -249,13 +249,13 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                  nav: bool = False, log_choices: bool = False, early_replan: bool = False,
                  nav_dist: str = "euclid", speed_scale: float = 1.0, route_pull: float = 0.0,
                  route_pull_d0: float = 30.0, route_pull_d1: float = 45.0, speed_cams: bool = False,
-                 route_snap: float = 0.0):
+                 route_snap: float = 0.0, route_snap_max_deg: float = 0.0):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
         self._log_choices, self._early_replan, self._nav_dist = log_choices, early_replan, nav_dist
         self._speed_scale = speed_scale
         self._route_pull, self._route_pull_d0, self._route_pull_d1 = route_pull, route_pull_d0, route_pull_d1
         self._speed_cams = speed_cams
-        self._route_snap = route_snap
+        self._route_snap, self._route_snap_max_deg = route_snap, route_snap_max_deg
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -422,7 +422,10 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             # snap is under way, so a lane change is not abandoned halfway); the model's plan keeps the speed
             dev = route_deviation(xy, route)
             limit = self._route_snap / 2 if s.snapping else self._route_snap
-            path = route_path(route) if dev is not None and dev > limit else None
+            # route_snap_max_deg > 0: only where the route runs nearly parallel (lane change, exit), not on
+            # turns, where the curve to a waypoint ~40 m ahead cuts the corner (PAI 2026-10-10)
+            ok = self._route_snap_max_deg <= 0 or route_parallel(route, self._route_snap_max_deg)
+            path = route_path(route) if ok and dev is not None and dev > limit else None
             if path is not None:
                 xy, yaw = retime_path(path, np.asarray(xy))
                 snapped = True
@@ -545,7 +548,8 @@ def main() -> None:
         route_pull_d0=float(os.environ.get("A15_ROUTE_PULL_D0", "30")),
         route_pull_d1=float(os.environ.get("A15_ROUTE_PULL_D1", "45")),
         speed_cams=os.environ.get("A15_SPEED_CAMS", "4") == "6",
-        route_snap=float(os.environ.get("A15_ROUTE_SNAP", "0")))
+        route_snap=float(os.environ.get("A15_ROUTE_SNAP", "0")),
+        route_snap_max_deg=float(os.environ.get("A15_ROUTE_SNAP_MAX_DEG", "0")))
     host, port = os.environ.get("ALPASIM_DRIVER_HOST", "0.0.0.0"), int(os.environ.get("ALPASIM_DRIVER_PORT", "6789"))
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=int(os.environ.get("ALPASIM_DRIVER_GRPC_WORKERS", "8"))))
     egodriver_pb2_grpc.add_EgodriverServiceServicer_to_server(service, server)

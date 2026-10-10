@@ -175,3 +175,19 @@ def route_path(route: np.ndarray | None, step_m: float = 1.0) -> np.ndarray | No
     h00, h10, h01, h11 = 2 * s**3 - 3 * s**2 + 1, s**3 - 2 * s**2 + s, -2 * s**3 + 3 * s**2, s**3 - s**2
     curve = h10 * np.array([d, 0.0]) + h01 * p1 + h11 * (t1 * d)              # h00 * origin = 0
     return np.vstack([curve, r[1:]])
+
+
+def route_parallel(route: np.ndarray | None, max_deg: float) -> bool:
+    """True if the route runs nearly parallel to the car: both the direction from the car to the first
+    waypoint and the route's direction there are within max_deg of the car's heading.
+
+    PAI route snap v1 (2026-10-10): snaps that fixed corridor exits were lane changes and exits on straight
+    roads (route heading at the first waypoint within +-7 deg); the snaps that broke passing scenes were
+    turns and U-turns (60-180 deg), where the curve from the car to a waypoint ~40 m ahead cuts the corner."""
+    r = _route_points(route)
+    if r is None:
+        return False
+    chord = np.degrees(np.arctan2(r[0, 1], r[0, 0]))
+    d = r[1] - r[0]
+    hd = np.degrees(np.arctan2(d[1], d[0]))
+    return bool(abs(chord) <= max_deg and abs(hd) <= max_deg)

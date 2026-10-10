@@ -38,11 +38,11 @@ class FakeHandle:
         return self.p
 
 
-def run(log_choices, with_costs, early, nav, route_snap=0.0, route=None):
+def run(log_choices, with_costs, early, nav, route_snap=0.0, route=None, snap_deg=0.0):
     pol = FakePolicy(with_costs)
     drv = D.A15ChallengeDriver(handle=FakeHandle(pol), pai_cameras=[], interval_us=1_000_000,
                                frame_dt_s=0.1, nav=nav, log_choices=log_choices, early_replan=early,
-                               route_snap=route_snap)
+                               route_snap=route_snap, route_snap_max_deg=snap_deg)
     s = D.SessionState(cams=["CAM_F0"], slots=[1], sid="test-session")
     s.frames = {"CAM_F0": D.deque(maxlen=24)}
     s.route_xy = np.array([[40.0, 0.0], [80.0, 0.0]]) if route is None else route
@@ -70,11 +70,13 @@ def main():
               + ("" if ok and ok_calls else "   <-- FAIL"))
         bad += not (ok and ok_calls)
     # route snap: route one lane left (3.5 m) within the 32 m plan's reach -> every plan is snapped and stored
-    for snap, want_snaps in [(2.0, 5), (0.0, 0)]:
-        calls, stored, s = run(True, True, False, False, route_snap=snap,
-                               route=np.array([[20.0, 3.5], [40.0, 3.5], [80.0, 3.5]]))
+    # (parallel route: guard 15 deg still snaps; a route turning 90 deg ahead is not snapped with the guard)
+    turn = np.array([[20.0, 3.5], [20.0, 23.5], [20.0, 43.5]])
+    lane = np.array([[20.0, 3.5], [40.0, 3.5], [80.0, 3.5]])
+    for snap, deg, route, want_snaps in [(2.0, 0.0, lane, 5), (0.0, 0.0, lane, 0), (2.0, 15.0, lane, 5), (2.0, 15.0, turn, 0)]:
+        calls, stored, s = run(True, True, False, False, route_snap=snap, route=route, snap_deg=deg)
         ok = calls == 5 and all(stored) and s.stats["snapped"] == want_snaps
-        print(f"route_snap={snap}: inferences {calls}, snapped {s.stats['snapped']} (want {want_snaps}), "
+        print(f"route_snap={snap} max_deg={deg}: inferences {calls}, snapped {s.stats['snapped']} (want {want_snaps}), "
               f"plan stored every step {all(stored)}" + ("" if ok else "   <-- FAIL"))
         bad += not ok
     print("PASS" if bad == 0 else f"FAIL ({bad} combinations)")

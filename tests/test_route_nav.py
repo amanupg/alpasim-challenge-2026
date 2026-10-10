@@ -6,7 +6,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from a15_driver.driver import route_nav_text, speed_scale_plan  # noqa: E402
-from a15_driver.route_choice import choose, retime_path, route_deviation, route_path, route_pull  # noqa: E402
+from a15_driver.route_choice import choose, retime_path, route_deviation, route_parallel, route_path, route_pull  # noqa: E402
 
 bad = 0
 
@@ -101,5 +101,9 @@ check("snap: model speed kept (64 m along the new path)", round(float(np.linalg.
 check("snap: ends in the route's lane", round(float(snap_xy[-1, 1]), 1), 3.5)
 check("snap: deviation after snapping ~0", round(route_deviation(snap_xy, lane_route), 2), 0.0)
 check("route_path: no route", route_path(None), None)
+check("parallel: lane-change route (3.5 m left at 40 m, straight) is parallel", route_parallel(lane_route, 15), True)
+check("parallel: turned road (route at x=15 heading +y) is not", route_parallel(turn_route, 15), False)
+check("parallel: route bending 30 deg at its start is not", route_parallel(np.array([[40.0, 0.0], [48.7, 5.0]]), 15), False)
+check("parallel: no route", route_parallel(None, 15), False)
 print("PASS" if bad == 0 else f"FAIL ({bad})")
 sys.exit(bad > 0)

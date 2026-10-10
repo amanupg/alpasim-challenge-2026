@@ -824,3 +824,19 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - Snap fired in 21 of 40 sessions, 75 replans in total.
 - **K=12 batch 81-120 (13298461) was lost to a renderer crash** ("CUDA error: an illegal memory access", 4 of 40 sessions). Rerun as 13311170.
   - `sim_local.sbatch` now writes "INCOMPLETE" to driver_health.txt when fewer scenes drove than requested.
+
+## 2026-10-10 Route snap 2.0 m, batch 81-120 (13299648): -0.042; guard added
+- **81-120:** 0.681 vs v2 0.724; diff -0.042 [-0.129, +0.044], W/L 5/10.
+  - Corridor 4 → 1: 524a02 now passes.
+  - Low progress 8 → 11, offroad 2 → 4.
+- **Two batches together:** +0.071 and -0.042.
+- **Geometry at snap triggers** (from the choice logs):
+  - Snaps that FIXED corridor exits (31f39b, 3b1027, 451fc1, d50172, 524a02, c7ed0d) were lane changes and exits on near-straight roads: the route heading at the first waypoint was within ±7°.
+  - Snaps that BROKE passing scenes were mostly turns and U-turns, with a route heading of 60-180° (1845f6, a268c2, e7c20a, 8e056b, 36ea68). There the Hermite from the car to a waypoint ~40 m ahead cuts the corner, giving offroad or low progress.
+- Some losses are scene-to-scene noise: 331b7f went pass → 0.01 with **0** snaps.
+- **Guard (`A15_ROUTE_SNAP_MAX_DEG=15`, `route_choice.route_parallel`):** snap only when both the direction to the first waypoint and the route's direction there are within 15° of the car's heading.
+  - On the logged triggers, this keeps 6 of the 8 fixes and removes every turn-related break.
+  - Breaks still exposed: b8fbf5 (partly), 2cb4ca, fb501e, 281e1e, 0a7b92.
+- Snap v1 batch 1-40 (13299649) was cancelled.
+- **Queued:** guarded snap on 120 scenes, 13311489-91 (lane as_bw_a), after test 13311488 (the first test job, 13311461, died on node ins022 before starting).
+- **Margin 0.5, batch 41-80 (13299358):** 0.620, +0.059 [-0.047, +0.170], W/L 6/9. Corridor 9 → 8, offroad 4 → 4. Batches 81-120 and 1-40 are running.
