@@ -840,3 +840,4 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - Snap v1 batch 1-40 (13299649) was cancelled.
 - **Queued:** guarded snap on 120 scenes, 13311489-91 (lane as_bw_a), after test 13311488 (the first test job, 13311461, died on node ins022 before starting).
 - **Margin 0.5, batch 41-80 (13299358):** 0.620, +0.059 [-0.047, +0.170], W/L 6/9. Corridor 9 → 8, offroad 4 → 4. Batches 81-120 and 1-40 are running.
+- **Margin 0.5, batch 81-120 (13299359):** 0.727 vs 0.724; diff +0.003 [-0.002, +0.008], W/L 4/4. Corridor 4 → 3, offroad 2 → 3. Two batches so far: +0.059, +0.003. Batch 1-40 is next.
