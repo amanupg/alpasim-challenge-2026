@@ -108,7 +108,8 @@ if [ $DRIVER = a15 ]; then
   [ "$NF" -gt 0 ] && echo "WARNING: $NF sessions used the fallback plan; results do not measure the policy" | tee -a $RUN/driver_health.txt
   # a renderer crash ("illegal memory access") ends the run early with few sessions (2026-10-10: 4 of 40)
   ND=$(grep -o "closed session [^:]*: drive [0-9]*" $RUN/driver.log | awk '$NF>0' | wc -l)
-  [ "$ND" -lt "${N:-0}" ] && echo "INCOMPLETE: only $ND of $N scenes drove; rerun this batch" | tee -a $RUN/driver_health.txt
+  NW=$( [ -n "${SCENE_FILE:-}" ] && grep -c . "$SCENE_FILE" || echo 0)
+  [ "$ND" -lt "$NW" ] && echo "INCOMPLETE: only $ND of $NW scenes drove; rerun this batch" | tee -a $RUN/driver_health.txt
 fi
 # raw rollout logs (rollout.asl, ~15 GB per 40 PAI scenes, mostly embedded camera images) are deleted
 # once the aggregate summary exists, unless KEEP_ASL=1 (shared filesystem; Aman 2026-10-03).
