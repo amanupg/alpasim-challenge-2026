@@ -841,3 +841,19 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Queued:** guarded snap on 120 scenes, 13311489-91 (lane as_bw_a), after test 13311488 (the first test job, 13311461, died on node ins022 before starting).
 - **Margin 0.5, batch 41-80 (13299358):** 0.620, +0.059 [-0.047, +0.170], W/L 6/9. Corridor 9 → 8, offroad 4 → 4. Batches 81-120 and 1-40 are running.
 - **Margin 0.5, batch 81-120 (13299359):** 0.727 vs 0.724; diff +0.003 [-0.002, +0.008], W/L 4/4. Corridor 4 → 3, offroad 2 → 3. Two batches so far: +0.059, +0.003. Batch 1-40 is next.
+
+## 2026-10-10 Guarded route snap (2.0 m, 15°), batch 81-120 (13311489)
+| Variant | Mean | Diff vs v2 [90%] | W/L | Categories |
+|---|---|---|---|---|
+| v2 (reference) | 0.724 | | | pass 24, low progress 8, corridor 4, offroad 2, collision 2 |
+| v2 rerun | 0.717 | -0.006 | 5/5 | |
+| Snap, no guard | 0.681 | -0.042 | 5/10 | pass 21, low progress 11, corridor 1, offroad 4, collision 3 |
+| **Snap + 15° guard** | 0.726 | **+0.003 [-0.055, +0.060]** | 5/7 | pass 23, low progress 10, corridor 2, offroad 3, collision 2 |
+
+- The guard removed the turn breakage: snaps went from 82 to 41 replans, in 17 of 40 sessions.
+- Kept fixes: 524a02 (corridor → pass) and c7ed0d (0.75 → 1.0).
+- **331b7f is a coin-flip scene, not a snap effect.**
+  - It scored 0.01 (car never moves) in the plain v2 rerun and in both snap runs, with 0 snaps.
+  - It scored 1.0 in v2, margin 0.5, 6 cameras, hybrid and route pull.
+  - Excluding it, guarded snap is about +0.03 on this batch.
+- Batches 41-80 (13311490) and 1-40 (13311491) are next.
