@@ -812,3 +812,15 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 **Queued:**
 - Route snap 2.0 m on 120 scenes: 13299355-57, lane as_bw_a, after test job 13299057 passes.
 - Margin 0.5 (13299358-60) moved to lane as_bw_b, after K=12 batch 81-120 (13298461).
+
+## 2026-10-10 Route snap 2.0 m, batch 41-80 (13299647), vs v2 0.561 (rerun 0.563)
+- **0.632, +0.071 [-0.046, +0.197]**, W/L 7/10.
+- Corridor 9 → 5. Now pass: 31f39b, 3b1027, 451fc1, 622908, d50172.
+- New losses:
+  - pass → offroad: b8fbf5;
+  - pass → corridor: fb501e;
+  - pass → low progress: b59db2, fa45af;
+  - low progress → collision / offroad: 0a7b92 / 2cb4ca.
+- Snap fired in 21 of 40 sessions, 75 replans in total.
+- **K=12 batch 81-120 (13298461) was lost to a renderer crash** ("CUDA error: an illegal memory access", 4 of 40 sessions). Rerun as 13311170.
+  - `sim_local.sbatch` now writes "INCOMPLETE" to driver_health.txt when fewer scenes drove than requested.
