@@ -897,3 +897,13 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Queued:**
   - Lane as_bw_b: 13328318-20, ahead of the K=12 rerun (re-queued as 13328321).
   - Lane as_bw_a: guarded snap batch 1-40 (13311491) is still pending.
+
+## 2026-10-11 Chooser v2 on H100 vs Blackwell (same config, CUDA_COMPAT on H100)
+| Batch | Blackwell v2 (rerun) | H100 v2 | Diff [90%] | W/L |
+|---|---|---|---|---|
+| 1-40 (13260244) | 0.793 (0.797) | 0.716 | -0.077 [-0.175, +0.001] | 6/9 |
+| 41-80 (13260245) | 0.561 (0.563) | 0.546 | -0.015 [-0.041, +0.000] | 3/6 |
+
+- H100 runs lower on both batches: about -0.046 over 80 scenes. Batch 81-120 (13260246) is running.
+- This is consistent with v0.3: 0.638 on the local Blackwell bench vs 0.611 official (H100), a gap of -0.027.
+- **Reading:** the Blackwell bench reads ~0.03-0.05 high in absolute terms. What matters is whether gains carry over to H100. Before a submission, run the chosen candidate on H100 as well, paired against this H100 v2.
