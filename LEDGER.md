@@ -926,5 +926,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - This batch has little corridor exposure, so a neutral result means no harm here.
 - **Lane moves:**
   - Both Blackwell nodes have been held by other users' long jobs for ~1 day.
-  - The min-offset variant moved to H100 (13328318-20 cancelled; now on lane as_h100_a after the 41-80 rerun).
+  - The min-offset variant moved to H100 (13328318-20 cancelled; now 13333300-02 on a second H100 lane, as_h100_b).
   - It is paired against H100 guarded snap and H100 v2.
+- **Blackwell jobs cancelled to keep a two-GPU footprint while H100 carries both lanes:**
+  - guarded snap 1-40 on Blackwell (13311491): H100 covers 1-40;
+  - the K=12 rerun (13328321): low priority. K=12 so far: +0.011 / +0.037 on 1-40 / 41-80, at +15% wall time.
