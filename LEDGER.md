@@ -883,3 +883,17 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Noise (0 snaps, same as the v2 rerun):** 481dfc offroad → pass; b59db2 and fa45af 1.0 → 0.96.
 - **Two batches so far: +0.107, +0.003.** Batch 1-40 (13311491) is next.
 - H100 v2 batch 41-80 (13260245) is running on ins049.
+
+## 2026-10-11 fb501e, and a variant: snap only when the route leaves our lane
+- **fb501e (pass → corridor in both snap runs):**
+  - The route stays in our lane: first waypoint at y = 0-0.3 m.
+  - For 4 replans the model planned a ~3 m swerve left, plausibly around something in the road. Snap overrode it.
+- **The fixes are different:** in 31f39b, 3b1027, d50172, 524a02 and c7ed0d the route's first waypoint is 0.7-3.4 m to the side, i.e. the recorded driver changed lane or took an exit.
+- **Variant `A15_ROUTE_SNAP_MIN_OFFSET=0.5`** (`route_choice.route_lateral_offset`):
+  - A new snap needs the route's first waypoint ≥0.5 m to the side. A snap already under way continues, so lane changes are finished.
+  - On the logs, this keeps 5 of the 6 fixes; it loses 451fc1, a curve where the route is at y≈0.
+- **Caveat:** this rule is chosen on bench scenes, so it is at risk of overfitting. It is kept only if it is clearly better over 120 scenes, and the physical reason (respect the model's swerves when the route stays in lane) has to carry it.
+- Tests pass (13328313).
+- **Queued:**
+  - Lane as_bw_b: 13328318-20, ahead of the K=12 rerun (re-queued as 13328321).
+  - Lane as_bw_a: guarded snap batch 1-40 (13311491) is still pending.

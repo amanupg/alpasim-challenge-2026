@@ -6,7 +6,8 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from a15_driver.driver import route_nav_text, speed_scale_plan  # noqa: E402
-from a15_driver.route_choice import choose, retime_path, route_deviation, route_parallel, route_path, route_pull  # noqa: E402
+from a15_driver.route_choice import (choose, retime_path, route_deviation, route_lateral_offset,  # noqa: E402
+                                     route_parallel, route_path, route_pull)
 
 bad = 0
 
@@ -105,5 +106,7 @@ check("parallel: lane-change route (3.5 m left at 40 m, straight) is parallel", 
 check("parallel: turned road (route at x=15 heading +y) is not", route_parallel(turn_route, 15), False)
 check("parallel: route bending 30 deg at its start is not", route_parallel(np.array([[40.0, 0.0], [48.7, 5.0]]), 15), False)
 check("parallel: no route", route_parallel(None, 15), False)
+check("lateral offset: lane-change route", route_lateral_offset(lane_route), 3.5)
+check("lateral offset: no route", route_lateral_offset(None), 0.0)
 print("PASS" if bad == 0 else f"FAIL ({bad})")
 sys.exit(bad > 0)

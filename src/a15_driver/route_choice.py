@@ -191,3 +191,9 @@ def route_parallel(route: np.ndarray | None, max_deg: float) -> bool:
     d = r[1] - r[0]
     hd = np.degrees(np.arctan2(d[1], d[0]))
     return bool(abs(chord) <= max_deg and abs(hd) <= max_deg)
+
+
+def route_lateral_offset(route: np.ndarray | None) -> float:
+    """Sideways distance (m) of the route's first waypoint from the car's heading line; 0 without a route."""
+    r = _route_points(route)
+    return 0.0 if r is None else float(abs(r[0, 1]))

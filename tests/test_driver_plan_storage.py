@@ -38,11 +38,12 @@ class FakeHandle:
         return self.p
 
 
-def run(log_choices, with_costs, early, nav, route_snap=0.0, route=None, snap_deg=0.0):
-    pol = FakePolicy(with_costs)
+def run(log_choices, with_costs, early, nav, route_snap=0.0, route=None, snap_deg=0.0, snap_off=0.0, pol=None):
+    pol = pol or FakePolicy(with_costs)
     drv = D.A15ChallengeDriver(handle=FakeHandle(pol), pai_cameras=[], interval_us=1_000_000,
                                frame_dt_s=0.1, nav=nav, log_choices=log_choices, early_replan=early,
-                               route_snap=route_snap, route_snap_max_deg=snap_deg)
+                               route_snap=route_snap, route_snap_max_deg=snap_deg,
+                               route_snap_min_offset=snap_off)
     s = D.SessionState(cams=["CAM_F0"], slots=[1], sid="test-session")
     s.frames = {"CAM_F0": D.deque(maxlen=24)}
     s.route_xy = np.array([[40.0, 0.0], [80.0, 0.0]]) if route is None else route
@@ -79,6 +80,26 @@ def main():
         print(f"route_snap={snap} max_deg={deg}: inferences {calls}, snapped {s.stats['snapped']} (want {want_snaps}), "
               f"plan stored every step {all(stored)}" + ("" if ok else "   <-- FAIL"))
         bad += not ok
+    # min offset: route stays in lane (y=0) but the plan swerves 3 m left -> snapped without the rule, not with it
+    class SwervePolicy(FakePolicy):
+        def predict(self, *a, **k):
+            xy, yaw, info = super().predict(*a, **k)
+            xy = xy.copy(); xy[:, 1] = np.clip(xy[:, 0] - 10.0, 0, 3.0)
+            return xy, yaw, info
+    in_lane = np.array([[20.0, 0.0], [40.0, 0.0], [80.0, 0.0]])
+    for off, want_snaps in [(0.0, 5), (0.5, 0)]:
+        calls, stored, s = run(True, True, False, False, route_snap=2.0, route=in_lane, snap_deg=15.0, snap_off=off,
+                               pol=SwervePolicy(True))
+        ok = calls == 5 and all(stored) and s.stats["snapped"] == want_snaps
+        print(f"swerve on in-lane route, min_offset={off}: snapped {s.stats['snapped']} (want {want_snaps}), "
+              f"plan stored every step {all(stored)}" + ("" if ok else "   <-- FAIL"))
+        bad += not ok
+    # lane-change route (3.5 m) still snaps with the rule
+    calls, stored, s = run(True, True, False, False, route_snap=2.0, snap_deg=15.0, snap_off=0.5,
+                           route=np.array([[20.0, 3.5], [40.0, 3.5], [80.0, 3.5]]))
+    ok = s.stats["snapped"] == 5
+    print(f"lane-change route, min_offset=0.5: snapped {s.stats['snapped']} (want 5)" + ("" if ok else "   <-- FAIL"))
+    bad += not ok
     print("PASS" if bad == 0 else f"FAIL ({bad} combinations)")
     sys.exit(bad > 0)
 
