@@ -907,3 +907,6 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - H100 runs lower on both batches: about -0.046 over 80 scenes. Batch 81-120 (13260246) is running.
 - This is consistent with v0.3: 0.638 on the local Blackwell bench vs 0.611 official (H100), a gap of -0.027.
 - **Reading:** the Blackwell bench reads ~0.03-0.05 high in absolute terms. What matters is whether gains carry over to H100. Before a submission, run the chosen candidate on H100 as well, paired against this H100 v2.
+- **H100 v2 batch 81-120 (13260246):** 0.723 vs 0.724 on Blackwell (W/L 4/4).
+- **Full 120 scenes: H100 v2 0.662 vs Blackwell v2 0.692, -0.031 [-0.064, -0.001].** This matches the v0.3 bench-vs-official gap (-0.027).
+- **Queued, transfer check:** guarded snap (2.0 m, 15°) on H100, 13329881-83 (lane as_h100_a, CUDA_COMPAT=1), paired against this H100 v2 (0.662).
