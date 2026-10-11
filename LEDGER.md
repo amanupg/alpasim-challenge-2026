@@ -863,3 +863,23 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - By batch: -0.023 / +0.059 / +0.003.
 - Categories: pass 69, low progress 25, corridor 12, offroad 10, collision 4. Corridor 14 → 12, offroad 8 → 10.
 - **Kept margin 1.0.**
+
+## 2026-10-11 Guarded route snap, batch 41-80 (13311490): +0.107
+| Variant | Mean | Diff vs v2 [90%] | W/L | Categories |
+|---|---|---|---|---|
+| v2 | 0.561 | | | pass 18, low progress 7, corridor 9, offroad 4, collision 2 |
+| v2 rerun | 0.563 | +0.002 | 3/7 | corridor 9 |
+| Snap, no guard | 0.632 | +0.071 | 7/10 | corridor 5 |
+| **Snap + 15° guard** | **0.668** | **+0.107 [+0.003, +0.220]** | 8/8 | pass 20, low progress 9, corridor 6, offroad 3, collision 2 |
+
+- Snaps: 48 replans in 16 of 40 sessions.
+- **Fixed:**
+  - corridor → pass: 31f39b, 3b1027, 451fc1, d50172;
+  - offroad → 0.94: 592fa2;
+  - 624628: 0.65 → 0.92.
+- **Broken by snapping:**
+  - fb501e: pass → corridor, in both snap runs. The route is straight ahead (y≈0); worth a look.
+  - 2cb4ca: low progress → offroad, 2 snaps.
+- **Noise (0 snaps, same as the v2 rerun):** 481dfc offroad → pass; b59db2 and fa45af 1.0 → 0.96.
+- **Two batches so far: +0.107, +0.003.** Batch 1-40 (13311491) is next.
+- H100 v2 batch 41-80 (13260245) is running on ins049.
