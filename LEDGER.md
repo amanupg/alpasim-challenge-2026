@@ -910,3 +910,13 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **H100 v2 batch 81-120 (13260246):** 0.723 vs 0.724 on Blackwell (W/L 4/4).
 - **Full 120 scenes: H100 v2 0.662 vs Blackwell v2 0.692, -0.031 [-0.064, -0.001].** This matches the v0.3 bench-vs-official gap (-0.027).
 - **Queued, transfer check:** guarded snap (2.0 m, 15°) on H100, 13329881-83 (lane as_h100_a, CUDA_COMPAT=1), paired against this H100 v2 (0.662).
+
+## 2026-10-11 Guarded route snap on H100 (transfer check)
+- **Batch 81-120 (13329882): 0.770 vs H100 v2 0.723, +0.048 [-0.027, +0.129]**, W/L 10/3.
+  - The same fixes as on Blackwell: 524a02 corridor → pass, c7ed0d 0.74 → 1.0.
+  - Also on H100: 36ea68 corridor → pass, e15688 0.82 → 1.0.
+  - Losses: 281e1e 1.0 → 0.75 (on Blackwell too), and the coin-flip 331b7f.
+- **Batch 41-80 (13329881) is void:** a GPU fault on ins049 at 08:22 ("CUDA error: unspecified launch failure" inside the action expert); every inference failed after that. 8 of 40 scenes drove.
+  - The new INCOMPLETE flag caught it.
+  - The next batch on the same GPU was clean, so this is not the snap code.
+  - Rerun as 13332088.
