@@ -920,3 +920,11 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - The new INCOMPLETE flag caught it.
   - The next batch on the same GPU was clean, so this is not the snap code.
   - Rerun as 13332088.
+- **H100 batch 1-40 (13329883):** 0.716 vs H100 v2 0.716, +0.000 [-0.076, +0.076], W/L 8/7.
+  - Corridor 1 → 2: adfc75 fixed, b3968d broken. Collisions 3 → 2.
+  - Snaps: 53 replans in 15 of 40 sessions.
+  - This batch has little corridor exposure, so a neutral result means no harm here.
+- **Lane moves:**
+  - Both Blackwell nodes have been held by other users' long jobs for ~1 day.
+  - The min-offset variant moved to H100 (13328318-20 cancelled; now on lane as_h100_a after the 41-80 rerun).
+  - It is paired against H100 guarded snap and H100 v2.
