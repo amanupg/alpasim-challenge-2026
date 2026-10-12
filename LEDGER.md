@@ -1002,3 +1002,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - vs H100 v2: +0.044.
 - **2.0 m stays.**
 - **Queued:** v0.3 (submitted config: K=1, 1 Hz, no chooser) on H100, 120 scenes (lane as_h100_a). Paired with v0.3's official 0.611, this calibrates H100-local → official for the candidate.
+- **H100 guarded-snap repeat, batch 41-80 (13340993):**
+  - 0.628 vs the first run's 0.659: -0.031 [-0.103, +0.034], W/L 6/5.
+  - vs H100 v2: **+0.082** (first run +0.112).
+  - H100 run-to-run spread is ~0.03 per 40 scenes, larger than Blackwell's ~0.005. The gain holds.
