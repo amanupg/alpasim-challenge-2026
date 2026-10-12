@@ -931,3 +931,21 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Blackwell jobs cancelled to keep a two-GPU footprint while H100 carries both lanes:**
   - guarded snap 1-40 on Blackwell (13311491): H100 covers 1-40;
   - the K=12 rerun (13328321): low priority. K=12 so far: +0.011 / +0.037 on 1-40 / 41-80, at +15% wall time.
+
+## 2026-10-11 **Guarded route snap, 120 scenes on H100: +0.053 [+0.004, +0.101]**
+| H100, 120 scenes | Mean | Diff [90%] | W/L | Rear-ended | Categories |
+|---|---|---|---|---|---|
+| v2 (13260244-46) | 0.662 | | | 22 | pass 63, low progress 26, corridor 16, offroad 9, collision 6 |
+| **v2 + snap 2.0 m / 15° (13329882-83, 13332088)** | **0.715** | **+0.053 [+0.004, +0.101]** | **27/14** | 18 | pass 69, low progress 27, **corridor 9**, offroad 8, collision 7 |
+
+- **By batch:** +0.000 / **+0.112 [+0.027, +0.210]** / +0.048. Batch 41-80 holds most corridor exits.
+- **Corridor exits 16 → 9.** Fixed on H100: 31f39b, 3b1027, 451fc1, b8f636, d50172 (41-80), 524a02, 36ea68 (81-120), adfc75 (1-40). Most of these were also fixed on Blackwell.
+- **Costs:**
+  - two corridor exits became at-fault collisions (0a7b92, 5688dd);
+  - 2cb4ca went from low progress to offroad;
+  - 1-40 is neutral.
+  - At-fault collisions 6 → 7 matter for the leaderboard's at-fault incident spacing, where we currently lead (0.795).
+- **Blackwell, the two batches run:** +0.107 (41-80), +0.003 (81-120).
+- **Second gain above noise this month, the first since chooser v2 (+0.054).** No extra inference, so no time-budget cost.
+- **Candidate image contents:** chooser v2 + `A15_ROUTE_SNAP=2.0 A15_ROUTE_SNAP_MAX_DEG=15`. Not built or pushed; submitting is Aman's call, no earlier than mid-October.
+- **Still running:** the min-offset variant (13333300-02), paired against this run on H100.

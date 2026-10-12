@@ -230,7 +230,7 @@ Corridor exits were 55% of the lost score (mostly lane choice on straight roads)
 | All 6 cameras, adding rear-left and rear-right (with v2, vs v2) | -0.023 [-0.095, +0.048] | net zero: rear-ended 25 to 11, but more own collisions, offroad and corridor exits |
 | Hybrid: path from 4 front cameras, speed from all 6 (with v2, vs v2) | -0.052 [-0.115, +0.013] | rejected: rear-ends down, but offroad and corridor exits up |
 | Chooser margin 0.5 m instead of 1 m (vs v2) | +0.013 [-0.031, +0.058] | no gain (a second v2 run scored 0.692 exactly, so ~0.03 is the bar) |
-| Route snap: drive onto the route when every sample leaves it, lane changes only (15 deg guard) (vs v2) | running | corridor exits are lane changes no sample makes |
+| **Route snap: drive onto the route when every sample leaves it, lane changes only (15 deg guard) (vs v2, on H100)** | **+0.053 [+0.004, +0.101]** | **kept: corridor exits 16 to 9, passes 63 to 69** |
 
 **Next image:** `v5` (neutral tag) = v0.3 plus chooser v2 at 1 Hz. It is built on the v0.3 image, so only a small code layer is new. Trial-built and hash-checked, not pushed. PAI gets 1 or 2 of October's 3 slots (Aman's call), with no submission before mid-October. `v5` is the current best candidate, not a final image, and is only submitted after a final check and Aman's go-ahead.
 
@@ -246,6 +246,8 @@ timeline
   2026-10-01 : Quota reset confirmed (3 per calendar month) : Route chooser v2, first PAI gain above noise
   2026-10-04 : One official PAI slot for October : Route text, temperature, graded guard tested, no gain : v5 trial build
   2026-10-08 : Driver memory fixed on H100 (one GPU thread) : Route pull no gain : 6 cameras halve rear-ends but add own failures : Hybrid queued
+  2026-10-09 : Hybrid rejected : Same-GPU reruns repeat within 0.005 : Corridor exits traced to lane changes no sample makes
+  2026-10-11 : Route snap +0.053 on H100 (120 scenes), second gain above noise
 ```
 
 ## 9. Where things live
