@@ -995,3 +995,4 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 
 - vs guarded snap by batch: +0.048 / -0.032 / +0.011.
 - Below the ~0.03 bar. The rule was chosen on these scenes and wins fewer scenes than it loses. **Kept the simpler guarded snap** (Dockerfile.v6 has `A15_ROUTE_SNAP_MIN_OFFSET=0`).
+- **Queued:** a second guarded-snap run on H100, 120 scenes (lane as_h100_b). It checks that the candidate's +0.053 repeats, and measures H100 run-to-run spread.
