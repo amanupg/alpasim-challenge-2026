@@ -966,3 +966,13 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - **vs guarded snap 0.770: -0.032 [-0.081, -0.003]**, W/L 4/8.
   - Lost 36ea68 (pass → corridor, a fix that needed a snap with the route in lane), 57016f and e15688.
   - **Two batches vs guarded snap: +0.048, -0.032. No better so far, as expected for a rule picked on the same scenes.** 1-40 (13333302) is running.
+
+## 2026-10-11 Snap threshold 1.5 m (15° guard) on H100, batch 41-80 (13335147)
+- **vs guarded snap 2.0 m: 0.698 vs 0.659, +0.039 [+0.001, +0.090]**, W/L 6/3.
+- vs H100 v2: +0.152.
+- Changes vs 2.0 m:
+  - 0a7b92: at-fault collision → 0.53;
+  - 88b571: offroad → pass;
+  - b59db2 and fa45af: low progress → pass.
+- No losses.
+- 81-120 (13335148) and 1-40 (13335149) are next.
