@@ -949,3 +949,15 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Second gain above noise this month, the first since chooser v2 (+0.054).** No extra inference, so no time-budget cost.
 - **Candidate image contents:** chooser v2 + `A15_ROUTE_SNAP=2.0 A15_ROUTE_SNAP_MAX_DEG=15`. Not built or pushed; submitting is Aman's call, no earlier than mid-October.
 - **Still running:** the min-offset variant (13333300-02), paired against this run on H100.
+
+## 2026-10-11 Min-offset variant on H100, batch 41-80 (13333300)
+- **vs H100 v2: 0.707 vs 0.546, +0.160 [+0.062, +0.269]**, W/L 9/6.
+- **vs H100 guarded snap: +0.048 [-0.028, +0.126]**, W/L 7/5.
+- Changes vs guarded snap:
+  - 0a7b92: at-fault collision → 0.96 (the rule kept the model's own move);
+  - 592fa2, 62e0a7: corridor → pass;
+  - 624628: 0.93 → 1.0;
+  - b8f636: pass → corridor (lost; the route there is in lane);
+  - 3b1027: 1.0 → 0.89.
+- Snaps: 41 replans in 15 sessions.
+- The rule was chosen on these scenes, so the other two batches decide. 81-120 (13333301) and 1-40 (13333302) are next.
