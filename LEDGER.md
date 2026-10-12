@@ -1027,3 +1027,13 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Reading: an H100-on-this-cluster problem (CUDA 12.8 forward-compat on driver 550), not snap.**
   - Two of the three faults came ~36 min into the job.
   - A CUDA_LAUNCH_BLOCKING diagnostic would change plan timing (the driver serves cached plans while inferring), so it belongs in a separate run, not in a measurement.
+
+## 2026-10-12 Qwen-Drive-1.0 (pointer from the alpasim-jepa thread): not prioritised for PAI
+- **What it is (verified):**
+  - HF Qwen/Qwen-Drive-1.0-4B, Apache-2.0, ungated, created 2026-08-27.
+  - Weights: 9.1 GB VLM + 2.1 GB planner-sft + 2.1 GB planner-rl + 0.5 GB perception.
+  - GitHub QwenLM/Qwen-Drive-1.0 and arXiv 2609.00111 both exist.
+- **Its own card reports AlpaSim closed loop (at-fault score, higher is better):** Alpamayo-1.5 0.45, Qwen-Drive SFT 0.27, RL 0.37.
+- **PAI-AV open-loop ADE 3 s / 5 s:** Alpamayo 0.35 / 1.05; Qwen-Drive SFT 0.37 / 1.07; RL 0.42 / 1.11.
+- **Verdict:** on PAI, Alpamayo's home data, it is behind by its authors' own numbers. Not worth an adapter plus a 14 GB download ahead of finishing the snap candidate. It may matter more for nuPlan; told the jepa thread.
+- **Storage:** the dept fileset is at 99% (64 GB free of 5 TB). Our running jobs write up to ~16 GB of .asl each until they finish.
