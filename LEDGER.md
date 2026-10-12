@@ -1019,3 +1019,11 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Whether chooser v2 (and so v6) beats v0.3 on H100 is open until v0.3 batches 81-120 (13341064) and 1-40 (13341065) land.** This decides the submission candidate.
 - v0.3 on H100 vs v0.3 on Blackwell, this batch: 0.603 vs 0.579 (+0.024).
 - **Queued hedge:** v0.3 + guarded snap (K=1, no chooser), 13347658-60 on lane as_h100_a after the v0.3 batches. Snap uses the session route whatever K is, so it works without the chooser.
+- **Third H100 driver fault:** guarded-snap repeat batch 81-120 (13340994), "unspecified launch failure" at 07:04 on ins049; 8 of 40 drove. Rerun queued.
+- **Fault tally:**
+  - H100: 3 of 14 batches, all three in snap configs (3 of 10 snap batches vs 0 of 4 non-snap; Fisher p ≈ 0.33).
+  - Blackwell: 0 in ~5 snap batches and ~30 others.
+- **Physics-service errors are not the cause.** Healthy runs have them too (H100 v2 1-40: 175 tracebacks; H100 v0.3 41-80: 57), and in the faulted runs most of them come after the driver fault.
+- **Reading: an H100-on-this-cluster problem (CUDA 12.8 forward-compat on driver 550), not snap.**
+  - Two of the three faults came ~36 min into the job.
+  - A CUDA_LAUNCH_BLOCKING diagnostic would change plan timing (the driver serves cached plans while inferring), so it belongs in a separate run, not in a measurement.
