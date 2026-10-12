@@ -976,3 +976,9 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - b59db2 and fa45af: low progress → pass.
 - No losses.
 - 81-120 (13335148) and 1-40 (13335149) are next.
+- **Min-offset variant, H100 batch 1-40 (13333302) is void.** The same driver fault: "CUDA error: unspecified launch failure" at 22:41 on ins050; 8 of 40 scenes drove. Rerun queued (lane as_h100_b).
+- **H100 driver fault rate: 2 of 10 H100 batches** (ins049 on 10-11 08:22, ins050 on 10-11 22:41). It has not happened in ~30 Blackwell batches.
+  - Our H100 runs use the CUDA 12.8 forward-compat libraries on driver 550, so this may be a compat-layer problem rather than something the official H100s (proper driver) would see.
+  - Official v0.3 ran cleanly there.
+  - It strikes inside the action expert's kernels, not in the numpy-only snap code.
+  - **Before a submission, a CUDA_LAUNCH_BLOCKING run might pin down the kernel.**
