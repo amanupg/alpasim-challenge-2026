@@ -1037,3 +1037,14 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **PAI-AV open-loop ADE 3 s / 5 s:** Alpamayo 0.35 / 1.05; Qwen-Drive SFT 0.37 / 1.07; RL 0.42 / 1.11.
 - **Verdict:** on PAI, Alpamayo's home data, it is behind by its authors' own numbers. Not worth an adapter plus a 14 GB download ahead of finishing the snap candidate. It may matter more for nuPlan; told the jepa thread.
 - **Storage:** the dept fileset is at 99% (64 GB free of 5 TB). Our running jobs write up to ~16 GB of .asl each until they finish.
+
+## 2026-10-12 Space cleanup in alpasim/ (Aman approved both items)
+- **Inventory (job 13357506, alpasim only):** 312 GB in total.
+  - `data/fs/nre-artifacts` 204 GB: the 120 bench-scene USDZs, all needed.
+  - `sandbox` 46 GB: needed, and shared read-only with the jepa thread.
+  - `data/nuplan_track` 43 GB: read by the jepa thread.
+  - `runs` 21 GB.
+- **Deleted:**
+  - `runs/local_pai_a15_hz2rcv2_81_120_13160659` (8.2 GB): incomplete 2 Hz batch, no summary, experiment rejected.
+  - 100 raw `.asl` logs from `runs/local_nuplan_a15_bench_12991555` (2.7 GB); its summary and metrics are kept.
+- About 11 GB freed. Nothing else in alpasim/ is safely removable.
