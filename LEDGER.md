@@ -982,3 +982,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Official v0.3 ran cleanly there.
   - It strikes inside the action expert's kernels, not in the numpy-only snap code.
   - **Before a submission, a CUDA_LAUNCH_BLOCKING run might pin down the kernel.**
+- **Snap 1.5 m, H100 batch 81-120 (13335148):** 0.728 vs 2.0 m 0.770: **-0.042 [-0.111, +0.012]**, W/L 4/8.
+  - Corridor exits back in 36ea68 and 447a3b.
+  - 36ea68 flips between snap variants, so it is unstable.
+  - **Two batches vs 2.0 m: +0.039, -0.042. No better; 2.0 m stays.** 1-40 (13335149) is running, for completeness.
