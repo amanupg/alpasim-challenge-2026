@@ -1006,3 +1006,15 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - 0.628 vs the first run's 0.659: -0.031 [-0.103, +0.034], W/L 6/5.
   - vs H100 v2: **+0.082** (first run +0.112).
   - H100 run-to-run spread is ~0.03 per 40 scenes, larger than Blackwell's ~0.005. The gain holds.
+
+## 2026-10-12 v0.3 on H100, batch 41-80 (13341063): **0.603**
+| H100, batch 41-80 | Mean | vs H100 v0.3 [90%] | W/L |
+|---|---|---|---|
+| v0.3 (submitted config) | 0.603 | | |
+| v2 | 0.546 | -0.057 [-0.133, +0.015] | 4/8 |
+| v2 + guarded snap, run 1 | 0.659 | +0.056 [-0.065, +0.183] | 8/9 |
+| v2 + guarded snap, run 2 | 0.628 | +0.025 [-0.100, +0.153] | 9/9 |
+
+- **On this batch, v2 is below v0.3 on H100**, as it was on Blackwell (0.561 vs 0.579). v2's +0.054 over v0.3 on Blackwell came from batches 1-40 and 81-120.
+- **Whether chooser v2 (and so v6) beats v0.3 on H100 is open until v0.3 batches 81-120 (13341064) and 1-40 (13341065) land.** This decides the submission candidate.
+- v0.3 on H100 vs v0.3 on Blackwell, this batch: 0.603 vs 0.579 (+0.024).
