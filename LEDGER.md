@@ -1018,3 +1018,4 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **On this batch, v2 is below v0.3 on H100**, as it was on Blackwell (0.561 vs 0.579). v2's +0.054 over v0.3 on Blackwell came from batches 1-40 and 81-120.
 - **Whether chooser v2 (and so v6) beats v0.3 on H100 is open until v0.3 batches 81-120 (13341064) and 1-40 (13341065) land.** This decides the submission candidate.
 - v0.3 on H100 vs v0.3 on Blackwell, this batch: 0.603 vs 0.579 (+0.024).
+- **Queued hedge:** v0.3 + guarded snap (K=1, no chooser), 13347658-60 on lane as_h100_a after the v0.3 batches. Snap uses the session route whatever K is, so it works without the chooser.
