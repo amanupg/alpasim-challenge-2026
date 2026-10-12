@@ -986,3 +986,12 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Corridor exits back in 36ea68 and 447a3b.
   - 36ea68 flips between snap variants, so it is unstable.
   - **Two batches vs 2.0 m: +0.039, -0.042. No better; 2.0 m stays.** 1-40 (13335149) is running, for completeness.
+
+## 2026-10-12 Min-offset variant, full 120 on H100: not adopted
+| H100, 120 scenes | Mean | vs H100 v2 [90%] | W/L | vs guarded snap [90%] | W/L |
+|---|---|---|---|---|---|
+| Guarded snap (2.0 m, 15°) | 0.715 | +0.053 [+0.004, +0.101] | 27/14 | | |
+| + min offset 0.5 m | 0.724 | +0.062 [+0.012, +0.113] | 24/20 | **+0.009 [-0.027, +0.046]** | 17/21 |
+
+- vs guarded snap by batch: +0.048 / -0.032 / +0.011.
+- Below the ~0.03 bar. The rule was chosen on these scenes and wins fewer scenes than it loses. **Kept the simpler guarded snap** (Dockerfile.v6 has `A15_ROUTE_SNAP_MIN_OFFSET=0`).
