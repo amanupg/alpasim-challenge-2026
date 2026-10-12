@@ -961,3 +961,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - 3b1027: 1.0 → 0.89.
 - Snaps: 41 replans in 15 sessions.
 - The rule was chosen on these scenes, so the other two batches decide. 81-120 (13333301) and 1-40 (13333302) are next.
+- **Min-offset variant, H100 batch 81-120 (13333301):**
+  - 0.738 vs H100 v2 0.723: +0.016.
+  - **vs guarded snap 0.770: -0.032 [-0.081, -0.003]**, W/L 4/8.
+  - Lost 36ea68 (pass → corridor, a fix that needed a snap with the route in lane), 57016f and e15688.
+  - **Two batches vs guarded snap: +0.048, -0.032. No better so far, as expected for a rule picked on the same scenes.** 1-40 (13333302) is running.
