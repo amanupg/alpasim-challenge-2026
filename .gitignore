@@ -13,3 +13,4 @@ external/
 __pycache__/
 container/assets/
 container/alpasim_grpc/
+.bench_cache/
