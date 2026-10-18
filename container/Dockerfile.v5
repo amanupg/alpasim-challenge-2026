@@ -6,6 +6,10 @@
 # Added since v0.3: route chooser (6 flow samples, keep sample 0 unless another follows the route
 # waypoints >1 m better and is not slower than 0.9x), measured +0.054 [+0.005, +0.105] on the 120-scene
 # PAI bench (LEDGER 2026-10-01). Same 15,052 MiB driver peak as v0.3.
+# Added: route snap. When every sample leaves the route by >2 m and the route runs within 15 deg of the
+# car's heading (lane changes and exits, not turns), drive a smooth path onto the route at the model's speed.
+# Measured +0.053 [+0.004, +0.101] over 120 PAI scenes on H100, the official GPU (LEDGER 2026-10-11).
+# No extra inference (numpy only), so no change in time or memory.
 ARG BASE=696254625193.dkr.ecr.us-east-1.amazonaws.com/teams/amanupg:v0.3-a15int8-1hz
 FROM ${BASE}
 
@@ -18,6 +22,7 @@ ARG GIT_HASH=unknown
 ARG INTERVAL_US=1000000
 ENV A15_INFERENCE_INTERVAL_US=${INTERVAL_US} A15_NUM_SAMPLES=6 A15_CHOOSER=route \
     A15_ROUTE_MARGIN=1.0 A15_ROUTE_MIN_LEN=0.9 A15_LOG_CHOICES=0 A15_NAV=0 A15_DIFF_TEMP=1.0 \
-    A15_SPEED_SCALE=1.0 A15_EARLY_REPLAN=0 A15_GIT_HASH=${GIT_HASH}
+    A15_SPEED_SCALE=1.0 A15_EARLY_REPLAN=0 A15_ROUTE_SNAP=2.0 A15_ROUTE_SNAP_MAX_DEG=15 \
+    A15_ROUTE_SNAP_MIN_OFFSET=0 A15_ROUTE_PULL=0 A15_SPEED_CAMS=4 A15_GIT_HASH=${GIT_HASH}
 USER alpasim
 CMD ["python", "-m", "a15_driver.driver"]

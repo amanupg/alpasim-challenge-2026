@@ -563,7 +563,7 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 
 ## 2026-10-04 Image tag policy (Aman)
 - Submission tags are neutral version numbers, never method names; the leaderboard shows tags publicly. This applies to every future submission.
-- Tag register (one sequence for both threads, all in `teams/amanupg`):
+- Tag register (one sequence for both threads, all in `teams/amanupg`; a push silently overwrites, so list the repo's tags right before any push and confirm the tag is absent):
 
 | Tag | Track | Contents (private) |
 |---|---|---|
@@ -571,7 +571,10 @@ The first base-image build failed. Apptainer's unprivileged build (no subuid, so
 | v0.2-a15int8 | PAI warmup | Alpamayo 1.5 int8, 2 Hz |
 | v0.3-a15int8-1hz | PAI, nuPlan | Alpamayo 1.5 int8, 1 Hz (git e7a75d6) |
 | v4 | nuPlan | JEPA thread's entry (see `../alpasim-jepa`) |
-| v5 | PAI | reserved for the first PAI full-system image |
+| v5 | PAI | **next PAI entry** (reserved 2026-10-04, never pushed): chooser v2 or v0.3 base + guarded route snap, chosen on H100 (2026-10-18); `container/Dockerfile.v5` |
+| nuplan-wajepa-judge-6672747 | nuPlan warmup | pushed 2026-10-03, before the neutral-tag policy (= v4 contents) |
+| v6 | nuPlan | alpasim-jepa candidate Q (`local/q:3`), not pushed |
+| v7 | PAI | reserved for a second PAI entry, if any |
 
 ## 2026-10-04 Slot plan change (Aman)
 - **PAI gets exactly one official October slot.** nuPlan (JEPA thread) gets one; the third is Aman's call.
