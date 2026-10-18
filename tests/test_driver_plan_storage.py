@@ -38,12 +38,13 @@ class FakeHandle:
         return self.p
 
 
-def run(log_choices, with_costs, early, nav, route_snap=0.0, route=None, snap_deg=0.0, snap_off=0.0, pol=None):
+def run(log_choices, with_costs, early, nav, route_snap=0.0, route=None, snap_deg=0.0, snap_off=0.0, pol=None,
+        memory=False, route_msgs=None):
     pol = pol or FakePolicy(with_costs)
     drv = D.A15ChallengeDriver(handle=FakeHandle(pol), pai_cameras=[], interval_us=1_000_000,
                                frame_dt_s=0.1, nav=nav, log_choices=log_choices, early_replan=early,
                                route_snap=route_snap, route_snap_max_deg=snap_deg,
-                               route_snap_min_offset=snap_off)
+                               route_snap_min_offset=snap_off, route_memory=memory)
     s = D.SessionState(cams=["CAM_F0"], slots=[1], sid="test-session")
     s.frames = {"CAM_F0": D.deque(maxlen=24)}
     s.route_xy = np.array([[40.0, 0.0], [80.0, 0.0]]) if route is None else route
@@ -54,6 +55,13 @@ def run(log_choices, with_costs, early, nav, route_snap=0.0, route=None, snap_de
         s.frames["CAM_F0"].append((now, torch.zeros(3, 32, 32, dtype=torch.uint8)))
         s.poses.append((now - 20_000, np.array([5.0 * (now - 20_000) / 1e6, 0, 0]), q))
         s.poses.append((now, np.array([5.0 * now / 1e6, 0, 0]), q))
+        if route_msgs is not None:                         # routes through the gRPC handler (memory path)
+            drv._sessions[s.sid] = s
+            req = D.egodriver_pb2.RouteRequest(session_uuid=s.sid)
+            req.route.timestamp_us = now
+            for x, y in route_msgs(5.0 * now / 1e6):
+                req.route.waypoints.add(x=float(x), y=float(y), z=0.0)
+            drv.submit_route(req, None)
         drv._maybe_infer(s, now)
         stored.append(s.cached_plan is not None)
     return pol.calls, stored, s
@@ -99,6 +107,17 @@ def main():
                            route=np.array([[20.0, 3.5], [40.0, 3.5], [80.0, 3.5]]))
     ok = s.stats["snapped"] == 5
     print(f"lane-change route, min_offset=0.5: snapped {s.stats['snapped']} (want 5)" + ("" if ok else "   <-- FAIL"))
+    bad += not ok
+    # route memory through the gRPC handler: the recorded path is one lane left (y=3.5); routes show it
+    # 10-50 m ahead of the car (car at x=5t). The plan is straight, so memory snaps fire (no angle guard).
+    def lane_route(x_car):
+        xs = np.arange(10, 51, 4.0)                         # nearer than real routes so 5 s of driving reaches it
+        return [(x, 3.5) for x in xs]                       # rig frame: car heading +x, path 3.5 m left
+    calls, stored, s = run(True, True, False, False, route_snap=2.0, snap_deg=15.0, memory=True,
+                           route_msgs=lane_route, route=np.array([[40.0, 3.5], [80.0, 3.5]]))
+    ok = calls == 5 and all(stored) and s.stats["snapped_mem"] >= 1 and len(s.route_mem.pts) > 10
+    print(f"route memory: inferences {calls}, snapped {s.stats['snapped']} (memory {s.stats['snapped_mem']}), "
+          f"memory points {len(s.route_mem.pts)}, plan stored every step {all(stored)}" + ("" if ok else "   <-- FAIL"))
     bad += not ok
     print("PASS" if bad == 0 else f"FAIL ({bad} combinations)")
     sys.exit(bad > 0)

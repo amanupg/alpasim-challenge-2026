@@ -6,8 +6,8 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from a15_driver.driver import route_nav_text, speed_scale_plan  # noqa: E402
-from a15_driver.route_choice import (choose, retime_path, route_deviation, route_lateral_offset,  # noqa: E402
-                                     route_parallel, route_path, route_pull)
+from a15_driver.route_choice import (RouteMemory, choose, retime_path, route_deviation,  # noqa: E402
+                                     route_lateral_offset, route_parallel, route_path, route_pull)
 
 bad = 0
 
@@ -108,5 +108,31 @@ check("parallel: route bending 30 deg at its start is not", route_parallel(np.ar
 check("parallel: no route", route_parallel(None, 15), False)
 check("lateral offset: lane-change route", route_lateral_offset(lane_route), 3.5)
 check("lateral offset: no route", route_lateral_offset(None), 0.0)
+# route memory: routes arrive 40-80 m ahead in the rig frame while the car drives a straight then a 90 deg left
+# turn (radius 15 m); 10 m before the turn the memory must give the turn itself, which no single route shows
+def _rot(yaw):
+    c, s_ = np.cos(yaw), np.sin(yaw)
+    return np.array([[c, -s_, 0], [s_, c, 0], [0, 0, 1]])
+tp = [np.array([x, 0.0]) for x in np.arange(0, 60, 1.0)]
+tp += [np.array([60 + 15 * np.sin(a), 15 - 15 * np.cos(a)]) for a in np.linspace(0, np.pi / 2, 30)[1:]]
+tp += [np.array([75.0, y]) for y in np.arange(16, 120, 1.0)]
+tp = np.array(tp); ts_ = np.r_[0, np.cumsum(np.linalg.norm(np.diff(tp, axis=0), axis=1))]
+mem = RouteMemory()
+for tt in np.arange(0, 5.0, 0.1):
+    ic = int(np.searchsorted(ts_, 10 * tt)); pc = tp[ic]; dd = tp[ic + 1] - tp[ic]; R = _rot(np.arctan2(dd[1], dd[0]))
+    sel = tp[(ts_ >= 10 * tt + 40) & (ts_ <= 10 * tt + 80)][::2]
+    mem.add((np.c_[sel - pc, np.zeros(len(sel))] @ R)[:, :2], np.r_[pc, 0], R)
+ic = int(np.searchsorted(ts_, 50)); pc = tp[ic]
+mp = mem.path_in_frame(np.r_[pc, 0], _rot(0.0))
+on_path = max(float(np.min(np.linalg.norm(tp - pc - q, axis=1))) for q in mp)
+apex = np.array([60 + 15 * np.sin(np.pi / 4), 15 - 15 * np.cos(np.pi / 4)]) - pc
+check("memory: path ahead lies on the recorded path (incl. the turn)", round(on_path, 2), 0.0)
+check("memory: it goes through the turn (passes the apex within 1 m)", bool(np.min(np.linalg.norm(mp - apex, axis=1)) < 1.0), True)
+check("memory: a single route at this point starts past the turn", bool(np.min(np.linalg.norm(tp[(ts_ >= 90) & (ts_ <= 130)] - pc - apex, axis=1)) > 5), True)
+mo = mem.path_in_frame(np.r_[pc + [0, -3.5], 0], _rot(0.0), join_m=25.0)
+check("memory: car one lane right of the path, join starts at the car", bool(np.linalg.norm(mo[0] - [1.0, 0.0]) < 0.5), True)
+check("memory: back on the path within the join distance", round(min(float(np.min(np.linalg.norm(tp - pc - [0, -3.5] - q, axis=1))) for q in mo[np.linalg.norm(mo, axis=1) > 27][:3]), 2), 0.0)
+check("memory: empty memory gives no path", RouteMemory().path_in_frame(np.zeros(3), np.eye(3)), None)
+check("memory: path that does not reach the car (session start) gives None", mem.path_in_frame(np.r_[tp[0] - [30, 0], 0], _rot(0.0)), None)
 print("PASS" if bad == 0 else f"FAIL ({bad})")
 sys.exit(bad > 0)

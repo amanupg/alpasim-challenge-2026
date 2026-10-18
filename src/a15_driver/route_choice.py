@@ -197,3 +197,68 @@ def route_lateral_offset(route: np.ndarray | None) -> float:
     """Sideways distance (m) of the route's first waypoint from the car's heading line; 0 without a route."""
     r = _route_points(route)
     return 0.0 if r is None else float(abs(r[0, 1]))
+
+
+class RouteMemory:
+    """The recorded path the route has shown so far, kept in the world frame.
+
+    The runtime sends route waypoints ~40-80 m ahead in the rig frame, so the stretch between the car and the
+    first waypoint (where a turn or a lane change happens) is missing from any single route, and route_path
+    has to bridge it with a curve that cuts corners (PAI 2026-10-10: snapping on turns went offroad, hence the
+    15 deg guard). That stretch was in the routes received a few seconds earlier, so remembering them in
+    world coordinates gives the whole path from the car onwards. Route data only, nothing else.
+    """
+
+    def __init__(self, max_points: int = 600, merge_m: float = 3.0):
+        self.pts = np.zeros((0, 2))
+        self.max_points, self.merge_m = max_points, merge_m
+
+    def add(self, route_rig_xy: np.ndarray, pos: np.ndarray, R: np.ndarray) -> None:
+        """route_rig_xy: (N, 2) waypoints in the rig frame of the pose (pos (3,), R (3, 3) rig-to-world)."""
+        r = np.asarray(route_rig_xy, dtype=np.float64).reshape(-1, 2)
+        r = r[np.isfinite(r).all(1)]
+        if len(r) == 0:
+            return
+        w = (np.c_[r, np.zeros(len(r))] @ np.asarray(R).T + np.asarray(pos))[:, :2]
+        if len(self.pts):
+            d = np.linalg.norm(self.pts - w[0], axis=1)
+            i = int(d.argmin())
+            # the new route starts on the remembered path: keep the path up to there (including the nearest
+            # point if it lies behind the new start), take the fresher tail
+            if d[i] <= self.merge_m:
+                back = len(w) > 1 and float(np.dot(self.pts[i] - w[0], w[1] - w[0])) < -0.1
+                self.pts = np.vstack([self.pts[:i + 1 if back else i], w])
+            else:
+                self.pts = np.vstack([self.pts, w])
+        else:
+            self.pts = w
+        self.pts = self.pts[-self.max_points:]
+
+    def path_in_frame(self, pos0: np.ndarray, R0: np.ndarray, join_m: float = 25.0,
+                      min_len_m: float = 20.0, near_m: float = 8.0) -> np.ndarray | None:
+        """The remembered path ahead of the car, in the rig frame of (pos0, R0), excluding the origin.
+
+        Starts at the path point nearest the car. If the car is beside the path (another lane), the offset is
+        blended out over join_m metres (smoothstep), so the result leaves the car along a smooth lane change
+        instead of jumping sideways. None if less than min_len_m of path lies ahead, or if the remembered path
+        does not reach the car (nearest point farther than near_m, e.g. at session start), so the caller falls
+        back to route_path."""
+        if len(self.pts) < 2:
+            return None
+        p = np.c_[self.pts - np.asarray(pos0)[:2], np.zeros(len(self.pts))] @ np.asarray(R0)   # world -> rig
+        p = p[:, :2]
+        dist = np.linalg.norm(p, axis=1)
+        i0 = int(dist.argmin())
+        if dist[i0] > near_m:
+            return None
+        ahead = p[i0:]
+        if len(ahead) < 2:
+            return None
+        s = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(ahead, axis=0), axis=1))])
+        if s[-1] < min_len_m:
+            return None
+        u = np.clip(s / max(join_m, 1e-6), 0.0, 1.0)
+        w = 1.0 - (3 * u**2 - 2 * u**3)                                    # 1 at the car, 0 after join_m
+        out = ahead + w[:, None] * (-ahead[0])[None]                       # shift toward the car near the start
+        keep = np.r_[np.linalg.norm(out[0]) > 0.5, np.ones(len(out) - 1, bool)]   # drop a point at the car itself
+        return out[keep]

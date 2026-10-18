@@ -1119,3 +1119,20 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Calibration:** H100 local v0.3 is 0.657 vs official 0.611, so local reads ~0.046 high.
 - v0.3 + snap batch 1-40: 0.692 vs v0.3 0.697 (-0.005). Batch 41-80 rerun (13534920) is running; it decides v0.3 + snap vs v2 + snap.
 - Fileset back to 22 GB free. Node-local runs leave ~100-130 MB each on the fileset.
+
+## 2026-10-18 Waypoint-memory snap (Aman: hold v5, build this)
+- **Idea:** the route covers ~40-80 m ahead, so the stretch where a turn or lane change happens is missing from any single route, and route snap's Hermite bridge cuts corners. That is why the 15° guard exists, and why missed turns are left.
+  - That stretch was in the routes received a few seconds earlier.
+  - Route data only: the GroundTruth message is never used.
+- **How:** `route_choice.RouteMemory` keeps every route's waypoints in the world frame (pose interpolated at `route.timestamp_us`) as one ordered path. A new route replaces the remembered tail from its first waypoint on.
+  - `path_in_frame` gives the path from the car's nearest point onwards, in the plan's anchor frame.
+  - A car beside the path joins it with a smoothstep over `clip(2.5 s × speed, 15, 60)` m.
+  - It returns None if the path does not reach the car (nearest point > 8 m, e.g. at session start); the guarded Hermite snap is then the fallback.
+- **Driver:** with `A15_ROUTE_MEMORY=1`, snap measures deviation against the memory path and drives along it.
+  - The angle guard applies only to the fallback, so turns can be snapped.
+  - Logs `memsnap` and counts `snapped (memory N)`.
+- **Tests (13536531):**
+  - the memory path lies on a recorded 90° turn (0.00 m), which no single route shows;
+  - the offset join starts at the car and is back on the path by 25 m;
+  - the driver gets 4 memory snaps via `submit_route`.
+- **Queued:** v0.3 base + guarded snap + memory, H100 batch 41-80 (13536545). It is compared against v0.3 + snap (13534920) and v0.3 on the same batch.
