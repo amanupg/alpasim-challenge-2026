@@ -1105,3 +1105,4 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Summary, metrics and videos are all there, and the run dir on the fileset is 6.7 MB.
 - **Requeued with the node-local script:** v0.3 1-40 (13534919, lane as_h100_d) and v0.3 + snap 41-80 (13534920, lane as_h100_e). They run in parallel; each puts only ~100-200 MB on the fileset.
 - Cancelled the stale held old-script snap repeats (13340995, 13348532).
+- Deleted the void run's raw logs (13376797, 8.2 GB), Aman approved.
