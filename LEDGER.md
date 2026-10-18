@@ -1076,3 +1076,14 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - Sent alpasim-jepa our inventory.
 - Agreed (pending Aman's approval and their sha256 check): they replace their copies of `data/nuplan_track/nuplan_test` (~5 GB) and `navtest/configs` with read-only symlinks into ours.
 - **Do not delete `data/nuplan_track` or `sandbox/` from alpasim/: alpasim-jepa reads them.**
+- **Dedupe done (Aman approved, 2026-10-18).**
+  - alpasim-jepa verified 85,035 + 1,491 files byte-identical (sha256), deleted its copies (~4.8 GB) and now **symlinks** to our `data/nuplan_track/nuplan_test` and `data/nuplan_track/navtest/configs`.
+- **Paths in alpasim/ that alpasim-jepa reads. Ask alpasim-jepa and Aman before deleting, moving or rewriting any of them:**
+  - `data/nuplan_track/nuplan_test`, `data/nuplan_track/navtest/configs` (symlink targets);
+  - `data/nuplan_track/navtest/assets`;
+  - `sandbox/alpasim-base`, `sandbox/nre-ga_26.04`;
+  - `external/alpasim`;
+  - `envs/overlay_driver`, `envs/overlay_torchao`;
+  - `src/summarize_run.py`, `src/compare_runs.py`;
+  - `.cache/hf/token`;
+  - for comparison only: `runs/local_nuplan_a15_bench_*`, `runs/local_pai_a15_bench1_12991558`, `data/fs/nre-artifacts/all-usdzs`.
