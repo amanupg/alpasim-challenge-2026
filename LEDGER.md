@@ -1090,3 +1090,13 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - `src/summarize_run.py`, `src/compare_runs.py`;
   - `.cache/hf/token`;
   - for comparison only: `runs/local_nuplan_a15_bench_*`, `runs/local_pai_a15_bench1_12991558`, `data/fs/nre-artifacts/all-usdzs`.
+
+## 2026-10-18 Fileset hit its quota; v0.3 1-40 on H100 void
+- **13376797 (v0.3, H100, batch 1-40) is void.**
+  - At 15:37 the dept fileset hit its quota ("OSError: [Errno 122] Disk quota exceeded") while the runtime was writing rollouts. 20 of 40 rollouts were saved, and no summary was written.
+  - This job used the pre-node-local script, so its raw .asl went to the shared fileset (8.2 GB left there).
+  - The fileset is now at 14 GB free.
+- **Cancelled 13532770** (v0.3 + snap 41-80 rerun, old script), so it doesn't do the same.
+- From now on every sim uses the node-local script (smoke test 13533635 running).
+- Asked Aman about deleting the void run's 8.2 GB of raw logs.
+- Told alpasim-jepa about the quota.
