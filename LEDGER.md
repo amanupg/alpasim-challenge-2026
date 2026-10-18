@@ -1106,3 +1106,16 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Requeued with the node-local script:** v0.3 1-40 (13534919, lane as_h100_d) and v0.3 + snap 41-80 (13534920, lane as_h100_e). They run in parallel; each puts only ~100-200 MB on the fileset.
 - Cancelled the stale held old-script snap repeats (13340995, 13348532).
 - Deleted the void run's raw logs (13376797, 8.2 GB), Aman approved.
+
+## 2026-10-18 v0.3 on H100 complete (13534919 = rerun of 1-40): chooser v2 adds nothing on H100
+| H100, 120 scenes | Mean | vs H100 v0.3 [90%] | W/L |
+|---|---|---|---|
+| v0.3 (submitted config) | 0.657 | | |
+| v2 (chooser) | 0.662 | +0.005 [-0.044, +0.054] | 15/24 |
+| v2 + guarded snap | 0.715 | **+0.058 [-0.003, +0.122]** | 22/26 |
+
+- **By batch, v2 + snap vs v0.3:** +0.019 / +0.056 / +0.101. v0.3 batch 1-40 scored 0.697.
+- **On H100 the chooser's Blackwell gain (+0.054) does not appear; snap carries the gain.**
+- **Calibration:** H100 local v0.3 is 0.657 vs official 0.611, so local reads ~0.046 high.
+- v0.3 + snap batch 1-40: 0.692 vs v0.3 0.697 (-0.005). Batch 41-80 rerun (13534920) is running; it decides v0.3 + snap vs v2 + snap.
+- Fileset back to 22 GB free. Node-local runs leave ~100-130 MB each on the fileset.
