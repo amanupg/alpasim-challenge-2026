@@ -1048,3 +1048,18 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - `runs/local_pai_a15_hz2rcv2_81_120_13160659` (8.2 GB): incomplete 2 Hz batch, no summary, experiment rejected.
   - 100 raw `.asl` logs from `runs/local_nuplan_a15_bench_12991555` (2.7 GB); its summary and metrics are kept.
 - About 11 GB freed. Nothing else in alpasim/ is safely removable.
+
+## 2026-10-18 H100: v0.3 and v0.3 + guarded snap
+| H100 | v0.3 | v2 | v2 + snap | **v0.3 + snap (K=1)** |
+|---|---|---|---|---|
+| 1-40 | (running: 13376797) | 0.716 | 0.716 | 0.692 |
+| 41-80 | 0.603 | 0.546 | 0.659 / 0.628 | (void; rerun 13532770) |
+| 81-120 (13341064, 13347659) | 0.670 | 0.723 (+0.053) | 0.770 (+0.101) | **0.797 (+0.127 [+0.050, +0.217], W/L 11/3)** |
+
+- **Snap helps on top of either base.** v2 vs v0.3 is +0.053 on 81-120 and -0.057 on 41-80; batch 1-40 is still pending on H100.
+- **v0.3 + snap vs v2 + snap so far:** +0.027 (81-120), -0.024 (1-40). A tie so far, and v0.3 + snap uses K=1: inference 1.6 s vs 4.4 s, so a much safer time budget.
+- **Lost batch:** v0.3 + snap 41-80 (13347658, ins048). The fourth H100 "unspecified launch failure", at the first inference, 0 of 40 scenes. **H100 faults: 4 of 18 batches.** This one is in a non-chooser config. Blackwell: still 0.
+- **Lane b was idle 10-13 → 10-18 (my error).** `--dependency=singleton` also waits for EARLIER pending jobs of the same name, including held ones. Holding 13340995/13348532 therefore blocked 13376797 forever once the release script died with the session.
+  - Fixed by clearing its dependency.
+  - Use `afterany:<id>` chains, not singleton + hold.
+- **Dept fileset at 23 GB free.** One job at a time, since each writes up to ~16 GB of .asl before cleanup.
