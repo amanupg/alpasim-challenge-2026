@@ -1136,3 +1136,16 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - the offset join starts at the car and is back on the path by 25 m;
   - the driver gets 4 memory snaps via `submit_route`.
 - **Queued:** v0.3 base + guarded snap + memory, H100 batch 41-80 (13536545). It is compared against v0.3 + snap (13534920) and v0.3 on the same batch.
+
+## 2026-10-18 **v5 = v0.3 base + guarded route snap** (H100, 120 scenes complete)
+| H100, 120 scenes | Mean | vs v0.3 [90%] | W/L |
+|---|---|---|---|
+| v0.3 (submitted config) | 0.657 | | |
+| v2 + guarded snap | 0.715 | +0.058 [-0.003, +0.122] | 22/26 |
+| **v0.3 + guarded snap** (13347659-60, 13534920) | **0.728** | **+0.071 [+0.011, +0.131]** | **24/18** |
+
+- **v0.3 + snap by batch:** -0.005 / +0.093 / +0.127.
+- **vs v2 + snap:** +0.013 [-0.029, +0.056], W/L 20/16. A tie, but v0.3 + snap uses one sample: the same compute as the officially proven v0.3 (9,474 s of 14,400 s).
+- **`container/Dockerfile.v5`:** now `A15_NUM_SAMPLES=1`, no chooser, `A15_ROUTE_SNAP=2.0 A15_ROUTE_SNAP_MAX_DEG=15`, `A15_ROUTE_MEMORY=0`.
+- **Expected official result:** local H100 v0.3 reads 0.046 above official, so a scene score of roughly 0.68.
+- Not built or pushed. Aman is holding the submission (2026-10-18) while waypoint memory is tested.
