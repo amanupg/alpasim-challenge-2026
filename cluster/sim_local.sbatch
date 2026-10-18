@@ -12,6 +12,7 @@
 #   SCENES_FROM=<run dir>: reuse that run's scene list (same scenes for a fair comparison)
 #   CUDA_COMPAT=1: PAI renderer via cuda-compat 12.8 (lets PAI run on L40S/H100)
 #   KEEP_ASL=1: keep the raw rollout.asl logs (default: deleted once the summary exists)
+#   LOCAL_ROLLOUTS=0: write rollouts to the shared run dir instead of node-local TMPDIR (default 1)
 #   EXTRA_OVERRIDES="controller.gains.lat_position_weight=3.0 ..." extra wizard overrides (no commas:
 #   sbatch --export splits on them); TAG=name appended to the run dir
 #   A15_* variables are passed through to the a15 driver (A15_NUM_SAMPLES, A15_NAV, A15_REASONING, ...)
@@ -36,6 +37,27 @@ if ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE ":($PORT_BASE|$((PORT_BASE+
 fi
 echo "ports: services from $PORT_BASE, driver $ALPASIM_DRIVER_PORT" 
 
+# ---- raw rollout logs on node-local scratch (Aman 2026-10-18; dept fileset at 23 GB free): rollout.asl is
+# ~15 GB per 40 PAI scenes, so $RUN/rollouts points at the job's TMPDIR (/local/slurm-job-N, which
+# compose_apptainer.py binds into every service at the same path) and everything except *.asl is copied
+# back at exit (KEEP_ASL=1 copies those too). Falls back to the shared dir if TMPDIR is under /tmp (not
+# bound) or has < 40 GB free.
+LOCAL_ROLL=""
+if [ "${LOCAL_ROLLOUTS:-1}" = 1 ] && [ -n "$TMPDIR" ] && [ -d "$TMPDIR" ] && [[ "$TMPDIR" != /tmp* ]] \
+   && [ "$(df -BG --output=avail "$TMPDIR" | tail -1 | tr -dc 0-9)" -ge 40 ]; then
+  LOCAL_ROLL=$TMPDIR/alpasim_rollouts; mkdir -p $LOCAL_ROLL; ln -sfn $LOCAL_ROLL $RUN/rollouts
+  echo "rollouts on node-local $LOCAL_ROLL ($(df -h --output=avail $TMPDIR | tail -1) free)"
+else
+  echo "rollouts on the shared fileset (TMPDIR=${TMPDIR:-unset} not usable)"
+fi
+finish_rollouts() {        # idempotent: replace the symlink by a real dir holding everything but *.asl
+  [ -n "$LOCAL_ROLL" ] && [ -L $RUN/rollouts ] || return 0
+  rm $RUN/rollouts; mkdir -p $RUN/rollouts
+  if [ "${KEEP_ASL:-0}" = 1 ]; then rsync -a $LOCAL_ROLL/ $RUN/rollouts/; else rsync -a --exclude '*.asl' $LOCAL_ROLL/ $RUN/rollouts/; fi
+  echo "rollouts copied back from node-local ($(find $LOCAL_ROLL -name '*.asl' | wc -l) raw logs left on scratch)"
+}
+trap finish_rollouts EXIT        # replaced below by the driver trap, which also calls it
+
 # ---- driver
 if [ $DRIVER = a15 ]; then
   # CPU regression test of the driver logic (fake policy) before spending GPU time
@@ -59,7 +81,7 @@ else
     > $RUN/driver.log 2>&1 &
   DRV=$!
 fi
-trap 'kill $DRV 2>/dev/null' EXIT
+trap 'kill $DRV 2>/dev/null; finish_rollouts' EXIT
 # log ALL GPU processes, but the driver's own line is what the 16 GiB cap is about (renderer/physics share the GPU)
 ( while kill -0 $DRV 2>/dev/null; do nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader >> $RUN/gpu_mem.log; sleep 15; done ) &
 echo $DRV > $RUN/driver.pid
@@ -99,6 +121,7 @@ python3 $A/src/compose_apptainer.py $RUN/docker-compose.json --sif-dir $A/sandbo
 RC=$?
 echo "runtime exit $RC"
 python3 $A/src/summarize_run.py $RUN
+finish_rollouts
 echo "driver (pid $DRV) peak GPU memory: $(grep "^$DRV," $RUN/gpu_mem.log | sort -t, -k2 -n | tail -1)"
 grep "closed session\|inference failed" $RUN/driver.log | tail -20
 # driver health: a session that drove on the straight fallback means plans were not used (see 2026-09-30 bug)

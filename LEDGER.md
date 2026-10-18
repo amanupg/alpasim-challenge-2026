@@ -1063,3 +1063,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Fixed by clearing its dependency.
   - Use `afterany:<id>` chains, not singleton + hold.
 - **Dept fileset at 23 GB free.** One job at a time, since each writes up to ~16 GB of .asl before cleanup.
+
+## 2026-10-18 Raw rollout logs on node-local scratch (Aman approved)
+- `sim_local.sbatch` now points `$RUN/rollouts` at `$TMPDIR/alpasim_rollouts` (/local/slurm-job-N, 200-700 GB). `compose_apptainer.py` binds TMPDIR into every service at the same path.
+- At exit (normal end or trap), everything except `*.asl` is rsynced back. `KEEP_ASL=1` copies those too, and `LOCAL_ROLLOUTS=0` disables the redirect.
+- Falls back to the shared dir if TMPDIR is under /tmp (not bound) or has < 40 GB free.
+- Jobs queued before this change (13376797, 13532770) still use the old script.
+- 2-scene smoke test: 13532879.
