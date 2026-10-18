@@ -1100,3 +1100,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - From now on every sim uses the node-local script (smoke test 13533635 running).
 - Asked Aman about deleting the void run's 8.2 GB of raw logs.
 - Told alpasim-jepa about the quota.
+- **Node-local smoke test passed (13533635, H100, 2 scenes).**
+  - Rollouts were written to /local/slurm-job-N (247 GB free) and copied back without .asl.
+  - Summary, metrics and videos are all there, and the run dir on the fileset is 6.7 MB.
+- **Requeued with the node-local script:** v0.3 1-40 (13534919, lane as_h100_d) and v0.3 + snap 41-80 (13534920, lane as_h100_e). They run in parallel; each puts only ~100-200 MB on the fileset.
+- Cancelled the stale held old-script snap repeats (13340995, 13348532).
