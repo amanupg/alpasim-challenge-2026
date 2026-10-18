@@ -1070,3 +1070,9 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - Falls back to the shared dir if TMPDIR is under /tmp (not bound) or has < 40 GB free.
 - Jobs queued before this change (13376797, 13532770) still use the old script.
 - 2-scene smoke test: 13532879.
+
+## 2026-10-18 Storage dedupe with alpasim-jepa (Aman's terms)
+- Each side reads the other's folder. A duplicate is deleted in one place only, each item is approved by Aman, and nobody edits the other's folder.
+- Sent alpasim-jepa our inventory.
+- Agreed (pending Aman's approval and their sha256 check): they replace their copies of `data/nuplan_track/nuplan_test` (~5 GB) and `navtest/configs` with read-only symlinks into ours.
+- **Do not delete `data/nuplan_track` or `sandbox/` from alpasim/: alpasim-jepa reads them.**
