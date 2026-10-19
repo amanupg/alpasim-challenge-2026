@@ -1149,3 +1149,22 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **`container/Dockerfile.v5`:** now `A15_NUM_SAMPLES=1`, no chooser, `A15_ROUTE_SNAP=2.0 A15_ROUTE_SNAP_MAX_DEG=15`, `A15_ROUTE_MEMORY=0`.
 - **Expected official result:** local H100 v0.3 reads 0.046 above official, so a scene score of roughly 0.68.
 - Not built or pushed. Aman is holding the submission (2026-10-18) while waypoint memory is tested.
+
+## 2026-10-19 Memory snap, two of three batches; `nureasoning/ext/a15env` deleted; fifth H100 fault
+- **Memory snap (v0.3 base + guarded snap + `A15_ROUTE_MEMORY=1`) vs v5 (v0.3 + snap), H100:**
+  - **41-80 (13536545):** 0.673 vs 0.696, -0.023 [-0.127, +0.081], W/L 5/7. 69 of the 83 snaps used memory.
+    - Fixed: 622908 (the turn plain snap can't do), 62e0a7, 7ca7da, 0a7b92.
+    - Broke: 31f39b, fb501e (corridor), 481dfc, 88b571 (offroad), 90153b (collision).
+  - **1-40 (13536874):** 0.727 vs 0.692, +0.035 [-0.070, +0.140], W/L 13/4.
+  - **81-120 (13536873) void:** fifth H100 "unspecified launch failure" (16 of 40 drove). **H100 faults: 5 of 22 batches.**
+  - **Two batches: about +0.006 vs v5, a tie so far.**
+- **Fault cause, correction:** CUDA_COMPAT applies only to the simulator services (compose_apptainer.py). The **driver runs natively on driver 550** with torch 2.8 cu128, so the earlier "compat layer" reading does not explain driver faults.
+  - Newer hypothesis: cu128 torch on driver 550 through CUDA minor-version compatibility.
+  - Still cluster-specific: Blackwell (driver 575) has 0 faults in ~35 batches.
+- **`nureasoning/ext/a15env` was deleted at 2026-10-19 02:19** (ext/ mtime).
+  - Not by the alpasim-jepa or jepa-nureasoning threads, by their own account. GPFS snapshot dirs are empty for us.
+  - Every local sim runs the driver with that env, so **local sims are blocked.** The 81-120 rerun (13541844) was cancelled before it started.
+  - Our dependency was in alpasim/BORROWED.md but not in nureasoning/SHARED_DEPENDENCIES.md.
+  - Untouched: `ext/alpamayo1.5`, the HF hub weights, `.cache/uv` (7.3 GB), `.cache/uvpy`.
+  - The submission images are unaffected; they carry their own env.
+- **Fileset at 6.5 GB free** (02:20), with nothing of ours running.
