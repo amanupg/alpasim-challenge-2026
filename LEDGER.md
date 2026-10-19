@@ -1179,3 +1179,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - settings `A15_NUM_SAMPLES=1 A15_ROUTE_SNAP=2.0 A15_ROUTE_SNAP_MAX_DEG=15 A15_ROUTE_MEMORY=0`;
   - all driver tests pass inside the image (amd64);
   - config digest sha256:e4d56dc9…, manifest list sha256:6ef89f7b….
+- **Env equivalence passed (13547676, L40S).**
+  - Rebuilt env: torch 2.8.0+cu128, transformers 4.57.1, built in 756 s on node-local disk.
+  - It reproduces the old env's trajectories exactly: **max |diff| 0.000000 m** over 12 clips, at K=1 (vs chk_t10) and K=6 (vs chk_k6). Same 14,236 MiB.
+  - Driver tests pass. Local sims are unblocked; the rebuild adds ~12.5 min per job.
+- Memory-snap batch 81-120 rerun queued on H100.
