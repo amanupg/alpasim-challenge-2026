@@ -10,6 +10,7 @@
 # 4 vs 6 PAI cameras: driver-process GPU memory and latency on synthetic frames (no simulator needed)
 source /etc/profile
 A=/insomnia001/depts/edu/users/au2327/alpasim; NR=/insomnia001/depts/edu/users/au2327/nureasoning
+source $A/cluster/a15env_local.sh   # Alpamayo env on node-local disk (nureasoning/ext/a15env deleted 2026-10-19)
 cd $A && env PYTHONNOUSERSITE=1 HF_HUB_OFFLINE=1 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True HUB=$NR/.cache/hf/hub \
   PYTHONPATH=$A/envs/overlay_driver:$A/envs/overlay_torchao:$A/src \
-  $NR/ext/a15env/bin/python -u src/check_cameras.py 2>&1 | grep -v -i "warning\|Loading checkpoint"
+  $A15PY -u src/check_cameras.py 2>&1 | grep -v -i "warning\|Loading checkpoint"

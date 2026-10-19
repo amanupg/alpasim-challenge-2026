@@ -22,6 +22,7 @@ source /etc/profile
 module load apptainer/1.4.5
 set -x
 A=/insomnia001/depts/edu/users/au2327/alpasim; NR=/insomnia001/depts/edu/users/au2327/nureasoning
+source $A/cluster/a15env_local.sh   # Alpamayo env on node-local disk (nureasoning/ext/a15env deleted 2026-10-19)
 SIF=$A/sandbox/alpasim-base; REPO=$A/external/alpasim
 DRIVER=${DRIVER:-starter}; TRACK=${TRACK:-nuplan}; NSCENES=${NSCENES:-10}; ROLLOUTS=${ROLLOUTS:-2}
 RUN=$A/runs/local_${TRACK}_${DRIVER}${TAG:+_$TAG}_$SLURM_JOB_ID; mkdir -p $RUN
@@ -62,7 +63,7 @@ trap finish_rollouts EXIT        # replaced below by the driver trap, which also
 if [ $DRIVER = a15 ]; then
   # CPU regression test of the driver logic (fake policy) before spending GPU time
   PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$A/envs/overlay_driver:$A/envs/overlay_torchao:$A/src:$SIF/repo/src/grpc \
-    bash -c "$NR/ext/a15env/bin/python $A/tests/test_driver_plan_storage.py && $NR/ext/a15env/bin/python $A/tests/test_route_nav.py" > $RUN/driver_test.txt 2>&1 \
+    bash -c "$A15PY $A/tests/test_driver_plan_storage.py && $A15PY $A/tests/test_route_nav.py" > $RUN/driver_test.txt 2>&1 \
     || { echo "driver regression test failed"; tail -5 $RUN/driver_test.txt; exit 4; }
   HUB=$NR/.cache/hf/hub
   export A15_MODEL_DIR=$(ls -d $HUB/models--nvidia--Alpamayo-1.5-10B/snapshots/*/ | head -1)
@@ -70,7 +71,7 @@ if [ $DRIVER = a15 ]; then
   export A15_PROCESSOR_DIR=$(ls -d $HUB/models--Qwen--Qwen3-VL-2B-Instruct/snapshots/*/ | head -1)
   env PYTHONNOUSERSITE=1 HF_HUB_OFFLINE=1 \
       PYTHONPATH=$A/envs/overlay_driver:$A/envs/overlay_torchao:$A/src:$SIF/repo/src/grpc \
-      $NR/ext/a15env/bin/python -u -m a15_driver.driver > $RUN/driver.log 2>&1 &
+      $A15PY -u -m a15_driver.driver > $RUN/driver.log 2>&1 &
   DRV=$!
   for i in $(seq 1 120); do grep -q "policy ready\|policy load failed" $RUN/driver.log && break; sleep 10; done
   grep "loaded in\|policy ready\|failed" $RUN/driver.log
@@ -112,7 +113,8 @@ fi
        "defines.filesystem=$A/data/fs hydra.run.dir=$RUN/hydra eval.video.render_video=${VIDEO:-false} wizard.baseport=$PORT_BASE" \
        "runtime.endpoints.driver.n_concurrent_rollouts=$ROLLOUTS $SEL $EXTRA_OVERRIDES"
 } > $RUN/wizard.sh
-apptainer exec -B $A $SIF bash $RUN/wizard.sh > $RUN/wizard.log 2>&1 || { tail -40 $RUN/wizard.log; exit 1; }
+# the wizard creates $RUN/rollouts/...; with node-local rollouts the symlink target must be bound too
+apptainer exec -B $A ${LOCAL_ROLL:+-B $TMPDIR} $SIF bash $RUN/wizard.sh > $RUN/wizard.log 2>&1 || { tail -40 $RUN/wizard.log; exit 1; }
 apptainer exec $SIF /repo/.venv/bin/python -c "import yaml,json; json.dump(yaml.safe_load(open('$RUN/docker-compose.yaml')), open('$RUN/docker-compose.json','w'), indent=1)"
 # CUDA_COMPAT=1: run the PAI NRE renderer through NVIDIA's cuda-compat 12.8 so PAI also runs on L40S/H100 (driver 550)
 COMPAT_ARG=""; [ "${CUDA_COMPAT:-0}" = 1 ] && COMPAT_ARG="--cuda-compat $A/envs/cuda-compat-12-8/usr/local/cuda-12.8/compat --cache-dir $A/cache/containers_$(nvidia-smi --query-gpu=name --format=csv,noheader | head -1 | tr -c 'A-Za-z0-9' _)"   # own kernel cache per GPU type (NRE caches compiled kernels)

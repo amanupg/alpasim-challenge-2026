@@ -1168,3 +1168,14 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Untouched: `ext/alpamayo1.5`, the HF hub weights, `.cache/uv` (7.3 GB), `.cache/uvpy`.
   - The submission images are unaffected; they carry their own env.
 - **Fileset at 6.5 GB free** (02:20), with nothing of ours running.
+- **Recovery (Aman approved):**
+  - The nureasoning session deleted a15env (and a15ftenv) in an approved cleanup, not knowing about our use.
+  - Every a15 job now runs `cluster/a15env_local.sh`, which builds the exact 64-package set from the old env's install log (`envs/a15env-pins.txt`, Python 3.12.14, `--no-deps`) under $TMPDIR with a node-local uv cache.
+  - `ext/alpamayo1.5/src` goes on sys.path via a .pth file. Nothing is written to nureasoning/ or the fileset.
+  - Equivalence check (`cluster/check_env_equiv.sbatch`, L40S): max trajectory difference vs references saved with the old env (tmp/chk_t10.npz K=1, tmp/chk_k6.npz K=6), plus the driver tests.
+- **v5 image built and verified on the Mac (`local/pai:v5`):**
+  - from `container/Dockerfile.v5` on base v0.3 (digest 29a4f9c2, the registered v0.3), git bad9300;
+  - code in /app/a15_driver byte-identical to the repo (5 files, sha256);
+  - settings `A15_NUM_SAMPLES=1 A15_ROUTE_SNAP=2.0 A15_ROUTE_SNAP_MAX_DEG=15 A15_ROUTE_MEMORY=0`;
+  - all driver tests pass inside the image (amd64);
+  - config digest sha256:e4d56dc9…, manifest list sha256:6ef89f7b….

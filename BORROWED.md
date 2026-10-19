@@ -25,3 +25,12 @@ Candidates to borrow later (not used yet): the fine-tuned Alpamayo checkpoints
 (`nureasoning/runs_vla/q3vl2b_full_h0`, `_h1`; 8 Motional cameras, the nuPlan-track rig).
 Anything that moves the other way (an AlpaSim idea or model reused for nuReasoning) is
 recorded in the nuReasoning LEDGER, not here.
+
+## Update 2026-10-19: nureasoning/ext/a15env deleted
+`nureasoning/ext/a15env` was deleted on 2026-10-19 during an approved nureasoning cleanup; our use of it had not been listed in nureasoning's SHARED_DEPENDENCIES.md. AlpaSim no longer borrows that env. Every a15 job now builds the same 64 pinned packages (`envs/a15env-pins.txt`, taken from its 2026-09-26 install log) on node-local disk via `cluster/a15env_local.sh`.
+
+Still borrowed from nureasoning/, read-only (sent to the nureasoning session for its do-not-delete list):
+- `ext/alpamayo1.5`: model code, via a `.pth` in the per-job env.
+- `ext/setup_a15.sh` and `ext/setup_a15.log`: provenance of the pins.
+- `.cache/hf/hub`: `models--nvidia--Alpamayo-1.5-10B`, `models--Qwen--Qwen3-VL-8B-Instruct`, `models--Qwen--Qwen3-VL-2B-Instruct`.
+- For the policy check scripts only: `src/` (`a15ft_data.build_sample`, `a15_infer.py`), `recon/devkit`, `cache/validation`, `img_a15/validation`.
