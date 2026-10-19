@@ -262,6 +262,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         self._route_snap, self._route_snap_max_deg = route_snap, route_snap_max_deg
         self._route_snap_min_offset = route_snap_min_offset
         self._route_memory = route_memory
+        self._route_mem_debug = os.environ.get("A15_ROUTE_MEM_DEBUG", "0") == "1"
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -353,6 +354,12 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                 hp, hq = _interp_poses(ts, np.stack([p[1] for p in s.poses]), np.stack([p[2] for p in s.poses]),
                                        np.array([tr]))
                 s.route_mem.add(wps, hp[0], _quat_to_rot(hq[0]))
+                if self._route_mem_debug:
+                    LOGGER.info("routemem %s route_ts %d poses [%d .. %d] n %d, pose %s yaw %.3f, first wp rig %s, "
+                                "merge dist %s, mem %d", s.sid[:8], int(request.route.timestamp_us), int(ts[0]),
+                                int(ts[-1]), len(ts), np.round(hp[0][:2], 2).tolist(), _yaw_of(hq[0]),
+                                np.round(wps[0], 2).tolist(), None if s.route_mem.last_merge is None
+                                else round(s.route_mem.last_merge, 2), len(s.route_mem.pts))
         if first and self._nav:
             LOGGER.info("session %s first route: %d waypoints, first %s last %s -> nav %r", request.session_uuid,
                         len(wps), np.round(wps[0], 1).tolist() if len(wps) else None,

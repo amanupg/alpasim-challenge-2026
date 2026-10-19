@@ -212,6 +212,7 @@ class RouteMemory:
     def __init__(self, max_points: int = 600, merge_m: float = 3.0):
         self.pts = np.zeros((0, 2))
         self.max_points, self.merge_m = max_points, merge_m
+        self.last_merge: float | None = None
 
     def add(self, route_rig_xy: np.ndarray, pos: np.ndarray, R: np.ndarray) -> None:
         """route_rig_xy: (N, 2) waypoints in the rig frame of the pose (pos (3,), R (3, 3) rig-to-world)."""
@@ -220,9 +221,11 @@ class RouteMemory:
         if len(r) == 0:
             return
         w = (np.c_[r, np.zeros(len(r))] @ np.asarray(R).T + np.asarray(pos))[:, :2]
+        self.last_merge = None
         if len(self.pts):
             d = np.linalg.norm(self.pts - w[0], axis=1)
             i = int(d.argmin())
+            self.last_merge = float(d[i])                                   # registration check (debug log)
             # the new route starts on the remembered path: keep the path up to there (including the nearest
             # point if it lies behind the new start), take the fresher tail
             if d[i] <= self.merge_m:

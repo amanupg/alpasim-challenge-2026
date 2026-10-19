@@ -1184,3 +1184,9 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - It reproduces the old env's trajectories exactly: **max |diff| 0.000000 m** over 12 clips, at K=1 (vs chk_t10) and K=6 (vs chk_k6). Same 14,236 MiB.
   - Driver tests pass. Local sims are unblocked; the rebuild adds ~12.5 min per job.
 - Memory-snap batch 81-120 rerun queued on H100.
+- **Memory-snap bug found in batch 41-80's `memsnap` logs: the remembered path is corrupted.**
+  - It doubles back: 31f39b at 21:04:46 runs forward to 54 m, then back to 30 m.
+  - It swings sideways between replans: +2.8 m to -3.2 m, and once -22 m, where the recorded driver only changed lane ~4 m left. fb501e zigzags the same way.
+  - Likely cause: consecutive routes don't register in the world frame (route timestamp vs pose time base, or heading). The "no merge point within 3 m → append" branch then builds backward jumps.
+  - **So the 41-80 result (-0.023 vs v5) does not measure the idea.**
+  - Added `A15_ROUTE_MEM_DEBUG=1` logging of route time, pose window, pose, first waypoint and merge distance. Debug run on 31f39b, fb501e, 622908: 13547834.
