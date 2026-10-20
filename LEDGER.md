@@ -1218,3 +1218,13 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Reading:** following the remembered path through turns fixes some missed turns (622908, 3defec) but sends others offroad or into collisions, likely because the path is driven at the model's speed. Net effect: a tie (v1) or worse (v2). **No memory-snap variant beats v5.**
 - **H100 faults: 6 of 25 batches.**
 - **Per-job env build:** 756-1486 s (uv downloads at variable speed).
+
+## 2026-10-20 Aman: "do all three plus the cache"
+1. **Submit v5:** built and verified (`local/pai:v5`). The push and submit need Aman's ECR login and challenge CLI (`ecr-login`, push, submit), as in September; handed to him.
+2. **Memory snap v3 = v2 + curvature speed cap** (`route_choice.cap_speed_on_path`, `A15_SNAP_ALAT=3.0`), only on memory snaps.
+   - The model's speed is capped at sqrt(a_lat / curvature).
+   - The cap is propagated back at 3 m/s² braking, so the car slows before a curve instead of braking hard at plan start. On a test turn (R = 15 m): first step at the model's 15 m/s, deceleration ≤ 3.07 m/s², lateral ≤ 3.74 m/s².
+   - Tests added. Queued on 120 H100 scenes: 13569422-24 (test 13569421).
+3. **Report:** draft started (`report/`).
+4. **Cache:** `cluster/a15env_local.sh` keeps uv's wheel cache and Python in `alpasim/cache/{uv,uvpy}` (shared, ~3 GB). Jobs copy from it instead of downloading; the env stays node-local.
+- The fileset is at 86 GB free.

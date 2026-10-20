@@ -47,8 +47,8 @@ from PIL import Image                                               # noqa: E402
 import grpc                                                         # noqa: E402
 
 from .policy import CAMERA_NAME_TO_INDEX, NUPLAN_TO_SLOT, Alpamayo15Policy  # noqa: E402
-from .route_choice import (RouteMemory, retime_path, route_deviation, route_lateral_offset,  # noqa: E402
-                           route_parallel, route_path, route_pull)
+from .route_choice import (RouteMemory, cap_speed_on_path, retime_path, route_deviation,  # noqa: E402
+                           route_lateral_offset, route_parallel, route_path, route_pull)
 from .trajectory import CachedPlan, build_trajectory_from_plan, make_cached_plan  # noqa: E402
 
 LOGGER = logging.getLogger("a15_challenge_driver")
@@ -264,6 +264,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         self._route_memory = route_memory
         self._route_mem_debug = os.environ.get("A15_ROUTE_MEM_DEBUG", "0") == "1"
         self._route_mem_dev_min = float(os.environ.get("A15_ROUTE_MEM_DEV_MIN", "20"))
+        self._snap_alat = float(os.environ.get("A15_SNAP_ALAT", "0"))
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -467,7 +468,11 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                 ok = route_lateral_offset(route) >= self._route_snap_min_offset
             path = (mpath if mpath is not None else route_path(route)) if ok and dev is not None and dev > limit else None
             if path is not None:
-                xy, yaw = retime_path(path, np.asarray(xy))
+                # memory paths can carry the recorded turn: cap the model's speed by the path's curvature
+                # (A15_SNAP_ALAT m/s^2 lateral, 0 = off)
+                prog = (cap_speed_on_path(path, np.asarray(xy), a_lat=self._snap_alat)
+                        if mpath is not None and self._snap_alat > 0 else np.asarray(xy))
+                xy, yaw = retime_path(path, prog)
                 snapped = True
                 if mpath is not None:
                     with self._lock:

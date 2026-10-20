@@ -267,3 +267,42 @@ class RouteMemory:
         out = ahead + w[:, None] * (-ahead[0])[None]                       # shift toward the car near the start
         keep = np.r_[np.linalg.norm(out[0]) > 0.5, np.ones(len(out) - 1, bool)]   # drop a point at the car itself
         return out[keep]
+
+
+def cap_speed_on_path(path_xy: np.ndarray, speed_xy: np.ndarray, a_lat: float = 3.0, dt: float = 0.1,
+                      brake: float = 3.0, v_floor: float = 2.0, smooth_m: float = 4.0) -> np.ndarray:
+    """A progress profile for driving path_xy: the model's speed (from speed_xy, 0.1 s steps from the car) capped so
+    the lateral acceleration on the path stays below a_lat (v <= sqrt(a_lat / curvature)). The cap is propagated
+    backwards at a comfortable deceleration `brake` (v(s) <= sqrt(vmax(s')^2 + 2 brake (s' - s)) for every s' ahead),
+    so the car slows gradually before a curve instead of braking hard at the start of the plan. Returns a straight
+    polyline whose arc lengths are that progress, i.e. a speed_xy for retime_path.
+
+    PAI memory snap (2026-10-20): following the remembered path through turns fixed missed turns (622908, 3defec)
+    but sent others offroad or into collisions (1845f6, ec6f99, 36ea68, 57016f), plausibly because the recorded
+    curve was driven at the model's speed for its own (straighter) plan."""
+    p = np.vstack([np.zeros((1, 2)), np.asarray(path_xy, dtype=np.float64)])
+    seg = np.diff(p, axis=0); L = np.linalg.norm(seg, axis=1)
+    keep = L > 1e-6
+    seg, L = seg[keep], L[keep]
+    S = np.concatenate([[0.0], np.cumsum(L)])
+    q = np.vstack([np.zeros((1, 2)), np.asarray(speed_xy, dtype=np.float64)])
+    v_model = np.linalg.norm(np.diff(q, axis=0), axis=1) / dt                     # (T,)
+    if len(L) < 2:
+        return np.asarray(speed_xy, dtype=np.float64)
+    hd = np.unwrap(np.arctan2(seg[:, 1], seg[:, 0]))
+    mid = (S[:-1] + S[1:]) / 2
+    # curvature = d(heading)/ds over a smoothing window of smooth_m metres
+    kap = np.empty(len(mid))
+    for i, m in enumerate(mid):
+        j0 = int(np.searchsorted(mid, m - smooth_m / 2)); j1 = int(np.searchsorted(mid, m + smooth_m / 2)) - 1
+        j0, j1 = max(0, min(j0, i)), min(len(mid) - 1, max(j1, i))
+        kap[i] = abs(hd[j1] - hd[j0]) / max(mid[j1] - mid[j0], 1e-6) if j1 > j0 else 0.0
+    vmax = np.maximum(np.sqrt(a_lat / np.maximum(kap, 1e-6)), v_floor)
+    s, out = 0.0, np.empty(len(v_model))
+    for k, vk in enumerate(v_model):
+        ahead = mid >= s - 0.5
+        cap = float(np.min(np.sqrt(vmax[ahead] ** 2 + 2 * brake * np.maximum(mid[ahead] - s, 0.0)))) if ahead.any() \
+            else float(vmax[-1])
+        s += min(vk, cap) * dt
+        out[k] = s
+    return np.stack([out, np.zeros_like(out)], 1)

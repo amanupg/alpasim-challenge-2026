@@ -6,8 +6,9 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from a15_driver.driver import route_nav_text, speed_scale_plan  # noqa: E402
-from a15_driver.route_choice import (RouteMemory, choose, retime_path, route_deviation,  # noqa: E402
-                                     route_lateral_offset, route_parallel, route_path, route_pull)
+from a15_driver.route_choice import (RouteMemory, cap_speed_on_path, choose, retime_path,  # noqa: E402
+                                     route_deviation, route_lateral_offset, route_parallel, route_path,
+                                     route_pull)
 
 bad = 0
 
@@ -138,5 +139,16 @@ m2.add(np.array([[40.0, 10.0], [44, 10.0], [48, 10.0]]), np.zeros(3), np.eye(3))
 check("memory: a route that does not continue the memory restarts it (no doubling back)", m2.pts.round(1).tolist(),
       [[40.0, 10.0], [44.0, 10.0], [48.0, 10.0]])
 check("memory: path that does not reach the car (session start) gives None", mem.path_in_frame(np.r_[tp[0] - [30, 0], 0], _rot(0.0)), None)
+# curvature speed cap: 15 m/s plan, 40 m straight then a 90 deg turn of radius 15 m
+f15 = np.stack([15.0 * tt64, 0 * tt64], 1)
+check("speed cap: straight path keeps the model's speed", round(float(cap_speed_on_path(straight64 * 2, f15)[-1, 0]), 1), 96.0)
+cp = [np.array([x, 0.0]) for x in np.arange(1, 41, 1.0)]
+cp += [np.array([40 + 15 * np.sin(a), 15 - 15 * np.cos(a)]) for a in np.linspace(0, np.pi / 2, 25)[1:]]
+cp += [np.array([55.0, 15 + y]) for y in np.arange(1, 80, 1.0)]
+cpr = cap_speed_on_path(np.array(cp), f15); cv = np.diff(np.r_[0, cpr[:, 0]]) / 0.1
+carc = (cpr[:, 0] > 41) & (cpr[:, 0] < 40 + 15 * np.pi / 2 - 1)
+check("speed cap: no hard braking at the start (first step at model speed)", round(float(cv[0]), 1), 15.0)
+check("speed cap: deceleration <= ~3 m/s2", bool(-np.diff(cv).min() / 0.1 <= 3.2), True)
+check("speed cap: lateral acceleration in the curve <= 4 m/s2 (target 3)", bool((cv[carc] ** 2 / 15).max() <= 4.0), True)
 print("PASS" if bad == 0 else f"FAIL ({bad})")
 sys.exit(bad > 0)
