@@ -4,7 +4,7 @@
 #SBATCH -J as_test
 #SBATCH -c 2
 #SBATCH --mem=8G
-#SBATCH -t 00:10:00
+#SBATCH -t 00:45:00   # includes ~13 min to build the Alpamayo env on node-local disk
 #SBATCH -o /insomnia001/depts/edu/users/au2327/alpasim/logs/test_driver_%j.out
 # CPU-only driver regression tests (fake policy, no model): run before any GPU evaluation run.
 source /etc/profile
