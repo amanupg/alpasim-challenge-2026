@@ -232,7 +232,9 @@ class RouteMemory:
                 back = len(w) > 1 and float(np.dot(self.pts[i] - w[0], w[1] - w[0])) < -0.1
                 self.pts = np.vstack([self.pts[:i + 1 if back else i], w])
             else:
-                self.pts = np.vstack([self.pts, w])
+                # the new route does not continue the remembered one (PAI 2026-10-19: only after the car had left
+                # the route, merge 4-12 m; appending made the path double back): start over from this route
+                self.pts = w
         else:
             self.pts = w
         self.pts = self.pts[-self.max_points:]

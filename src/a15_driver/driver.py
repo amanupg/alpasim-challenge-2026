@@ -263,6 +263,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         self._route_snap_min_offset = route_snap_min_offset
         self._route_memory = route_memory
         self._route_mem_debug = os.environ.get("A15_ROUTE_MEM_DEBUG", "0") == "1"
+        self._route_mem_dev_min = float(os.environ.get("A15_ROUTE_MEM_DEV_MIN", "20"))
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -449,7 +450,11 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                     mpath = s.route_mem.path_in_frame(np.array([ap.x, ap.y, ap.z]),
                                                       _quat_to_rot(np.array([aq.w, aq.x, aq.y, aq.z])),
                                                       join_m=float(np.clip(2.5 * s.speed, 15.0, 60.0)))
-            dev = route_deviation(xy, mpath if mpath is not None else route)
+            # with memory, deviation counts only path points >= route_mem_dev_min ahead (default 20 m): the near
+            # points made a 1.5-2 m offset within the lane trigger snaps, and the car weaved between the model's
+            # line and the recorded one (PAI 2026-10-19, fb501e/31f39b); the route alone starts ~40 m ahead
+            dev = route_deviation(xy, mpath[np.linalg.norm(mpath, axis=1) >= self._route_mem_dev_min]
+                                  if mpath is not None else route)
             limit = self._route_snap / 2 if s.snapping else self._route_snap
             # route_snap_max_deg > 0: only where the route runs nearly parallel (lane change, exit), not on
             # turns, where the curve to a waypoint ~40 m ahead cuts the corner (PAI 2026-10-10)

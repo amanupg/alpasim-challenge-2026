@@ -1190,3 +1190,14 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Likely cause: consecutive routes don't register in the world frame (route timestamp vs pose time base, or heading). The "no merge point within 3 m → append" branch then builds backward jumps.
   - **So the 41-80 result (-0.023 vs v5) does not measure the idea.**
   - Added `A15_ROUTE_MEM_DEBUG=1` logging of route time, pose window, pose, first waypoint and merge distance. Debug run on 31f39b, fb501e, 622908: 13547834.
+
+## 2026-10-19 Memory snap v1: full 120 on H100, the bugs, and memory snap v2
+- **v1 (buggy) vs v5, H100, 120 scenes: +0.003 [-0.051, +0.057]**, W/L 22/20. By batch: +0.035 / -0.023 / -0.003 (81-120 rerun 13547828).
+- **Debug run (13547834, 31f39b / fb501e / 622908, 597 route updates):**
+  - Registration is fine: route timestamps equal the latest pose time, and merge distance has median 1.13 m and p95 1.5 m (about one waypoint spacing).
+  - The 4 misses of 3-12 m all came after the car had already left the route (31f39b at y=-37 m, heading -43°). The "append" branch then made the path double back.
+  - The main problem was behavioural. With the memory path, the deviation included points 0-40 m ahead, so a 1.5-2 m in-lane offset from the recorded line triggered snaps. The car then weaved between the model's line and the recorded one, and consecutive memory paths flipped ±3 m at 40 m as the heading swung.
+- **v2 fixes:**
+  - A route that does not continue the memory restarts it, no append.
+  - Snap deviation uses only memory points ≥ 20 m ahead (`A15_ROUTE_MEM_DEV_MIN=20`). The snap path still uses the whole memory, so turns are followed.
+- **Queued:** v2 on 120 scenes, H100 (13554748-50), after test 13554747.

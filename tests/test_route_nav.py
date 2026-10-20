@@ -133,6 +133,10 @@ mo = mem.path_in_frame(np.r_[pc + [0, -3.5], 0], _rot(0.0), join_m=25.0)
 check("memory: car one lane right of the path, join starts at the car", bool(np.linalg.norm(mo[0] - [1.0, 0.0]) < 0.5), True)
 check("memory: back on the path within the join distance", round(min(float(np.min(np.linalg.norm(tp - pc - [0, -3.5] - q, axis=1))) for q in mo[np.linalg.norm(mo, axis=1) > 27][:3]), 2), 0.0)
 check("memory: empty memory gives no path", RouteMemory().path_in_frame(np.zeros(3), np.eye(3)), None)
+m2 = RouteMemory(); m2.add(np.array([[40.0, 0], [44, 0], [48, 0]]), np.zeros(3), np.eye(3))
+m2.add(np.array([[40.0, 10.0], [44, 10.0], [48, 10.0]]), np.zeros(3), np.eye(3))   # 10 m off: not a continuation
+check("memory: a route that does not continue the memory restarts it (no doubling back)", m2.pts.round(1).tolist(),
+      [[40.0, 10.0], [44.0, 10.0], [48.0, 10.0]])
 check("memory: path that does not reach the car (session start) gives None", mem.path_in_frame(np.r_[tp[0] - [30, 0], 0], _rot(0.0)), None)
 print("PASS" if bad == 0 else f"FAIL ({bad})")
 sys.exit(bad > 0)
