@@ -1,0 +1,62 @@
+\documentclass{article}
+
+% AlpaSim technical report template. This is not a NeurIPS paper submission.
+% The upstream NeurIPS 2026 style file is used only for layout; see README.md.
+\PassOptionsToPackage{numbers}{natbib}
+\usepackage[preprint]{neurips_2026}
+\makeatletter
+\renewcommand{\@noticestring}{}
+\makeatother
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+
+\title{[Method name]: AlpaSim E2E Closed Loop Challenge Technical Report}
+
+\author{
+  Team name \\
+  Organization (if applicable) \\
+  \texttt{contact@example.com}
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Briefly summarize the method, the track, and the central result or contribution.
+\end{abstract}
+
+\section{Method summary}
+Describe the policy at a level that makes its main design understandable. Include one
+system diagram where useful.
+
+\section{Policy description}
+Describe the policy, including its observations and outputs, at a level appropriate
+for understanding the method.
+
+\section{Resources and training}
+List datasets, annotations, pretrained weights, external resources, and licenses.
+For nuPlan award eligibility, identify the public source for each resource. For PAI-AV,
+provide a high-level disclosure of any private resources and confirm permission to use them.
+
+\section{Runtime and reproducibility}
+Report training and inference setup. Include observed latency and memory use when
+they are relevant to interpreting the method.
+
+\section{Limitations and safety considerations}
+Describe expected failure modes, limitations, and safety-relevant considerations.
+
+\section*{References}
+\begin{thebibliography}{9}
+\bibitem{example} Author. \newblock Example reference. \newblock 2026.
+\end{thebibliography}
+
+% Optional appendix. It does not count toward the four-page main-text limit.
+% \appendix
+% \section{Additional details}
+
+\end{document}
