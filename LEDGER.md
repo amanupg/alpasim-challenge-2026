@@ -1201,3 +1201,20 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - A route that does not continue the memory restarts it, no append.
   - Snap deviation uses only memory points ≥ 20 m ahead (`A15_ROUTE_MEM_DEV_MIN=20`). The snap path still uses the whole memory, so turns are followed.
 - **Queued:** v2 on 120 scenes, H100 (13554873-75). Test 13554747 hit its 10-min limit (the env build takes ~13 min); test_driver.sbatch is now 45 min. The sims run the same driver tests first anyway, so they are queued without that dependency.
+
+## 2026-10-20 Memory snap v2 vs v5 (H100): not better
+| H100 | v5 (v0.3 + snap) | memory v1 | memory v2 |
+|---|---|---|---|
+| 1-40 | 0.692 | 0.727 (+0.035) | 0.701 (+0.010, W/L 13/3) |
+| 41-80 | 0.696 | 0.673 (-0.023) | **void**: 6th H100 launch failure (13554873, 0 of 40 drove) |
+| 81-120 | 0.797 | 0.794 (-0.003) | **0.719 (-0.078 [-0.184, +0.027], W/L 3/12)** |
+
+- **v2 on 81-120, fixed:** 3defec (turn; v1 also fixed it), e15688, and the coin-flip 331b7f.
+- **v2 on 81-120, broken:**
+  - 1845f6 (pass → offroad; a turn scene that unguarded snap also broke);
+  - ec6f99 (pass → offroad);
+  - 36ea68 and 57016f (→ at-fault collision);
+  - df6f61 (→ corridor).
+- **Reading:** following the remembered path through turns fixes some missed turns (622908, 3defec) but sends others offroad or into collisions, likely because the path is driven at the model's speed. Net effect: a tie (v1) or worse (v2). **No memory-snap variant beats v5.**
+- **H100 faults: 6 of 25 batches.**
+- **Per-job env build:** 756-1486 s (uv downloads at variable speed).
