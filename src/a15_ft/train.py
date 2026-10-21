@@ -59,8 +59,11 @@ def collect(data_dir, scratch):
     for tf in sorted(glob.glob(os.path.join(data_dir, "*.tar"))):
         dst = os.path.join(scratch, os.path.basename(tf)[:-4])
         if not os.path.isdir(dst):
-            with tarfile.open(tf) as z:
-                z.extractall(dst)
+            try:
+                with tarfile.open(tf) as z:
+                    z.extractall(dst)
+            except (tarfile.TarError, EOFError, OSError) as e:          # a capture killed while tarring
+                print(f"{os.path.basename(tf)}: {type(e).__name__} ({e}); keeping the members that extracted", flush=True)
     groups, broken = {}, 0
     for p in glob.glob(os.path.join(scratch, "**", "*.npz"), recursive=True) + glob.glob(os.path.join(data_dir, "**", "*.npz"), recursive=True):
         if not zipfile.is_zipfile(p):                                # a snapshot of a running capture can cut one file
