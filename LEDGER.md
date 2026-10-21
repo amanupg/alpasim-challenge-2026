@@ -1340,3 +1340,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
     - warp: 13609311-13;
     - stall: 13609314-16.
   - **Rule:** a variant that clearly beats v5 on L40S (local > +0.05) gets an H100 confirmation run before any slot decision.
+- **A6000 check (13609319, ins081):** the full v5 stack runs.
+  - Node driver 575, so no compat needed (`CUDA_COMPAT=auto` -> 0).
+  - 2 scenes, both full drives, 11 snaps; driver peak 14,008 MiB.
+  - Mean inference 3.43-3.51 s with 2 sessions (H100 ~1.5 s with 4), so ~2-3x slower per replan.
+  - Other A6000 nodes may run driver 550 (compat on A6000 untested); `auto` handles the switch.
+  - Use: capture and training (already in the constraint list); screening stays on L40S (closer to H100).
+  - Capture jobs 13609282-84 and trainer smoke 13609292 are now running.
