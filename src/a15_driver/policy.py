@@ -115,7 +115,7 @@ class Alpamayo15Policy:
         bad = {k: v for k, v in info.items() if v}
         assert not bad, f"loading info not clean: { {k: list(v)[:5] for k, v in bad.items()} }"
         if expert_ckpt:                    # fine-tuned action expert (a15_ft/train.py): replaces expert + projections
-            sd = torch.load(expert_ckpt, map_location="cpu")
+            sd = {k: v for k, v in torch.load(expert_ckpt, map_location="cpu").items() if not k.startswith("_")}  # _step: metadata
             res = model.load_state_dict(sd, strict=False)
             assert not res.unexpected_keys, f"unexpected keys in {expert_ckpt}: {res.unexpected_keys[:5]}"
             left = [k for k in res.missing_keys if k.startswith(("expert.", "action_in_proj.", "action_out_proj."))]

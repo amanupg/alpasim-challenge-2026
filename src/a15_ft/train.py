@@ -144,6 +144,15 @@ def open_loop(model, helper, proc, paths, seed=42, forced=True):
             "len_ratio_mean": float(np.mean(ratio)) if ratio else None, "n_ratio": len(ratio)}
 
 
+def save(model, path, step):
+    sd = {k: v.detach().to("cpu", torch.bfloat16) for k, v in model.state_dict().items() if k.startswith(TRAIN_PREFIXES)}
+    sd["_step"] = torch.tensor(step)
+    torch.save(sd, path + ".tmp")
+    os.replace(path + ".tmp", path)                                   # never leave a half-written checkpoint
+    print(f"checkpoint at step {step} -> {path}", flush=True)
+    return sd
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", required=True)
@@ -156,6 +165,7 @@ def main():
     ap.add_argument("--val_frac", type=float, default=0.1)
     ap.add_argument("--val_max", type=int, default=150)
     ap.add_argument("--n_noise", type=int, default=4, help="(x_0, t) draws per VLM prefill")
+    ap.add_argument("--save_every", type=int, default=100, help="overwrite --out every N steps (a job killed at its time limit keeps the latest)")
     ap.add_argument("--unforced_eval", action="store_true", help="also report the open-loop check without forced start")
     ap.add_argument("--eval_only", action="store_true")
     ap.add_argument("--seed", type=int, default=0)
@@ -208,6 +218,8 @@ def main():
         for g in opt.param_groups:
             g["lr"] = lr
         opt.step(); opt.zero_grad(set_to_none=True)
+        if a.save_every and (step + 1) % a.save_every == 0 and step + 1 < steps:
+            save(model, a.out, step + 1)
         if (step + 1) % 25 == 0 or step == 0:
             print(f"step {step + 1}/{steps} loss {np.mean(run[-25 * a.accum:]):.4f} lr {lr:.2e} "
                   f"{(time.time() - t0) / (step + 1):.2f}s/step peak {torch.cuda.max_memory_allocated() / 2**30:.1f}GiB",
@@ -216,8 +228,7 @@ def main():
     rel = [float((pn[n].float() - r.float()).norm() / max(r.float().norm(), 1e-12)) for n, r in ref.items()]
     print(f"weights moved: median relative change {np.median(rel):.2e} over {len(rel)} projection matrices "
           f"(0 would mean the updates were lost)", flush=True)
-    sd = {k: v.detach().to("cpu", torch.bfloat16) for k, v in model.state_dict().items() if k.startswith(TRAIN_PREFIXES)}
-    torch.save(sd, a.out)
+    sd = {k: v for k, v in save(model, a.out, steps).items() if not k.startswith("_")}
     print(f"saved {len(sd)} tensors ({sum(v.numel() for v in sd.values()) / 1e9:.3f}B) to {a.out}", flush=True)
     after = open_loop(model, helper, proc, val)
     print(f"[after] open loop {json.dumps(after)}", flush=True)
