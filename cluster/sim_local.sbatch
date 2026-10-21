@@ -10,7 +10,7 @@
 # Local closed-loop evaluation on Insomnia (Apptainer simulator stack + our driver).
 #   DRIVER=starter|a15   TRACK=nuplan|pai   NSCENES=N   ROLLOUTS=2 (concurrent, as officially)
 #   SCENES_FROM=<run dir>: reuse that run's scene list (same scenes for a fair comparison)
-#   CUDA_COMPAT=1: PAI renderer via cuda-compat 12.8 (lets PAI run on L40S/H100)
+#   CUDA_COMPAT=1: PAI renderer via cuda-compat 12.8 (lets PAI run on L40S/H100); CUDA_COMPAT=auto: only if driver < 570
 #   KEEP_ASL=1: keep the raw rollout.asl logs (default: deleted once the summary exists)
 #   LOCAL_ROLLOUTS=0: write rollouts to the shared run dir instead of node-local TMPDIR (default 1)
 #   EXTRA_OVERRIDES="controller.gains.lat_position_weight=3.0 ..." extra wizard overrides (no commas:
@@ -137,6 +137,11 @@ fi
 apptainer exec -B $A ${LOCAL_ROLL:+-B $TMPDIR} $SIF bash $RUN/wizard.sh > $RUN/wizard.log 2>&1 || { tail -40 $RUN/wizard.log; exit 1; }
 apptainer exec $SIF /repo/.venv/bin/python -c "import yaml,json; json.dump(yaml.safe_load(open('$RUN/docker-compose.yaml')), open('$RUN/docker-compose.json','w'), indent=1)"
 # CUDA_COMPAT=1: run the PAI NRE renderer through NVIDIA's cuda-compat 12.8 so PAI also runs on L40S/H100 (driver 550)
+# CUDA_COMPAT=auto: use it only where the host driver is older than 570 (L40S/L40/A6000/H100 here; Blackwell has 575)
+if [ "${CUDA_COMPAT:-0}" = auto ]; then
+  DRVMAJ=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -1 | cut -d. -f1)
+  CUDA_COMPAT=$([ "${DRVMAJ:-0}" -lt 570 ] && echo 1 || echo 0); echo "CUDA_COMPAT=auto -> $CUDA_COMPAT (driver $DRVMAJ)"
+fi
 COMPAT_ARG=""; [ "${CUDA_COMPAT:-0}" = 1 ] && COMPAT_ARG="--cuda-compat $A/envs/cuda-compat-12-8/usr/local/cuda-12.8/compat --cache-dir $A/cache/containers_$(nvidia-smi --query-gpu=name --format=csv,noheader | head -1 | tr -c 'A-Za-z0-9' _)"   # own kernel cache per GPU type (NRE caches compiled kernels)
 nvidia-smi --query-gpu=name,driver_version --format=csv,noheader | head -1
 python3 $A/src/compose_apptainer.py $RUN/docker-compose.json --sif-dir $A/sandbox --repo-host $REPO --logdir $RUN/svc-logs $COMPAT_ARG

@@ -1322,3 +1322,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Normal replans cost one sample.
 - **Queued on H100 vs v5 (v0.3 + snap), 120 scenes each:** warp 13608708-10; stall 13608711-13.
 - **Pending on H100:** fast chooser 13608641-43; capture smoke 13608659.
+- **GPU choice (Aman, 2026-10-21: use H100 only where genuinely needed):**
+  - **Benches stay on H100.** The v5 baseline is H100, results differ by GPU type (the chooser was +0.054 on Blackwell and +0.005 on H100), and the official evaluation runs on H100.
+  - **Capture and training go off H100:** `--gres=gpu:1 --constraint="A6000|l40s|l40|R6000"`.
+  - `CUDA_COMPAT=auto` uses compat only when the host driver is < 570.
+  - Capture smoke resubmitted as 13608985 (13608659 cancelled).
