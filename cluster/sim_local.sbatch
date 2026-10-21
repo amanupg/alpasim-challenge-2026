@@ -134,7 +134,15 @@ fi
        "runtime.endpoints.driver.n_concurrent_rollouts=$ROLLOUTS $SEL $EXTRA_OVERRIDES"
 } > $RUN/wizard.sh
 # the wizard creates $RUN/rollouts/...; with node-local rollouts the symlink target must be bound too
-apptainer exec -B $A ${LOCAL_ROLL:+-B $TMPDIR} $SIF bash $RUN/wizard.sh > $RUN/wizard.log 2>&1 || { tail -40 $RUN/wizard.log; exit 1; }
+# up to 3 tries: scene downloads from HF occasionally fail mid-transfer (2026-10-21: xet "error decoding response
+# body"); files already downloaded are kept, and the last try falls back from xet to plain HTTP
+for TRY in 1 2 3; do
+  [ $TRY = 3 ] && sed -i '1a export HF_HUB_DISABLE_XET=1' $RUN/wizard.sh
+  apptainer exec -B $A ${LOCAL_ROLL:+-B $TMPDIR} $SIF bash $RUN/wizard.sh > $RUN/wizard.log 2>&1 && break
+  echo "wizard try $TRY failed: $(grep -m1 -E 'Error|error' $RUN/wizard.log | cut -c1-200)"
+  [ $TRY = 3 ] && { tail -40 $RUN/wizard.log; exit 1; }
+  sleep 30
+done
 apptainer exec $SIF /repo/.venv/bin/python -c "import yaml,json; json.dump(yaml.safe_load(open('$RUN/docker-compose.yaml')), open('$RUN/docker-compose.json','w'), indent=1)"
 # CUDA_COMPAT=1: run the PAI NRE renderer through NVIDIA's cuda-compat 12.8 so PAI also runs on L40S/H100 (driver 550)
 # CUDA_COMPAT=auto: use it only where the host driver is older than 570 (L40S/L40/A6000/H100 here; Blackwell has 575)

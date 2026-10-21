@@ -1355,3 +1355,6 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - `A15_FORCE_TRAJ_START=1` (`policy._forced_rollout`) appends the token instead of generating it, as NVIDIA's teacher-forced training does. It uses the same prefill, position ids and mask, and the model's own sampler (the K-choosers still wrap it).
   - This also aligns inference with our fine-tune's training input.
   - Check on the validation clips: 13609783.
+- **Capture c0 (13609282) failed at scene download.** HF xet transfer "I/O error: error decoding response body" in the wizard; it produced an empty tar, which I removed.
+  - `sim_local.sbatch` now retries the wizard up to 3 times, keeping already-downloaded files; the last try uses `HF_HUB_DISABLE_XET=1`.
+  - c0 requeued as 13610789. Already-queued capture jobs keep the old script, so rerun them if they hit the same error.
