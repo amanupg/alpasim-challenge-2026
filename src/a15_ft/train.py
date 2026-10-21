@@ -15,8 +15,8 @@ import os
 import random
 import tarfile
 import time
-
 import types
+import zipfile
 
 import numpy as np
 import torch
