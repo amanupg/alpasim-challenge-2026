@@ -41,7 +41,7 @@ in every one of six flow samples, so no sample selection can recover them. \emph
 model's plan leaves the provided route waypoints by more than 2\,m on a near-straight road, and then drives a
 smooth path onto the route at the model's own speed. It adds no model calls. On 120 scenes on H100 GPUs, the
 evaluation hardware, it raises the local mean scene score from 0.657 to 0.728 (+0.071, 90\% bootstrap interval
-[+0.011,\,+0.131]) and cuts corridor exits from 23 to 13. We also report what did not help, including a
+[+0.011,\,+0.131]) and cuts corridor exits from 23 to 13. Officially it raised the average scene score from 0.611 to 0.652 and the Policy Capability Score from 2150 to 2184. We also report what did not help, including a
 route-following sample chooser whose gain on one GPU type vanished on the evaluation GPU type.
 \end{abstract}
 
@@ -133,7 +133,7 @@ v0.3 (submitted: Alpamayo 1.5, 1 sample, 1\,Hz) & 0.657 & -- & 23 / 67 \\
 \bottomrule
 \end{tabular}
 \caption{Local closed-loop results. Official results: v0.3, PCS 2143 (scene score 0.611, at-fault distance 0.795);
-v5, \todo{official result}.}
+v5, PCS 2184 [2137--2230] (scene score 0.652, at-fault distance 0.771; 987/987 rollouts, 9{,}522\,s of 14{,}400\,s).}
 \label{tab:main}
 \end{table}
 
