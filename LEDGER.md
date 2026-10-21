@@ -1282,3 +1282,20 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - With identical snap decisions, the remembered path is a worse geometry than the Hermite bridge, so the memory path itself, not just its triggers, hurts.
 - **All four waypoint-memory variants fail to beat v5. Dropped.**
 - H100 launch-failure tally: 7 of 31 batches.
+
+## 2026-10-21 Fine-tune Alpamayo (Aman: "try the fine-tune, keep going", /loop)
+- **Data access (challenge HF account, token read in place):**
+  - `nvidia/PhysicalAI-Autonomous-Vehicles` (PAI-AV) is visible: 70,775 files.
+    - Per camera, ~3,146 chunk zips of ~1.9 GB (front-wide alone ~6 TB in total).
+    - `labels/egomotion` is ~38 GB; there is also `clip_index.parquet` and calibration.
+  - The NuRec scenes (`-NuRec`, 3,219 files) are also visible.
+  - Alpamayo's own env ships NVIDIA's loader (`physical-ai-av==0.2.0`).
+- **Plan:**
+  - Train the action expert (flow-matching head) with the VLM frozen.
+  - Data is staged per job on node-local /local, never on the shared fileset.
+  - **Exclude every clip that is one of our 120 bench scenes.**
+  - Open question: what to train toward.
+    - Alpamayo was trained on PAI-AV, so plain fine-tuning reproduces it.
+    - Closed-loop slowness and missed lane changes may come from the gap between real and NuRec-rendered images.
+    - So check the open-loop speed bias on real vs rendered frames first.
+- Reading nureasoning's existing Alpamayo fine-tune pipeline (read-only) for reuse.
