@@ -59,6 +59,26 @@ finish_rollouts() {        # idempotent: replace the symlink by a real dir holdi
 }
 trap finish_rollouts EXIT        # replaced below by the driver trap, which also calls it
 
+# ---- CAPTURE=1: training-data generation for the action-expert fine-tune (2026-10-21). The ego is forced onto the
+# recording for the whole scene, the recording is sent to the driver, and the driver (no model) saves rendered
+# frames + history + recorded future every A15_CAPTURE_EVERY_US. Scenes download to node-local disk, and the
+# samples are tarred to data/ft_capture/ at exit. Never used for evaluation runs.
+FSDIR=$A/data/fs
+if [ "${CAPTURE:-0}" = 1 ]; then
+  FSDIR=$TMPDIR/fs; mkdir -p $FSDIR/nre-artifacts/all-usdzs
+  cp -r $A/data/fs/nre-artifacts/ego-hoods $A/data/fs/nre-artifacts/scenesets $FSDIR/nre-artifacts/
+  export A15_CAPTURE_DIR=$TMPDIR/capture A15_NO_MODEL=1 A15_CAPTURE_EVERY_US=${A15_CAPTURE_EVERY_US:-500000}
+  EXTRA_OVERRIDES="$EXTRA_OVERRIDES runtime.simulation_config.force_gt_duration_us=60000000 runtime.simulation_config.skip_driver_during_force_gt=false runtime.simulation_config.send_recording_ground_truth=true"
+  finish_capture() {
+    [ -d $TMPDIR/capture ] || return 0
+    mkdir -p $A/data/ft_capture
+    tar -C $TMPDIR -cf $A/data/ft_capture/${TAG:-capture}_$SLURM_JOB_ID.tar capture
+    echo "captured $(find $TMPDIR/capture -name '*.npz' | wc -l) samples from $(ls $TMPDIR/capture | wc -l) sessions -> data/ft_capture/${TAG:-capture}_$SLURM_JOB_ID.tar ($(du -sh $A/data/ft_capture/${TAG:-capture}_$SLURM_JOB_ID.tar | cut -f1))"
+  }
+else
+  finish_capture() { :; }
+fi
+
 # ---- driver
 if [ $DRIVER = a15 ]; then
   # CPU regression test of the driver logic (fake policy) before spending GPU time
@@ -82,7 +102,7 @@ else
     > $RUN/driver.log 2>&1 &
   DRV=$!
 fi
-trap 'kill $DRV 2>/dev/null; finish_rollouts' EXIT
+trap 'kill $DRV 2>/dev/null; finish_rollouts; finish_capture' EXIT
 # log ALL GPU processes, but the driver's own line is what the 16 GiB cap is about (renderer/physics share the GPU)
 ( while kill -0 $DRV 2>/dev/null; do nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader >> $RUN/gpu_mem.log; sleep 15; done ) &
 echo $DRV > $RUN/driver.pid
@@ -110,7 +130,7 @@ fi
   echo "cd $RUN"
   echo "export HF_HOME=$A/.cache/hf"
   echo "exec /repo/.venv/bin/alpasim_wizard $PRESET wizard.run_method=NONE wizard.log_dir=$RUN" \
-       "defines.filesystem=$A/data/fs hydra.run.dir=$RUN/hydra eval.video.render_video=${VIDEO:-false} wizard.baseport=$PORT_BASE" \
+       "defines.filesystem=$FSDIR hydra.run.dir=$RUN/hydra eval.video.render_video=${VIDEO:-false} wizard.baseport=$PORT_BASE" \
        "runtime.endpoints.driver.n_concurrent_rollouts=$ROLLOUTS $SEL $EXTRA_OVERRIDES"
 } > $RUN/wizard.sh
 # the wizard creates $RUN/rollouts/...; with node-local rollouts the symlink target must be bound too
@@ -124,6 +144,7 @@ RC=$?
 echo "runtime exit $RC"
 python3 $A/src/summarize_run.py $RUN
 finish_rollouts
+finish_capture
 echo "driver (pid $DRV) peak GPU memory: $(grep "^$DRV," $RUN/gpu_mem.log | sort -t, -k2 -n | tail -1)"
 grep "closed session\|inference failed" $RUN/driver.log | tail -20
 # driver health: a session that drove on the straight fallback means plans were not used (see 2026-09-30 bug)

@@ -50,6 +50,7 @@ from .policy import CAMERA_NAME_TO_INDEX, NUPLAN_TO_SLOT, Alpamayo15Policy  # no
 from .route_choice import (RouteMemory, cap_speed_on_path, retime_path, route_deviation,  # noqa: E402
                            route_lateral_offset, route_parallel, route_path, route_pull)
 from .trajectory import CachedPlan, build_trajectory_from_plan, make_cached_plan  # noqa: E402
+from .capture import Capturer, GroundTruthStore  # noqa: E402
 
 LOGGER = logging.getLogger("a15_challenge_driver")
 DEFAULT_PAI_CAMERAS = "camera_cross_left_120fov,camera_front_wide_120fov,camera_cross_right_120fov,camera_front_tele_30fov"
@@ -147,6 +148,11 @@ def _yaw_of(q: np.ndarray) -> float:
 
 
 # ---------------------------------------------------------------- policy handle
+class _NoModel:
+    """Stand-in policy for capture mode (A15_NO_MODEL=1): the ego follows the recording, the driver only records."""
+    output_frequency_hz = 10.0
+
+
 class PolicyHandle:
     """Loads the policy after gRPC startup; ready only after a warm-up inference."""
 
@@ -170,6 +176,11 @@ class PolicyHandle:
             return self._error
 
     def _load(self) -> None:
+        if os.environ.get("A15_NO_MODEL", "0") == "1":              # capture mode: frames + recording only
+            with self._lock:
+                self._policy = _NoModel()
+            LOGGER.info("policy ready after 0s (no model: capture mode)")
+            return
         try:
             t0 = time.time()
             p = Alpamayo15Policy(**self._kwargs)
@@ -242,6 +253,8 @@ class SessionState:
     last_nav: str | None = None
     snapping: bool = False                                  # route snap active (hysteresis)
     route_mem: RouteMemory = field(default_factory=RouteMemory)   # recorded path seen so far, world frame
+    gt: GroundTruthStore = field(default_factory=GroundTruthStore)   # recording (capture mode only)
+    last_capture_us: int = -10**18
     stats: dict = field(default_factory=lambda: {"drive": 0, "infer": 0, "infer_err": 0, "fallback": 0,
                                                  "cached": 0, "rerouted": 0, "snapped": 0, "snapped_mem": 0,
                                                  "infer_s": 0.0})
@@ -254,7 +267,8 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                  route_pull_d0: float = 30.0, route_pull_d1: float = 45.0, speed_cams: bool = False,
                  route_snap: float = 0.0, route_snap_max_deg: float = 0.0, route_snap_min_offset: float = 0.0,
                  route_memory: bool = False, route_mem_debug: bool = False, route_mem_dev_min: float = 20.0,
-                 snap_alat: float = 0.0, mem_geom_only: bool = False):
+                 snap_alat: float = 0.0, mem_geom_only: bool = False, capture_dir: str | None = None,
+                 capture_every_us: int = 500_000):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
         self._log_choices, self._early_replan, self._nav_dist = log_choices, early_replan, nav_dist
         self._speed_scale = speed_scale
@@ -265,6 +279,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         self._route_memory = route_memory
         self._route_mem_debug, self._route_mem_dev_min = route_mem_debug, route_mem_dev_min
         self._snap_alat, self._mem_geom_only = snap_alat, mem_geom_only
+        self._capturer = Capturer(capture_dir, capture_every_us) if capture_dir else None
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -369,7 +384,41 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         return common_pb2.Empty()
 
     def submit_recording_ground_truth(self, request, context):
+        # local data generation only (capture mode); the official evaluator does not send the recording
+        if self._capturer is None:
+            return common_pb2.Empty()
+        s = self._get_session(request.session_uuid, context)
+        gt = request.ground_truth
+        ps = gt.trajectory.poses
+        if not ps:
+            return common_pb2.Empty()
+        times = np.array([p.timestamp_us for p in ps], dtype=np.float64)
+        xyz = np.array([[p.pose.vec.x, p.pose.vec.y, p.pose.vec.z] for p in ps], dtype=np.float64)
+        R = np.stack([_quat_to_rot(_quat_arr(p.pose.quat)) for p in ps])
+        with self._lock:
+            if len(s.poses) < 1:
+                return common_pb2.Empty()
+            ts = np.array([p[0] for p in s.poses], dtype=np.float64)
+            hp, hq = _interp_poses(ts, np.stack([p[1] for p in s.poses]), np.stack([p[2] for p in s.poses]),
+                                   np.array([float(gt.timestamp_us)]))
+            s.gt.set_from_rig(times, xyz, R, hp[0], _quat_to_rot(hq[0]))
         return common_pb2.Empty()
+
+    def _maybe_capture(self, s: SessionState, now: int) -> None:
+        with self._lock:
+            if now - s.last_capture_us < self._capturer.every_us:
+                return
+            batch = self._gather(s)
+            if batch is None:
+                return
+            frames, hx, hr, t0, anchor = batch
+            ap, aq = anchor.pose.vec, anchor.pose.quat
+            fut = s.gt.future_in_frame(t0, np.array([ap.x, ap.y, ap.z]), _quat_to_rot(np.array([aq.w, aq.x, aq.y, aq.z])))
+            if fut is None:
+                return
+            s.last_capture_us = now
+            slots = list(s.slots)
+        self._capturer.save(s.sid, t0, frames, slots, hx, hr, *fut)
 
     # ------------------------------------------------------------ drive
     def drive(self, request, context):
@@ -377,6 +426,8 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         now = int(request.time_now_us)
         with self._lock:
             s.stats["drive"] += 1
+        if self._capturer is not None:
+            self._maybe_capture(s, now)
         self._maybe_infer(s, now)
         with self._lock:
             plan, pose, speed = s.cached_plan, s.latest_pose, s.speed
@@ -387,7 +438,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
 
     def _maybe_infer(self, s: SessionState, now: int) -> None:
         policy = self._handle.get()
-        if policy is None:
+        if policy is None or isinstance(policy, _NoModel):
             return
         with self._lock:
             plan = s.cached_plan
@@ -610,7 +661,9 @@ def main() -> None:
         route_mem_debug=os.environ.get("A15_ROUTE_MEM_DEBUG", "0") == "1",
         route_mem_dev_min=float(os.environ.get("A15_ROUTE_MEM_DEV_MIN", "20")),
         snap_alat=float(os.environ.get("A15_SNAP_ALAT", "0")),
-        mem_geom_only=os.environ.get("A15_ROUTE_MEM_GEOM_ONLY", "0") == "1")
+        mem_geom_only=os.environ.get("A15_ROUTE_MEM_GEOM_ONLY", "0") == "1",
+        capture_dir=os.environ.get("A15_CAPTURE_DIR") or None,
+        capture_every_us=int(os.environ.get("A15_CAPTURE_EVERY_US", "500000")))
     host, port = os.environ.get("ALPASIM_DRIVER_HOST", "0.0.0.0"), int(os.environ.get("ALPASIM_DRIVER_PORT", "6789"))
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=int(os.environ.get("ALPASIM_DRIVER_GRPC_WORKERS", "8"))))
     egodriver_pb2_grpc.add_EgodriverServiceServicer_to_server(service, server)
