@@ -335,3 +335,60 @@ def choose_fast(xy: np.ndarray, shape_tol_m: float = 1.0, min_gain: float = 1.02
         return 0
     j = int(np.where(ok, L, -np.inf).argmax())
     return j if L[j] >= min_gain * L[0] else 0
+
+
+def warped_source_times(times_s: np.ndarray, scale: float, horizon_s: float = 4.0) -> np.ndarray:
+    """The organisers' trajectory time warp, from their GTRS sample (NVlabs/alpasim e2e_challenge,
+    navsim_gtrs_dense_challenge/trajectory.py::_warped_source_times, Apache-2.0, Copyright (c) 2026 NVIDIA),
+    as ported by the alpasim-jepa thread (wajepa_challenge/timewarp.py). The plan is read ahead of time in the
+    near term (t <= 1 s: scale * t; 1-3 s: t + (scale - 1); 3-4 s: the lead tapers to 0 at 4 s), so the controller
+    is asked to keep up with the plan. Beyond horizon_s (our plans run 6.4 s) times are unchanged."""
+    if not 1.0 <= scale <= 1.25:
+        raise ValueError("time scale must be in [1.0, 1.25]")
+    t = np.asarray(times_s, dtype=np.float64)
+    if scale == 1.0:
+        return t
+    lead = scale - 1.0
+    src = np.where(t <= 1.0, scale * t, np.where(t <= 3.0, t + lead,
+                   np.where(t <= horizon_s, t + lead * (horizon_s - t), t)))
+    return src
+
+
+def heading_change_deg(xy: np.ndarray, upto_s: float = 4.0, dt: float = 0.1) -> float:
+    """Largest heading change along the plan's first upto_s seconds (degrees), ignoring near-standstill steps."""
+    p = np.asarray(xy, dtype=np.float64)[: int(round(upto_s / dt))]
+    d = np.diff(np.vstack([np.zeros((1, 2)), p]), axis=0)
+    moving = np.linalg.norm(d, axis=1) > 0.02
+    if moving.sum() < 2:
+        return 0.0
+    h = np.unwrap(np.arctan2(d[moving, 1], d[moving, 0]))
+    return float(np.degrees(np.abs(h - h[0]).max()))
+
+
+def time_warp_plan(xy: np.ndarray, yaw: np.ndarray, scale: float, dt: float = 0.1) -> tuple[np.ndarray, np.ndarray]:
+    """Read a (T, 2) plan at 0.1 s (+ yaw) at the warped times (origin at t = 0)."""
+    xy = np.asarray(xy, dtype=np.float64); yaw = np.asarray(yaw, dtype=np.float64)
+    T = len(xy)
+    times = np.arange(0, T + 1) * dt
+    src_xy = np.vstack([np.zeros((1, 2)), xy]); src_yaw = np.unwrap(np.concatenate([[0.0], yaw]))
+    st = np.clip(warped_source_times(times[1:], scale), 0.0, times[-1])
+    out_xy = np.stack([np.interp(st, times, src_xy[:, k]) for k in range(2)], 1)
+    return out_xy, np.interp(st, times, src_yaw)
+
+
+def stall_rescue_choice(xy: np.ndarray, stall_m: float = 3.0, min_move_m: float = 3.0, at_s: float = 4.0,
+                        min_frac: float = 0.5, dt: float = 0.1) -> int:
+    """Index of the sample to drive when sample 0 stalls (moves < stall_m within at_s): the medoid of the samples
+    that move >= min_move_m, if at least min_frac of all samples do (the model's own majority says go);
+    otherwise 0. Model-sample analogue of the alpasim-jepa thread's GTRS stall rescue (their judge's
+    collision-free / drivable-area probabilities are replaced by the sample majority)."""
+    xy = np.asarray(xy, dtype=np.float64)
+    k = min(int(round(at_s / dt)), xy.shape[1]) - 1
+    disp = np.linalg.norm(xy[:, k], axis=1)
+    if disp[0] >= stall_m:
+        return 0
+    mov = np.nonzero(disp >= min_move_m)[0]
+    if len(mov) < max(1, int(np.ceil(min_frac * len(xy)))):
+        return 0
+    flat = xy[mov].reshape(len(mov), -1)
+    return int(mov[np.linalg.norm(flat[:, None] - flat[None], axis=2).sum(1).argmin()])

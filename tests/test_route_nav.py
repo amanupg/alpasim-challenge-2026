@@ -6,7 +6,8 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from a15_driver.driver import route_nav_text, speed_scale_plan  # noqa: E402
-from a15_driver.route_choice import (RouteMemory, cap_speed_on_path, choose, choose_fast, retime_path,  # noqa: E402
+from a15_driver.route_choice import (RouteMemory, cap_speed_on_path, choose, choose_fast, heading_change_deg,  # noqa: E402
+                                     retime_path, stall_rescue_choice, time_warp_plan,
                                      route_deviation, route_lateral_offset, route_parallel, route_path,
                                      route_pull)
 
@@ -161,5 +162,16 @@ check("fast: faster sample on another path is ignored", choose_fast(fs2), 1)
 fs3 = np.stack([_line(10.0), _line(10.1), _line(9.0)])
 check("fast: keeps sample 0 when nothing is clearly longer", choose_fast(fs3), 0)
 check("fast: a much faster plan on the same road still counts (shape over the shared stretch)", choose_fast(np.stack([_line(6.0), _line(6.5), _line(12.0)])), 2)
+# time warp (organisers' rule): 10 m/s straight plan read ahead 10% in the near term, unchanged from 4 s on
+tw, _ = time_warp_plan(straight64, np.zeros(64), 1.10)
+check("warp: 0.5 s point read at 0.55 s", round(float(tw[4, 0]), 2), 5.5)
+check("warp: 2 s point read at 2.1 s", round(float(tw[19, 0]), 2), 21.0)
+check("warp: unchanged from 4 s on", (round(float(tw[39, 0]), 2), round(float(tw[63, 0]), 2)), (40.0, 64.0))
+check("warp: straight plan has ~0 heading change", heading_change_deg(straight64), 0.0)
+# stall rescue: sample 0 stopped, most samples move -> a moving one; most stopped -> keep 0
+_stop = np.zeros((64, 2))
+check("stall: majority moves -> a moving sample", stall_rescue_choice(np.stack([_stop, _line(5.0), _line(6.0), _line(5.5), _stop, _line(4.0)])) in (1, 2, 3, 5), True)
+check("stall: majority stopped -> keep sample 0", stall_rescue_choice(np.stack([_stop, _line(5.0), _stop, _stop, _stop, _line(4.0)])), 0)
+check("stall: sample 0 moving -> keep it", stall_rescue_choice(np.stack([_line(3.0), _line(5.0), _line(6.0)])), 0)
 print("PASS" if bad == 0 else f"FAIL ({bad})")
 sys.exit(bad > 0)

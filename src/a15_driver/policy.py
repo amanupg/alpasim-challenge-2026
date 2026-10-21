@@ -20,7 +20,7 @@ import time
 import numpy as np
 import torch
 
-from .route_choice import choose as route_choose, choose_fast, path_lengths, route_costs
+from .route_choice import choose as route_choose, choose_fast, path_lengths, route_costs, stall_rescue_choice
 
 LOGGER = logging.getLogger("a15_policy")
 
@@ -96,7 +96,8 @@ class Alpamayo15Policy:
                  embed_cpu: bool = True, cuda_graph: bool = False, num_samples: int = 1,
                  chooser: str = "medoid", route_margin: float = 2.0, route_min_len: float = 0.0,
                  route_big_gap: float = 0.0, route_big_gap_min_len: float = 0.0,
-                 diffusion_temperature: float = 1.0, fast_tol: float = 1.0, expert_ckpt: str | None = None) -> None:
+                 diffusion_temperature: float = 1.0, fast_tol: float = 1.0, expert_ckpt: str | None = None,
+                 stall_m: float = 3.0) -> None:
         from alpamayo1_5 import helper
         from alpamayo1_5.models.alpamayo1_5 import Alpamayo1_5
 
@@ -137,6 +138,7 @@ class Alpamayo15Policy:
         self._k_now = self._num_samples
         self._route_margin, self._route_min_len = route_margin, route_min_len
         self._fast_tol = fast_tol                  # chooser "fast": path-shape tolerance to the medoid, m
+        self._stall_m = stall_m                    # chooser "stall": sample 0 moving less than this in 4 s stalls
         self._route_big_gap, self._route_big_gap_min_len = route_big_gap, route_big_gap_min_len
         # initial-noise temperature of the flow-matching sampler (Alpamayo 1.5 nav notebook uses 0.6:
         # "more stable but less diverse" trajectories); 1.0 is the library default we ran until 2026-10-04
@@ -163,10 +165,26 @@ class Alpamayo15Policy:
             if K == 1:
                 self.last_choice = 0
                 return orig(*args, batch_size=1, **kw)
-            S = torch.cat([orig(*args, batch_size=1, **kw) for _ in range(K)], 0)       # (K, *action_dims)
             hx, hr = self._hist
-            xyz, _ = model.action_space.action_to_traj(S, hx[:, -1].repeat(K, *[1] * (hx.dim() - 2)),
-                                                       hr[:, -1].repeat(K, *[1] * (hr.dim() - 2)))
+            to_xy = lambda S_: model.action_space.action_to_traj(
+                S_, hx[:, -1].repeat(len(S_), *[1] * (hx.dim() - 2)), hr[:, -1].repeat(len(S_), *[1] * (hr.dim() - 2)))[0]
+            if self._chooser == "stall":
+                # draw sample 0 only; more samples only if it stalls (moves < 3 m in 4 s), so normal replans cost
+                # what K=1 costs
+                s0 = orig(*args, batch_size=1, **kw)
+                x0 = to_xy(s0)[..., :2].reshape(1, -1, 2).float().cpu().numpy()
+                if np.linalg.norm(x0[0, 39]) >= self._stall_m:
+                    self.last_choice = 0
+                    return s0
+                S = torch.cat([s0] + [orig(*args, batch_size=1, **kw) for _ in range(K - 1)], 0)
+                cand = to_xy(S)[..., :2].reshape(K, -1, 2).float().cpu().numpy()
+                i = stall_rescue_choice(cand, stall_m=self._stall_m)
+                self.last_choice = i
+                self.last_costs = np.linalg.norm(cand[:, 39], axis=1).round(1).tolist()   # 4 s displacement per sample
+                self.last_ends = cand[:, ::8].round(1).tolist()
+                return S[i:i + 1]
+            S = torch.cat([orig(*args, batch_size=1, **kw) for _ in range(K)], 0)       # (K, *action_dims)
+            xyz = to_xy(S)
             xy = xyz[..., :2].reshape(K, -1).float()
             if self._chooser == "fast":
                 cand = xy.reshape(K, -1, 2).cpu().numpy()

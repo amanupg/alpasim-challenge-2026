@@ -47,8 +47,9 @@ from PIL import Image                                               # noqa: E402
 import grpc                                                         # noqa: E402
 
 from .policy import CAMERA_NAME_TO_INDEX, NUPLAN_TO_SLOT, Alpamayo15Policy  # noqa: E402
-from .route_choice import (RouteMemory, cap_speed_on_path, retime_path, route_deviation,  # noqa: E402
-                           route_lateral_offset, route_parallel, route_path, route_pull)
+from .route_choice import (RouteMemory, cap_speed_on_path, heading_change_deg, retime_path,  # noqa: E402
+                           route_deviation, route_lateral_offset, route_parallel, route_path, route_pull,
+                           time_warp_plan)
 from .trajectory import CachedPlan, build_trajectory_from_plan, make_cached_plan  # noqa: E402
 from .capture import Capturer, GroundTruthStore  # noqa: E402
 
@@ -268,7 +269,8 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                  route_snap: float = 0.0, route_snap_max_deg: float = 0.0, route_snap_min_offset: float = 0.0,
                  route_memory: bool = False, route_mem_debug: bool = False, route_mem_dev_min: float = 20.0,
                  snap_alat: float = 0.0, mem_geom_only: bool = False, capture_dir: str | None = None,
-                 capture_every_us: int = 500_000):
+                 capture_every_us: int = 500_000, time_scale: float = 1.0, ts_max_turn_deg: float = 10.0,
+                 ts_skip_snapped: bool = True):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
         self._log_choices, self._early_replan, self._nav_dist = log_choices, early_replan, nav_dist
         self._speed_scale = speed_scale
@@ -280,6 +282,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         self._route_mem_debug, self._route_mem_dev_min = route_mem_debug, route_mem_dev_min
         self._snap_alat, self._mem_geom_only = snap_alat, mem_geom_only
         self._capturer = Capturer(capture_dir, capture_every_us) if capture_dir else None
+        self._time_scale, self._ts_max_turn_deg, self._ts_skip_snapped = time_scale, ts_max_turn_deg, ts_skip_snapped
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -535,6 +538,11 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                         LOGGER.info("memsnap %s t0 %d: dev %.1f, memory path %s", s.sid, t0, dev,
                                     np.round(mpath[::max(1, len(mpath) // 8)][:8], 1).tolist())
             s.snapping = snapped
+        # the organisers' time warp (A15_TIME_SCALE; their GTRS sample, via alpasim-jepa) on near-straight plans
+        # only (A15_TS_MAX_TURN_DEG over 4 s), and not on snapped plans (A15_TS_SKIP_SNAPPED, cf. their judge)
+        if self._time_scale > 1.0 and not (self._ts_skip_snapped and snapped) \
+                and heading_change_deg(np.asarray(xy)) < self._ts_max_turn_deg:
+            xy, yaw = time_warp_plan(np.asarray(xy), np.asarray(yaw), self._time_scale)
         new = make_cached_plan(created_time_us=t0, anchor_pose=anchor, trajectory_xy=xy, headings=yaw,
                                source_frequency_hz=policy.output_frequency_hz)
         with self._lock:
@@ -638,7 +646,8 @@ def main() -> None:
         route_big_gap_min_len=float(os.environ.get("A15_ROUTE_BIG_GAP_MIN_LEN", "0")),
         diffusion_temperature=float(os.environ.get("A15_DIFF_TEMP", "1.0")),
         fast_tol=float(os.environ.get("A15_FAST_TOL", "1.0")),
-        expert_ckpt=os.environ.get("A15_EXPERT_CKPT") or None))
+        expert_ckpt=os.environ.get("A15_EXPERT_CKPT") or None,
+        stall_m=float(os.environ.get("A15_STALL_M", "3.0"))))
     service = A15ChallengeDriver(
         handle=handle,
         # "," or ";" separated (sbatch --export splits values on commas)
@@ -664,7 +673,10 @@ def main() -> None:
         snap_alat=float(os.environ.get("A15_SNAP_ALAT", "0")),
         mem_geom_only=os.environ.get("A15_ROUTE_MEM_GEOM_ONLY", "0") == "1",
         capture_dir=os.environ.get("A15_CAPTURE_DIR") or None,
-        capture_every_us=int(os.environ.get("A15_CAPTURE_EVERY_US", "500000")))
+        capture_every_us=int(os.environ.get("A15_CAPTURE_EVERY_US", "500000")),
+        time_scale=float(os.environ.get("A15_TIME_SCALE", "1.0")),
+        ts_max_turn_deg=float(os.environ.get("A15_TS_MAX_TURN_DEG", "10")),
+        ts_skip_snapped=os.environ.get("A15_TS_SKIP_SNAPPED", "1") == "1")
     host, port = os.environ.get("ALPASIM_DRIVER_HOST", "0.0.0.0"), int(os.environ.get("ALPASIM_DRIVER_PORT", "6789"))
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=int(os.environ.get("ALPASIM_DRIVER_GRPC_WORKERS", "8"))))
     egodriver_pb2_grpc.add_EgodriverServiceServicer_to_server(service, server)
