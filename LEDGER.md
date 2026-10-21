@@ -1255,3 +1255,22 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - ACM's 3rd entry 2219 (0.738 / 0.885);
   - team-rvs 2195 (0.722 / 0.749);
   - **our v0.3 2146, rank 8** (0.611 / 0.795).
+
+## 2026-10-21 **v5 official result: PCS 2184, 4th team on PAI**
+| PAI official | PCS [95%] | rank interval | avg scene score | at-fault distance | dist to GT |
+|---|---|---|---|---|---|
+| v0.3 (2026-09-29) | 2150 [2104-2196] | 5-18 | 0.611 | 0.795 | 2.177 |
+| **v5 (f594cf5f)** | **2184 [2137-2230]** | **2-11** | **0.652** | 0.771 | 2.058 |
+
+- **Gain over v0.3:** scene score +0.041, PCS +34.
+  - Local H100 predicted +0.071, so the official gain is ~58% of the local one.
+  - Our "local reads ~0.046 high" estimate predicted ~0.68; the actual is 0.652.
+  - At-fault distance is slightly lower (0.795 → 0.771).
+- **Team order by best entry:**
+  1. ACM 2256 (0.665 / 0.53; their newer 0.738 / 0.885 entry is 2216);
+  2. VAIL 2230 (0.722 / 1.301);
+  3. team-rvs (host) 2192 (0.722 / 0.749);
+  4. **amanupg 2184**;
+  5. BASICLAB 2163.
+- The top-5 rank intervals overlap.
+- **Lesson for the bench:** a local H100 gain converts at ~0.6× officially. Future candidates need more than ~+0.05 locally to show clearly on the board.
