@@ -1347,3 +1347,11 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Other A6000 nodes may run driver 550 (compat on A6000 untested); `auto` handles the switch.
   - Use: capture and training (already in the constraint list); screening stays on L40S (closer to H100).
   - Capture jobs 13609282-84 and trainer smoke 13609292 are now running.
+- **Trainer smoke passed (13609292, L40S):**
+  - 2.281B trainable of 11.08B; 1.44 s per step (2 samples); peak 37.6 GiB; checkpoint saved (409 tensors).
+  - Open loop on 10 rendered samples: ADE 2.55, **predicted / recorded 6.4 s path length, median 1.02**, so the model is not slow in open loop on these few samples. The full capture will tell.
+- **New lever: missing `<traj_future_start>`.**
+  - In closed loop the 4-token generation misses it in **30-42% of plans** (H100 driver logs: 336/800 in v5 batch 41-80, 237/799 in v0.3 batch 81-120). The library then attaches the action block after whatever was generated.
+  - `A15_FORCE_TRAJ_START=1` (`policy._forced_rollout`) appends the token instead of generating it, as NVIDIA's teacher-forced training does. It uses the same prefill, position ids and mask, and the model's own sampler (the K-choosers still wrap it).
+  - This also aligns inference with our fine-tune's training input.
+  - Check on the validation clips: 13609783.

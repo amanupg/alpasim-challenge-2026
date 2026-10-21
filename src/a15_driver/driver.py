@@ -647,7 +647,8 @@ def main() -> None:
         diffusion_temperature=float(os.environ.get("A15_DIFF_TEMP", "1.0")),
         fast_tol=float(os.environ.get("A15_FAST_TOL", "1.0")),
         expert_ckpt=os.environ.get("A15_EXPERT_CKPT") or None,
-        stall_m=float(os.environ.get("A15_STALL_M", "3.0"))))
+        stall_m=float(os.environ.get("A15_STALL_M", "3.0")),
+        force_start=os.environ.get("A15_FORCE_TRAJ_START", "0") == "1"))
     service = A15ChallengeDriver(
         handle=handle,
         # "," or ";" separated (sbatch --export splits values on commas)

@@ -97,7 +97,7 @@ class Alpamayo15Policy:
                  chooser: str = "medoid", route_margin: float = 2.0, route_min_len: float = 0.0,
                  route_big_gap: float = 0.0, route_big_gap_min_len: float = 0.0,
                  diffusion_temperature: float = 1.0, fast_tol: float = 1.0, expert_ckpt: str | None = None,
-                 stall_m: float = 3.0) -> None:
+                 stall_m: float = 3.0, force_start: bool = False) -> None:
         from alpamayo1_5 import helper
         from alpamayo1_5.models.alpamayo1_5 import Alpamayo1_5
 
@@ -139,6 +139,7 @@ class Alpamayo15Policy:
         self._route_margin, self._route_min_len = route_margin, route_min_len
         self._fast_tol = fast_tol                  # chooser "fast": path-shape tolerance to the medoid, m
         self._stall_m = stall_m                    # chooser "stall": sample 0 moving less than this in 4 s stalls
+        self._force_start = force_start            # append <traj_future_start> instead of generating it
         self._route_big_gap, self._route_big_gap_min_len = route_big_gap, route_big_gap_min_len
         # initial-noise temperature of the flow-matching sampler (Alpamayo 1.5 nav notebook uses 0.6:
         # "more stable but less diverse" trajectories); 1.0 is the library default we ran until 2026-10-04
@@ -206,6 +207,50 @@ class Alpamayo15Policy:
         model.diffusion.sample = sample
 
     @torch.no_grad()
+    def _forced_rollout(self, inp: dict) -> tuple[torch.Tensor, torch.Tensor]:
+        """Trajectory with <traj_future_start> appended to the prompt instead of generated (A15_FORCE_TRAJ_START=1).
+
+        In closed loop the 4-token generation misses <traj_future_start> in 30-42% of plans (PAI H100 runs,
+        2026-10-21: 336/800 and 237/799), and the library then attaches the action block after whatever was
+        generated. Appending it is what NVIDIA's own teacher-forced training forward does (alpamayo-recipes
+        alpamayo1_5_quant), so the expert always sees the context it was trained with. Same prefill, same
+        position ids and attention mask as the library's rollout for one sequence; the diffusion sampler is the
+        model's own (so the K-sample choosers still wrap it)."""
+        import einops
+        from alpamayo1_5.models.token_utils import to_special_token
+        m = self._model
+        hx, hr = inp["ego_history_xyz"], inp["ego_history_rot"]
+        td = dict(inp["tokenized_data"])
+        ids = m.fuse_traj_tokens(td.pop("input_ids"), {"ego_history_xyz": hx, "ego_history_rot": hr})
+        dev = ids.device
+        start = m.tokenizer.convert_tokens_to_ids(to_special_token("traj_future_start"))
+        ids = torch.cat([ids, torch.full((ids.shape[0], 1), start, dtype=ids.dtype, device=dev)], 1)
+        if td.get("attention_mask") is not None:
+            am = td["attention_mask"]
+            td["attention_mask"] = torch.cat([am, torch.ones((am.shape[0], 1), dtype=am.dtype, device=am.device)], 1)
+        out = m.vlm(input_ids=ids, use_cache=True, return_dict=True, **td)
+        cache = out.past_key_values
+        L = cache.get_seq_length()
+        n_tok = m.action_space.get_action_space_dims()[0]
+        pos = einops.repeat(torch.arange(n_tok, device=dev), "l -> 3 b l", b=1).clone()
+        pos += (m.vlm.model.rope_deltas + torch.full((1,), L, device=dev, dtype=torch.long)[:, None]).to(pos.device)
+        mask = torch.zeros((1, 1, n_tok, L + n_tok), dtype=torch.float32, device=dev)
+        fwd = {"is_causal": False} if m.config.expert_non_causal_attention else {}
+
+        def step_fn(x, t):
+            b = x.shape[0]
+            e = m.action_in_proj(x, t)
+            if e.dim() == 2:
+                e = e.view(b, n_tok, -1)
+            o = m.expert(inputs_embeds=e, position_ids=pos.expand(3, b, n_tok) if b > 1 else pos,
+                         past_key_values=cache, attention_mask=mask.expand(b, -1, -1, -1), use_cache=True, **fwd)
+            cache.crop(L)
+            return m.action_out_proj(o.last_hidden_state[:, -n_tok:]).view(-1, *m.action_space.get_action_space_dims())
+
+        a = m.diffusion.sample(batch_size=1, step_fn=step_fn, device=dev, return_all_steps=False, **self._diff_kwargs)
+        return m.action_space.action_to_traj(a, hx[:, -1], hr[:, -1])
+
+    @torch.no_grad()
     def predict(self, frames: torch.Tensor, cam_slots: list[int],
                 hist_xyz: torch.Tensor, hist_rot: torch.Tensor, nav_text: str | None = None,
                 route_xy: np.ndarray | None = None, num_samples: int | None = None) -> tuple[np.ndarray, np.ndarray, dict]:
@@ -225,12 +270,19 @@ class Alpamayo15Policy:
                                       "ego_history_rot": hist_rot}, "cuda")
         self._hist = (inp["ego_history_xyz"], inp["ego_history_rot"])
         torch.cuda.manual_seed_all(self._seed)
-        with torch.autocast("cuda", dtype=torch.bfloat16):
-            xyz, rot, extra = self._model.sample_trajectories_from_data_with_vlm_rollout(
-                data=inp, top_p=0.98, temperature=0.6, num_traj_samples=1, diffusion_kwargs=self._diff_kwargs,
-                max_generation_length=256 if self._reasoning else 4, return_extra=True)
-        xy = xyz[0, 0, 0, :, :2].float().cpu().numpy()
-        r = rot[0, 0, 0].float()
+        if self._force_start and not self._reasoning:
+            with torch.autocast("cuda", dtype=torch.bfloat16):
+                xyz, rot = self._forced_rollout(inp)
+            extra = {}
+            xy = xyz[0, :, :2].float().cpu().numpy()
+            r = rot[0].float()
+        else:
+            with torch.autocast("cuda", dtype=torch.bfloat16):
+                xyz, rot, extra = self._model.sample_trajectories_from_data_with_vlm_rollout(
+                    data=inp, top_p=0.98, temperature=0.6, num_traj_samples=1, diffusion_kwargs=self._diff_kwargs,
+                    max_generation_length=256 if self._reasoning else 4, return_extra=True)
+            xy = xyz[0, 0, 0, :, :2].float().cpu().numpy()
+            r = rot[0, 0, 0].float()
         yaw = torch.atan2(r[:, 1, 0], r[:, 0, 0]).cpu().numpy()
         cot = str(np.array(extra.get("cot", [""]), dtype=object).ravel()[0]) if self._reasoning else ""
         return xy, yaw, {"prompt_tokens": int(tok["input_ids"].shape[1]), "cot": cot, "choice": self.last_choice,
