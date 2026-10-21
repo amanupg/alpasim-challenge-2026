@@ -1239,3 +1239,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - Memory fixes more corridor exits (13 -> 10: 622908, 62e0a7, 733560, e64716, 392963 pass) but the speed cap turns passes into low progress (22 -> 29) and offroad/collisions rise (adfc75, d50172, 1845f6 offroad; 3ac7da, 892966, 90153b collisions).
 - **Verdict across v1/v2/v3: waypoint-memory snap does not beat v5 (+0.003, ~-0.03, -0.026). Dropped; v5 stays the PAI entry.**
 - Shared uv cache works: env build 2402 s (first job, filling the cache), then 59 s, 4 s, 2 s.
+
+## 2026-10-21 **Official PAI submission: v5** (Aman asked me to submit)
+- CLI session re-authenticated by Aman (`configure-token`). Before submitting: `limits` 3/3 left, terms accepted (official-2026-08, captain accepted), `ecr-login` OK, tag `v5` absent from the registry.
+- Pushed `teams/amanupg:v5`, digest **sha256:6ef89f7b858f5d9c11bb9508c84b43161d9a05fb569a165b4406d85e4af4bdfc**. This is the verified build: git bad9300, `A15_NUM_SAMPLES=1 A15_ROUTE_SNAP=2.0 A15_ROUTE_SNAP_MAX_DEG=15 A15_ROUTE_MEMORY=0`. Only the code layer uploaded.
+- **Submitted: `submission_id f594cf5f-77bc-4ace-8785-315315a502e2`, track pai, default controller gains, QUEUED (position 1 of 1).**
+- October slots after this: 2 left (shared with nuPlan).
+- Expected: local H100 0.728 vs v0.3 0.657 (+0.071); official v0.3 was 0.611, so roughly 0.68 if the local bias (~+0.046) holds.
