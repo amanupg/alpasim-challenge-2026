@@ -103,6 +103,8 @@ else
   DRV=$!
 fi
 trap 'kill $DRV 2>/dev/null; finish_rollouts; finish_capture' EXIT
+# Slurm sends TERM at the time limit (and USR1 5 min before, via --signal=B:USR1@300 where set): save what exists
+trap 'echo "signal: saving partial results"; kill $DRV 2>/dev/null; finish_rollouts; finish_capture; exit 143' TERM USR1
 # log ALL GPU processes, but the driver's own line is what the 16 GiB cap is about (renderer/physics share the GPU)
 ( while kill -0 $DRV 2>/dev/null; do nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader >> $RUN/gpu_mem.log; sleep 15; done ) &
 echo $DRV > $RUN/driver.pid

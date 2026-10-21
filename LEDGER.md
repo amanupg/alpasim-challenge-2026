@@ -1358,3 +1358,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Capture c0 (13609282) failed at scene download.** HF xet transfer "I/O error: error decoding response body" in the wizard; it produced an empty tar, which I removed.
   - `sim_local.sbatch` now retries the wizard up to 3 times, keeping already-downloaded files; the last try uses `HF_HUB_DISABLE_XET=1`.
   - c0 requeued as 13610789. Already-queued capture jobs keep the old script, so rerun them if they hit the same error.
+- **Throughput on non-H100 GPUs (2026-10-21 15:40):**
+  - L40S v5 bench: ~22 of 40 scenes in 2.1 h, so ~3.8 h per batch (H100 ~2.2 h). Fits the 5 h limit.
+  - Capture: 10-18 of 40 scenes in ~2.2 h (scene downloads ~68 GB per job first), so 40-scene jobs overrun the 4 h limit.
+  - **Fixes:**
+    - `sim_local.sbatch` traps TERM/USR1 and saves partial capture and rollouts. New jobs use `--signal=B:USR1@300`.
+    - The remaining capture is split into 20-scene jobs: c4a..c9b = 13612127-38, chained after the running ones (cancelled 13609286-91).
+    - The running c1/c2/c3/c0r (old script) may lose their tar at timeout; check, and rerun if needed.
