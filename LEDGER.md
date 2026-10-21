@@ -1370,3 +1370,28 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Memory 14,786 vs 14,048 MiB (+0.7 GB); on H100 expect ~15.3 GB of the 16 GiB, to verify if it wins.
   - Trajectories differ (max 5.3 m) where the start token had been missing (2 of 12 clips).
   - Screen on L40S, 120 scenes, queued on 3 extra lanes.
+
+## 2026-10-21 evening: action-expert fine-tune, first runs
+- **Capture data:** the first four capture jobs saved full tars (data/ft_capture/): c2 1,103 samples, c1 868, c0 922, c0r 1,106, plus the smoke capture's 55. Together that is 4,054 samples from the nurec_curated_train split, symlinked into data/ft_runA/.
+  - Before the 4 h limit I snapshotted the partial captures into data/ft_capture_partial/ (2 GB). All four jobs then saved their tars anyway, so the snapshots are superseded.
+- **Trainer fixes:**
+  - **bf16 AdamW lost updates.** With bf16 weights and lr 1e-5, torch.optim.AdamW rounds most updates away (unit test: 50 steps of -1e-5 left 0.02 at 0.02002). SRAdamW now rounds the updated weight stochastically and tracks fp32 (0.019519 vs 0.019500). tests/test_sr_adamw.py runs before every training job.
+  - **Other changes:**
+    - 4 (x0, t) draws per VLM prefill;
+    - the open-loop check uses the forced-start path that training uses;
+    - truncated samples and tars are skipped;
+    - an atomic checkpoint every 100 steps;
+    - line-buffered logs;
+    - training runs on 48 GB cards (A6000/L40S/L40/R6000), measured peak ~44 GB on A6000.
+- **Runs:**
+  - Run A, 13613201: lr 1e-5, 2 epochs.
+  - Run B, 13614344: lr 3e-5, 2 epochs.
+- **Closed-loop screens:** L40S, forced start + snap 2.0/15°, A15_EXPERT_CKPT, start afterok:
+  - run A: 13614346-48;
+  - run B: 13614349-51.
+  - Control: the plain forced-start screen, 13612149-51.
+- **L40S v5 baseline (13609305-07):** mean 0.689.
+  - 1-40: 0.622;
+  - 41-80: 0.648;
+  - 81-120: 0.796.
+- **Fast chooser:** 41-80 scored 0.625 (-0.023 vs v5). It drove further (progress 0.82 vs 0.78) but left the corridor more (0.28 vs 0.23); dist-to-GT 3.33 vs 2.56.
