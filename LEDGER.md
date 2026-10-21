@@ -1332,3 +1332,11 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Checked: frames 4 cams × 4 × 576×320 (rendered night scene, correct slots 0/1/2/6); history speed vs the recorded future's first 0.5 s match (11.19 vs 11.24 m/s; 5.72 vs 6.01); valid rotations.
 - **Capture at scale:** 400 train scenes (10 × 40, `scenes/pai_train_c0..9.txt` from a seeded shuffle of nurec_curated_train), jobs 13609282-91, 3 lanes, non-H100. Expect ~11k samples.
 - **Trainer smoke test:** 13609292 (3 steps on the smoke samples).
+- **Screening moved to L40S (Aman, 2026-10-21): "screen them on l40s; if it gains, test it on H100".** The goal is to shorten the dev cycle on GPUs that are easier to land (~34 L40S vs ~8 H100).
+  - Cancelled the H100 benches (fast 13608641-43, warp 13608708-10, stall 13608711-13).
+  - **L40S screen:** v5 baseline + fast chooser + time warp + stall rescue, 120 scenes each, 12 jobs in 6 lanes (at most 6 L40S at once):
+    - v5: 13609305-07;
+    - fast: 13609308-10;
+    - warp: 13609311-13;
+    - stall: 13609314-16.
+  - **Rule:** a variant that clearly beats v5 on L40S (local > +0.05) gets an H100 confirmation run before any slot decision.
