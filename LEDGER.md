@@ -1365,3 +1365,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
     - `sim_local.sbatch` traps TERM/USR1 and saves partial capture and rollouts. New jobs use `--signal=B:USR1@300`.
     - The remaining capture is split into 20-scene jobs: c4a..c9b = 13612127-38, chained after the running ones (cancelled 13609286-91).
     - The running c1/c2/c3/c0r (old script) may lose their tar at timeout; check, and rerun if needed.
+- **Forced-start check (13609783, A6000 driver 575, 12 validation clips):**
+  - Runs; latency 1.43 s (normal path 1.50 s).
+  - Memory 14,786 vs 14,048 MiB (+0.7 GB); on H100 expect ~15.3 GB of the 16 GiB, to verify if it wins.
+  - Trajectories differ (max 5.3 m) where the start token had been missing (2 of 12 clips).
+  - Screen on L40S, 120 scenes, queued on 3 extra lanes.
