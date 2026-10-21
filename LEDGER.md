@@ -1327,3 +1327,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - **Capture and training go off H100:** `--gres=gpu:1 --constraint="A6000|l40s|l40|R6000"`.
   - `CUDA_COMPAT=auto` uses compat only when the host driver is < 570.
   - Capture smoke resubmitted as 13608985 (13608659 cancelled).
+- **Capture smoke passed (13608985, ins057, driver 550, so compat auto-on):**
+  - 55 samples from 2 train scenes in 18 min; 34 MB tar.
+  - Checked: frames 4 cams × 4 × 576×320 (rendered night scene, correct slots 0/1/2/6); history speed vs the recorded future's first 0.5 s match (11.19 vs 11.24 m/s; 5.72 vs 6.01); valid rotations.
+- **Capture at scale:** 400 train scenes (10 × 40, `scenes/pai_train_c0..9.txt` from a seeded shuffle of nurec_curated_train), jobs 13609282-91, 3 lanes, non-H100. Expect ~11k samples.
+- **Trainer smoke test:** 13609292 (3 steps on the smoke samples).
