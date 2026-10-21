@@ -253,7 +253,8 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                  nav_dist: str = "euclid", speed_scale: float = 1.0, route_pull: float = 0.0,
                  route_pull_d0: float = 30.0, route_pull_d1: float = 45.0, speed_cams: bool = False,
                  route_snap: float = 0.0, route_snap_max_deg: float = 0.0, route_snap_min_offset: float = 0.0,
-                 route_memory: bool = False):
+                 route_memory: bool = False, route_mem_debug: bool = False, route_mem_dev_min: float = 20.0,
+                 snap_alat: float = 0.0, mem_geom_only: bool = False):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
         self._log_choices, self._early_replan, self._nav_dist = log_choices, early_replan, nav_dist
         self._speed_scale = speed_scale
@@ -262,10 +263,8 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         self._route_snap, self._route_snap_max_deg = route_snap, route_snap_max_deg
         self._route_snap_min_offset = route_snap_min_offset
         self._route_memory = route_memory
-        self._route_mem_debug = os.environ.get("A15_ROUTE_MEM_DEBUG", "0") == "1"
-        self._route_mem_dev_min = float(os.environ.get("A15_ROUTE_MEM_DEV_MIN", "20"))
-        self._snap_alat = float(os.environ.get("A15_SNAP_ALAT", "0"))
-        self._mem_geom_only = os.environ.get("A15_ROUTE_MEM_GEOM_ONLY", "0") == "1"
+        self._route_mem_debug, self._route_mem_dev_min = route_mem_debug, route_mem_dev_min
+        self._snap_alat, self._mem_geom_only = snap_alat, mem_geom_only
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -606,7 +605,11 @@ def main() -> None:
         route_snap=float(os.environ.get("A15_ROUTE_SNAP", "0")),
         route_snap_max_deg=float(os.environ.get("A15_ROUTE_SNAP_MAX_DEG", "0")),
         route_snap_min_offset=float(os.environ.get("A15_ROUTE_SNAP_MIN_OFFSET", "0")),
-        route_memory=os.environ.get("A15_ROUTE_MEMORY", "0") == "1")
+        route_memory=os.environ.get("A15_ROUTE_MEMORY", "0") == "1",
+        route_mem_debug=os.environ.get("A15_ROUTE_MEM_DEBUG", "0") == "1",
+        route_mem_dev_min=float(os.environ.get("A15_ROUTE_MEM_DEV_MIN", "20")),
+        snap_alat=float(os.environ.get("A15_SNAP_ALAT", "0")),
+        mem_geom_only=os.environ.get("A15_ROUTE_MEM_GEOM_ONLY", "0") == "1")
     host, port = os.environ.get("ALPASIM_DRIVER_HOST", "0.0.0.0"), int(os.environ.get("ALPASIM_DRIVER_PORT", "6789"))
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=int(os.environ.get("ALPASIM_DRIVER_GRPC_WORKERS", "8"))))
     egodriver_pb2_grpc.add_EgodriverServiceServicer_to_server(service, server)
