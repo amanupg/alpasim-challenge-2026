@@ -1395,3 +1395,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - 41-80: 0.648;
   - 81-120: 0.796.
 - **Fast chooser:** 41-80 scored 0.625 (-0.023 vs v5). It drove further (progress 0.82 vs 0.78) but left the corridor more (0.28 vs 0.23); dist-to-GT 3.33 vs 2.56.
+- **Fast chooser rejected on L40S:**
+  - 41-80: -0.023;
+  - 81-120: 0.726 vs 0.796 (-0.070), more progress (0.87 vs 0.81) but at-fault 0.05 vs 0.03 and dist-to-GT 3.07 vs 2.29.
+  - Same pattern as on H100, so I cancelled its 1-40 batch (13609310) to free the GPU.
