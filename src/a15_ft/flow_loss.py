@@ -10,8 +10,10 @@ import torch
 from alpamayo1_5.models.token_utils import to_special_token
 
 
-def teacher_forced_flow(model, data: dict[str, Any], vlm_grad: bool = False) -> dict[str, torch.Tensor]:
-    """v_pred / v_target (B, n_diffusion_tokens, action_dim) for one batch; MSE between them is the loss.
+def teacher_forced_flow(model, data: dict[str, Any], vlm_grad: bool = False, n_noise: int = 1) -> dict[str, torch.Tensor]:
+    """v_pred / v_target (n_noise * B, n_diffusion_tokens, action_dim) for one batch; MSE between them is the loss.
+
+    n_noise > 1 reuses the one VLM prefill for several (x_0, t) draws (the cache is cropped back after each).
 
     data: tokenized_data (input_ids + processor outputs), ego_history_xyz/rot (B,1,16,...), ego_future_xyz/rot
     (B,1,64,...), all in the t0 rig frame, as Alpamayo's own loader builds them."""
@@ -46,17 +48,18 @@ def teacher_forced_flow(model, data: dict[str, Any], vlm_grad: bool = False) -> 
     x_1 = model.action_space.traj_to_action(traj_history_xyz=ego_history_xyz[:, 0], traj_history_rot=ego_history_rot[:, 0],
                                             traj_future_xyz=ego_future_xyz[:, 0], traj_future_rot=ego_future_rot[:, 0])
     x_1 = x_1.to(device=device, dtype=torch.float32)
-    x_0 = torch.randn_like(x_1)
-    t = torch.rand(B, 1, 1, device=device, dtype=x_1.dtype)
-    x_t = (1.0 - t) * x_0 + t * x_1
-    v_target = x_1 - x_0
-
     pd = next(model.action_in_proj.parameters()).dtype
-    emb = model.action_in_proj(x_t.to(pd), t.to(pd))
-    if emb.dim() == 2:
-        emb = emb.view(B, n_tok, -1)
-    out = model.expert(inputs_embeds=emb, position_ids=position_ids, past_key_values=prompt_cache,
-                       attention_mask=attention_mask, use_cache=True, **fwd)
-    prompt_cache.crop(prefill_seq_len)
-    v_pred = model.action_out_proj(out.last_hidden_state[:, -n_tok:]).view(B, *model.action_space.get_action_space_dims())
-    return {"v_pred": v_pred.to(torch.float32), "v_target": v_target}
+    v_pred, v_target = [], []
+    for _ in range(n_noise):
+        x_0 = torch.randn_like(x_1)
+        t = torch.rand(B, 1, 1, device=device, dtype=x_1.dtype)
+        x_t = (1.0 - t) * x_0 + t * x_1
+        emb = model.action_in_proj(x_t.to(pd), t.to(pd))
+        if emb.dim() == 2:
+            emb = emb.view(B, n_tok, -1)
+        out = model.expert(inputs_embeds=emb, position_ids=position_ids, past_key_values=prompt_cache,
+                           attention_mask=attention_mask, use_cache=True, **fwd)
+        prompt_cache.crop(prefill_seq_len)
+        v_pred.append(model.action_out_proj(out.last_hidden_state[:, -n_tok:]).view(B, *model.action_space.get_action_space_dims()))
+        v_target.append(x_1 - x_0)
+    return {"v_pred": torch.cat(v_pred).to(torch.float32), "v_target": torch.cat(v_target)}
