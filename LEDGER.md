@@ -1310,3 +1310,15 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
     - Open-loop check on held-out scenes before and after: ADE, and predicted / recorded 6.4 s path length.
   - **Driver:** `A15_EXPERT_CKPT` loads the fine-tuned expert before int8 quantization.
   - Capture smoke test (2 train scenes): 13608659.
+
+## 2026-10-21 Ported from alpasim-jepa (Aman: "yes port both")
+- **Time warp:** the organisers' rule from their GTRS sample (Apache-2.0), via alpasim-jepa's `timewarp.py`. Ported as `route_choice.time_warp_plan` with `A15_TIME_SCALE`.
+  - The plan is read ahead in the near term (t ≤ 1 s: 1.1t; 1-3 s: t + 0.1; tapering to 0 by 4 s); times beyond 4 s are unchanged.
+  - Applied only if the heading changes < 10° over 4 s (`A15_TS_MAX_TURN_DEG`), and not on snapped plans (`A15_TS_SKIP_SNAPPED`, their judge+warp lesson).
+  - On nuPlan: 1.10 straight-only was part of their +0.036 add-on.
+- **Stall rescue:** theirs picks from GTRS's vocabulary using GTRS's collision-free / drivable probabilities (a nuPlan-trained model), so it was not ported as-is.
+  - Model-sample analogue (`A15_CHOOSER=stall`, `route_choice.stall_rescue_choice`): when sample 0 moves < 3 m in 4 s, draw 5 more.
+  - If at least half of all samples move ≥ 3 m, drive the medoid of the moving ones; otherwise stay.
+  - Normal replans cost one sample.
+- **Queued on H100 vs v5 (v0.3 + snap), 120 scenes each:** warp 13608708-10; stall 13608711-13.
+- **Pending on H100:** fast chooser 13608641-43; capture smoke 13608659.
