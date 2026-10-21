@@ -1228,3 +1228,14 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 3. **Report:** draft started (`report/`).
 4. **Cache:** `cluster/a15env_local.sh` keeps uv's wheel cache and Python in `alpasim/cache/{uv,uvpy}` (shared, ~3 GB). Jobs copy from it instead of downloading; the env stays node-local.
 - The fileset is at 86 GB free.
+
+## 2026-10-20 Memory snap v3 (+ curvature speed cap), 120 on H100: worse than v5 — memory snap dropped
+| H100, 120 scenes | mean | vs v5 [90%] | W/L | categories |
+|---|---|---|---|---|
+| v0.3 | 0.657 | | | pass 67, low progress 22, corridor 23, offroad 4, collision 4 |
+| **v5 (v0.3 + guarded snap)** | **0.728** | | | pass 75, low progress 22, corridor 13, offroad 4, collision 6 |
+| memory v3 (13569422-24) | 0.702 | -0.026 [-0.087, +0.034] | 23/26 | pass 66, low progress 29, corridor 10, offroad 8, collision 7 |
+- By batch -0.044 / +0.022 / -0.057. All 3 batches clean (no H100 fault this time).
+- Memory fixes more corridor exits (13 -> 10: 622908, 62e0a7, 733560, e64716, 392963 pass) but the speed cap turns passes into low progress (22 -> 29) and offroad/collisions rise (adfc75, d50172, 1845f6 offroad; 3ac7da, 892966, 90153b collisions).
+- **Verdict across v1/v2/v3: waypoint-memory snap does not beat v5 (+0.003, ~-0.03, -0.026). Dropped; v5 stays the PAI entry.**
+- Shared uv cache works: env build 2402 s (first job, filling the cache), then 59 s, 4 s, 2 s.
