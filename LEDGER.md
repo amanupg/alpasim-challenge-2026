@@ -1399,3 +1399,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - 41-80: -0.023;
   - 81-120: 0.726 vs 0.796 (-0.070), more progress (0.87 vs 0.81) but at-fault 0.05 vs 0.03 and dist-to-GT 3.07 vs 2.29.
   - Same pattern as on H100, so I cancelled its 1-40 batch (13609310) to free the GPU.
+- **Forced start (L40S, 41-80):** 0.675 vs v5 0.648 (+0.027).
+  - left corridor 0.17 vs 0.23; progress 0.73 vs 0.78; dist-to-GT 2.38 vs 2.56.
+  - 0 missed start tokens; driver peak 14,914 MiB (< 16 GiB).
+- **Open-loop baseline (run B's [before], 150 held-out rendered samples, forced start):** ADE 1.62 m; path-length ratio median 1.005, mean 0.993.
+  - The model is NOT slow open-loop on rendered on-route frames.
+  - So the closed-loop slowness is a closed-loop effect (drift from the recording), not a speed bias. A fine-tune on force-GT frames can only help through image-domain adaptation (lower ADE).
+- **Training speed:** 12.3 s/step (accum 8, 4 noise draws) on A6000, peak 42 GiB; 917 steps ≈ 3.1 h. Run B loss 0.22 at step 1, 0.23 by step 150.
