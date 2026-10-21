@@ -6,7 +6,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from a15_driver.driver import route_nav_text, speed_scale_plan  # noqa: E402
-from a15_driver.route_choice import (RouteMemory, cap_speed_on_path, choose, retime_path,  # noqa: E402
+from a15_driver.route_choice import (RouteMemory, cap_speed_on_path, choose, choose_fast, retime_path,  # noqa: E402
                                      route_deviation, route_lateral_offset, route_parallel, route_path,
                                      route_pull)
 
@@ -150,5 +150,16 @@ carc = (cpr[:, 0] > 41) & (cpr[:, 0] < 40 + 15 * np.pi / 2 - 1)
 check("speed cap: no hard braking at the start (first step at model speed)", round(float(cv[0]), 1), 15.0)
 check("speed cap: deceleration <= ~3 m/s2", bool(-np.diff(cv).min() / 0.1 <= 3.2), True)
 check("speed cap: lateral acceleration in the curve <= 4 m/s2 (target 3)", bool((cv[carc] ** 2 / 15).max() <= 4.0), True)
+# fast chooser: same straight path at different speeds -> the fastest; a faster sample on a different path
+# (swerve) is not taken; sample 0 kept when nothing is >= 2% longer
+def _line(v, y_end=0.0):
+    return np.stack([v * tt64, y_end * np.clip(tt64 / 6.4, 0, 1)], 1)
+fs = np.stack([_line(8.0), _line(9.0), _line(10.0), _line(8.5)])
+check("fast: same path, picks the fastest", choose_fast(fs), 2)
+fs2 = np.stack([_line(8.0), _line(9.0), _line(8.5), _line(14.0, y_end=6.0)])
+check("fast: faster sample on another path is ignored", choose_fast(fs2), 1)
+fs3 = np.stack([_line(10.0), _line(10.1), _line(9.0)])
+check("fast: keeps sample 0 when nothing is clearly longer", choose_fast(fs3), 0)
+check("fast: a much faster plan on the same road still counts (shape over the shared stretch)", choose_fast(np.stack([_line(6.0), _line(6.5), _line(12.0)])), 2)
 print("PASS" if bad == 0 else f"FAIL ({bad})")
 sys.exit(bad > 0)

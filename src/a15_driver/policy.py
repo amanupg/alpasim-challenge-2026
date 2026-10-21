@@ -20,7 +20,7 @@ import time
 import numpy as np
 import torch
 
-from .route_choice import choose as route_choose, route_costs
+from .route_choice import choose as route_choose, choose_fast, path_lengths, route_costs
 
 LOGGER = logging.getLogger("a15_policy")
 
@@ -96,7 +96,7 @@ class Alpamayo15Policy:
                  embed_cpu: bool = True, cuda_graph: bool = False, num_samples: int = 1,
                  chooser: str = "medoid", route_margin: float = 2.0, route_min_len: float = 0.0,
                  route_big_gap: float = 0.0, route_big_gap_min_len: float = 0.0,
-                 diffusion_temperature: float = 1.0) -> None:
+                 diffusion_temperature: float = 1.0, fast_tol: float = 1.0) -> None:
         from alpamayo1_5 import helper
         from alpamayo1_5.models.alpamayo1_5 import Alpamayo1_5
 
@@ -129,6 +129,7 @@ class Alpamayo15Policy:
         self._chooser, self._route, self.last_choice = chooser, None, 0
         self._k_now = self._num_samples
         self._route_margin, self._route_min_len = route_margin, route_min_len
+        self._fast_tol = fast_tol                  # chooser "fast": path-shape tolerance to the medoid, m
         self._route_big_gap, self._route_big_gap_min_len = route_big_gap, route_big_gap_min_len
         # initial-noise temperature of the flow-matching sampler (Alpamayo 1.5 nav notebook uses 0.6:
         # "more stable but less diverse" trajectories); 1.0 is the library default we ran until 2026-10-04
@@ -160,7 +161,12 @@ class Alpamayo15Policy:
             xyz, _ = model.action_space.action_to_traj(S, hx[:, -1].repeat(K, *[1] * (hx.dim() - 2)),
                                                        hr[:, -1].repeat(K, *[1] * (hr.dim() - 2)))
             xy = xyz[..., :2].reshape(K, -1).float()
-            if self._chooser == "route":
+            if self._chooser == "fast":
+                cand = xy.reshape(K, -1, 2).cpu().numpy()
+                i = choose_fast(cand, shape_tol_m=self._fast_tol)
+                self.last_costs = path_lengths(cand).round(1).tolist()           # logged as "costs": path lengths
+                self.last_ends = cand[:, ::8].round(1).tolist()
+            elif self._chooser == "route":
                 cand = xy.reshape(K, -1, 2).cpu().numpy()
                 i = route_choose(cand, self._route, margin_m=self._route_margin, min_len_ratio=self._route_min_len,
                                  big_gap_m=self._route_big_gap, big_gap_min_len=self._route_big_gap_min_len)

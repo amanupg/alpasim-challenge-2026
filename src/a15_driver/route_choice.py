@@ -306,3 +306,32 @@ def cap_speed_on_path(path_xy: np.ndarray, speed_xy: np.ndarray, a_lat: float = 
         s += min(vk, cap) * dt
         out[k] = s
     return np.stack([out, np.zeros_like(out)], 1)
+
+
+def choose_fast(xy: np.ndarray, shape_tol_m: float = 1.0, min_gain: float = 1.02) -> int:
+    """Index of the sample to drive: among samples whose PATH SHAPE agrees with the medoid's (mean distance of
+    their points to the medoid's polyline <= shape_tol_m, so speed differences don't count), the one that covers
+    the most distance; sample 0 (the K=1 plan) unless that one is at least min_gain times longer.
+
+    PAI 2026-10-21: most low-progress scenes are rear-ends by replayed traffic (we drive slower than the recorded
+    car). Scaling every plan up was a disaster (-0.307: it ignores what the model sees); this only takes extra
+    speed the model itself proposed in a plausible plan for the same path."""
+    xy = np.asarray(xy, dtype=np.float64)
+    K = len(xy)
+    if K < 2:
+        return 0
+    flat = xy.reshape(K, -1)
+    m = int(np.linalg.norm(flat[:, None] - flat[None], axis=2).sum(1).argmin())
+    poly = np.vstack([np.zeros((1, 2)), xy[m]])
+    L = path_lengths(xy)
+    # shape agreement over the stretch both plans cover (a faster plan runs past the medoid's end on the same road)
+    shape = np.empty(K)
+    for k, s in enumerate(xy):
+        cum = np.cumsum(np.linalg.norm(np.diff(np.vstack([np.zeros((1, 2)), s]), axis=0), axis=1))
+        pts = s[cum <= L[m]]
+        shape[k] = _dist_to_polyline(pts, poly).mean() if len(pts) else 0.0
+    ok = shape <= shape_tol_m
+    if not ok.any():
+        return 0
+    j = int(np.where(ok, L, -np.inf).argmax())
+    return j if L[j] >= min_gain * L[0] else 0
