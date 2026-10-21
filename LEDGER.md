@@ -1274,3 +1274,11 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   5. BASICLAB 2163.
 - The top-5 rank intervals overlap.
 - **Lesson for the bench:** a local H100 gain converts at ~0.6× officially. Future candidates need more than ~+0.05 locally to show clearly on the board.
+
+## 2026-10-21 Memory geometry-only (snap decisions as v5, path from memory): worse — waypoint memory dropped entirely
+- 13604249-51, H100.
+  - vs v5 by batch: 1-40 -0.023 [-0.073, +0.003]; 41-80 **-0.096** [-0.172, -0.026]; 81-120 -0.058 (37 of 40 drove, the 7th H100 launch failure).
+  - On the 80 complete scenes: **-0.060 [-0.107, -0.022]**.
+- With identical snap decisions, the remembered path is a worse geometry than the Hermite bridge, so the memory path itself, not just its triggers, hurts.
+- **All four waypoint-memory variants fail to beat v5. Dropped.**
+- H100 launch-failure tally: 7 of 31 batches.
