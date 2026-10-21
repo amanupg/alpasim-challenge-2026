@@ -265,6 +265,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         self._route_mem_debug = os.environ.get("A15_ROUTE_MEM_DEBUG", "0") == "1"
         self._route_mem_dev_min = float(os.environ.get("A15_ROUTE_MEM_DEV_MIN", "20"))
         self._snap_alat = float(os.environ.get("A15_SNAP_ALAT", "0"))
+        self._mem_geom_only = os.environ.get("A15_ROUTE_MEM_GEOM_ONLY", "0") == "1"
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
         self._lock = threading.RLock()
@@ -455,11 +456,14 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             # points made a 1.5-2 m offset within the lane trigger snaps, and the car weaved between the model's
             # line and the recorded one (PAI 2026-10-19, fb501e/31f39b); the route alone starts ~40 m ahead
             dev = route_deviation(xy, mpath[np.linalg.norm(mpath, axis=1) >= self._route_mem_dev_min]
-                                  if mpath is not None else route)
+                                  if mpath is not None and not self._mem_geom_only else route)
             limit = self._route_snap / 2 if s.snapping else self._route_snap
             # route_snap_max_deg > 0: only where the route runs nearly parallel (lane change, exit), not on
             # turns, where the curve to a waypoint ~40 m ahead cuts the corner (PAI 2026-10-10)
-            ok = mpath is not None or self._route_snap_max_deg <= 0 or route_parallel(route, self._route_snap_max_deg)
+            # A15_ROUTE_MEM_GEOM_ONLY=1: snap decisions exactly as without memory (route deviation + angle guard);
+            # memory only supplies the path's geometry (the recorded lane change instead of the Hermite bridge)
+            ok = (mpath is not None and not self._mem_geom_only) or self._route_snap_max_deg <= 0 \
+                or route_parallel(route, self._route_snap_max_deg)
             # route_snap_min_offset > 0: only when the route itself leaves our lane (its first waypoint is that far
             # to the side), so a model swerve around something on a route that stays in lane is not overridden
             # (PAI 2026-10-11: fb501e, route at y~0, model swerved ~3 m, snap -> corridor exit). A snap under
