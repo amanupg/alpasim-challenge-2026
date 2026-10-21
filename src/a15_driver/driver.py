@@ -637,7 +637,8 @@ def main() -> None:
         route_big_gap=float(os.environ.get("A15_ROUTE_BIG_GAP", "0")),
         route_big_gap_min_len=float(os.environ.get("A15_ROUTE_BIG_GAP_MIN_LEN", "0")),
         diffusion_temperature=float(os.environ.get("A15_DIFF_TEMP", "1.0")),
-        fast_tol=float(os.environ.get("A15_FAST_TOL", "1.0"))))
+        fast_tol=float(os.environ.get("A15_FAST_TOL", "1.0")),
+        expert_ckpt=os.environ.get("A15_EXPERT_CKPT") or None))
     service = A15ChallengeDriver(
         handle=handle,
         # "," or ";" separated (sbatch --export splits values on commas)

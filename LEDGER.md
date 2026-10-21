@@ -1299,3 +1299,14 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
     - Closed-loop slowness and missed lane changes may come from the gap between real and NuRec-rendered images.
     - So check the open-loop speed bias on real vs rendered frames first.
 - Reading nureasoning's existing Alpamayo fine-tune pipeline (read-only) for reuse.
+- **Fine-tune pipeline (built 2026-10-21):**
+  - **Data:** NuRec `nurec_curated_train` (1,761 scenes; no overlap with the 441-scene curated val that our bench draws from).
+    - `CAPTURE=1` in `sim_local.sbatch` forces the ego onto the recording for the whole scene (`force_gt_duration_us=60e6`, `skip_driver_during_force_gt=false`) and turns on `send_recording_ground_truth=true`. The recording is never used at inference, and the official evaluator doesn't send it.
+    - The driver runs without a model (`A15_NO_MODEL=1`) and saves a sample every 0.5 s (`a15_driver/capture.py`): the 4 cameras × 4 frames at 576×320 as JPEG, the driver's 16-pose history, and the recorded 64 future poses, all in the t0 frame.
+    - Scenes download to node-local disk; the samples are tarred to `data/ft_capture/`.
+  - **Trainer:** `a15_ft/train.py` with `a15_ft/flow_loss.py` (adapted from NVIDIA alpamayo-recipes `alpamayo1_5_quant`, Apache-2.0).
+    - The VLM is frozen; the expert and action_in/out_proj train with flow-matching MSE (AdamW).
+    - Inputs are built exactly as the driver builds them.
+    - Open-loop check on held-out scenes before and after: ADE, and predicted / recorded 6.4 s path length.
+  - **Driver:** `A15_EXPERT_CKPT` loads the fine-tuned expert before int8 quantization.
+  - Capture smoke test (2 train scenes): 13608659.

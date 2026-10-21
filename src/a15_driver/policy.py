@@ -96,7 +96,7 @@ class Alpamayo15Policy:
                  embed_cpu: bool = True, cuda_graph: bool = False, num_samples: int = 1,
                  chooser: str = "medoid", route_margin: float = 2.0, route_min_len: float = 0.0,
                  route_big_gap: float = 0.0, route_big_gap_min_len: float = 0.0,
-                 diffusion_temperature: float = 1.0, fast_tol: float = 1.0) -> None:
+                 diffusion_temperature: float = 1.0, fast_tol: float = 1.0, expert_ckpt: str | None = None) -> None:
         from alpamayo1_5 import helper
         from alpamayo1_5.models.alpamayo1_5 import Alpamayo1_5
 
@@ -113,6 +113,13 @@ class Alpamayo15Policy:
                                                   output_loading_info=True, low_cpu_mem_usage=True)
         bad = {k: v for k, v in info.items() if v}
         assert not bad, f"loading info not clean: { {k: list(v)[:5] for k, v in bad.items()} }"
+        if expert_ckpt:                    # fine-tuned action expert (a15_ft/train.py): replaces expert + projections
+            sd = torch.load(expert_ckpt, map_location="cpu")
+            res = model.load_state_dict(sd, strict=False)
+            assert not res.unexpected_keys, f"unexpected keys in {expert_ckpt}: {res.unexpected_keys[:5]}"
+            left = [k for k in res.missing_keys if k.startswith(("expert.", "action_in_proj.", "action_out_proj."))]
+            assert not left, f"{expert_ckpt} misses expert keys: {left[:5]}"
+            LOGGER.info("loaded fine-tuned expert %s (%d tensors)", expert_ckpt, len(sd))
         model.eval()
         t1 = time.time()
         if embed_cpu:                      # before the GPU move, so the table never lands there
