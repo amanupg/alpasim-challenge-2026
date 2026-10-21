@@ -1246,3 +1246,12 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Submitted: `submission_id f594cf5f-77bc-4ace-8785-315315a502e2`, track pai, default controller gains, QUEUED (position 1 of 1).**
 - October slots after this: 2 left (shared with nuPlan).
 - Expected: local H100 0.728 vs v0.3 0.657 (+0.071); official v0.3 was 0.611, so roughly 0.68 if the local bias (~+0.046) holds.
+- **v5 official run SUCCEEDED** (f594cf5f): evaluation 04:12-07:27 UTC; coverage 987/987; wall time **9,522 / 14,400 s** (v0.3: 9,474); image 21.5 GB.
+  - The status `score` field is distance to the GT trajectory (v0.3's 2.177 equals its leaderboard `dist_to_gt_trajectory`). **v5: 2.058 vs v0.3 2.177**, so the car stays closer to the recorded path, as route snap intends.
+  - The PCS and scene score were not yet on the leaderboard at 07:32 UTC (PCS is recomputed jointly across all submissions).
+- **Leaderboard 07:32 UTC (PCS has shifted with the newer entries):**
+  - ACM 2259 (0.665 / 0.53);
+  - VAIL 2231 (0.722 / 1.301);
+  - ACM's 3rd entry 2219 (0.738 / 0.885);
+  - team-rvs 2195 (0.722 / 0.749);
+  - **our v0.3 2146, rank 8** (0.611 / 0.795).
