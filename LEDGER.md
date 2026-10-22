@@ -1433,3 +1433,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Node faults tonight (not our code):**
   - ins058 GPU "uncorrectable ECC error" killed DAgger d1 (13615495); resubmitted as 13615576 excluding ins058.
   - ins085 had /local read-only/missing, which killed d4 (13615496); resubmitted as 13615701 excluding ins058 and ins085.
+- **Fine-tune run B (13614344, lr 3e-5, 2 epochs):**
+  - Held-out open loop ADE 1.624 → 1.240 m (-24%); length ratio median 1.005 → 0.999.
+  - Weights moved 5.0e-2 (vs 2.4e-2 for run A).
+  - Better than run A on both measures. Closed-loop screen 13614349-51 queued.
