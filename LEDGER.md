@@ -1437,3 +1437,13 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Held-out open loop ADE 1.624 → 1.240 m (-24%); length ratio median 1.005 → 0.999.
   - Weights moved 5.0e-2 (vs 2.4e-2 for run A).
   - Better than run A on both measures. Closed-loop screen 13614349-51 queued.
+- **Stall rescue, full L40S screen (13609314-16), paired vs v5:** 0.704 vs 0.689.
+  - diff +0.015, 90% interval [-0.029, +0.062]; wins 19, losses 13, ties 88.
+  - By batch: 1-40 0.669 vs 0.622; 41-80 0.646 vs 0.648; 81-120 0.796 vs 0.796.
+  - Neutral: it rarely triggers.
+- **Caveat on the v5 baseline:** every variant beat v5 most on 1-40 (forced +0.081, stall +0.047), so the v5 1-40 run may be a low draw.
+- **L40S screen summary:**
+  - fast -0.046 and warp -0.121, both rejected;
+  - forced +0.018 and stall +0.015, both neutral;
+  - nothing clears +0.05 for an H100 confirmation.
+  - The fine-tune (runs A/B, screened against forced start) is the remaining bet this round.
