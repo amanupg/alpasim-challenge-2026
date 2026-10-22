@@ -1457,3 +1457,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - DAgger keep rate: ~60-70% of the policy's 0.5 s states lie within 3 m of the recording. The policy scored 0.68-0.86 on those train scenes.
 - **Run C (13616891):** lr 3e-5 (B beat A open loop), 2 epochs, -t 10:00:00 (short allows 12 h), checkpoint every 100 steps.
 - **Closed-loop screen:** 13616892-94, afterok, same settings as the A/B screens.
+- **Run A closed loop (L40S, forced + snap + ftA.pt), 41-120 (80 scenes):** 0.678.
+  - vs forced start alone 0.709: -0.031, 90% interval [-0.091, +0.028]; wins 12, losses 17.
+  - vs v5 0.722: -0.044.
+  - dist-to-GT much lower (1.71/1.74 vs forced 2.38/2.05), but progress lower (0.69/0.74 vs 0.73/0.77) and offroad up on 41-80 (0.15 vs 0.07).
+  - The fine-tune makes it track the recording more closely but drive slower, as its open-loop length ratio (0.988) foreshadowed. Not a gain on scene score. The 1-40 batch is pending.
