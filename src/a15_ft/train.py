@@ -43,6 +43,33 @@ def load_model(model_dir, vlm_dir, processor_dir):
     return model, helper, helper.get_processor(model.tokenizer)
 
 
+def recovery_offset(fut_xyz, fut_rot):
+    """Where the recording is at t0 in the ego frame (position, yaw), extrapolated back from its first two poses.
+    ~0 for force-GT samples (the ego is on the recording); up to the capture's max deviation for DAgger samples."""
+    fx = np.asarray(fut_xyz, dtype=np.float64)
+    yaw = np.unwrap(np.arctan2(np.asarray(fut_rot)[:, 1, 0], np.asarray(fut_rot)[:, 0, 0]))
+    return 2 * fx[0] - fx[1], 2 * yaw[0] - yaw[1]
+
+
+def smooth_recovery(s, horizon_s=3.0, dt=0.1):
+    """Replace the time-aligned recording (whose first pose can sit metres from a DAgger ego, i.e. a jump in 0.1 s)
+    with a drivable recovery: start at the ego and blend onto the recording with a cosine weight over horizon_s,
+    in position and in heading. Leaves force-GT samples unchanged (zero offset)."""
+    off, yaw0 = recovery_offset(s["fut_xyz"], s["fut_rot"])
+    t = dt * np.arange(1, len(s["fut_xyz"]) + 1)
+    w = np.where(t < horizon_s, 0.5 * (1 + np.cos(np.pi * t / horizon_s)), 0.0)
+    fx = s["fut_xyz"].astype(np.float64) - w[:, None] * off
+    a = -w * yaw0
+    Rz = np.zeros((len(t), 3, 3))
+    Rz[:, 0, 0], Rz[:, 0, 1], Rz[:, 1, 0], Rz[:, 1, 1], Rz[:, 2, 2] = np.cos(a), -np.sin(a), np.sin(a), np.cos(a), 1.0
+    fr = Rz @ s["fut_rot"].astype(np.float64)
+    return dict(s, fut_xyz=fx.astype(np.float32), fut_rot=fr.astype(np.float32))
+
+
+def load(p):
+    return smooth_recovery(load_sample(p))
+
+
 def build_inputs(helper, proc, s):
     frames, slots = s["frames"], s["slots"]
     msgs = helper.create_message(frames.flatten(0, 1), camera_indices=torch.tensor(slots), nav_text=None)
@@ -123,7 +150,7 @@ def open_loop(model, helper, proc, paths, seed=42, forced=True):
     shim = types.SimpleNamespace(_model=model, _diff_kwargs={})
     ade, ratio = [], []
     for p in paths:
-        s = load_sample(p)
+        s = load(p)
         inp = build_inputs(helper, proc, s)
         inp = {k: v for k, v in inp.items() if not k.startswith("ego_future")}
         torch.cuda.manual_seed_all(seed)
@@ -167,6 +194,8 @@ def main():
     ap.add_argument("--n_noise", type=int, default=4, help="(x_0, t) draws per VLM prefill")
     ap.add_argument("--save_every", type=int, default=100, help="overwrite --out every N steps (a job killed at its time limit keeps the latest)")
     ap.add_argument("--unforced_eval", action="store_true", help="also report the open-loop check without forced start")
+    ap.add_argument("--max_off_m", type=float, default=3.5, help="drop samples whose ego is farther from the recording")
+    ap.add_argument("--max_off_deg", type=float, default=20.0)
     ap.add_argument("--eval_only", action="store_true")
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
@@ -181,6 +210,19 @@ def main():
     val = random.Random(1).sample(val, min(a.val_max, len(val)))
     train = [p for s in sids[n_val:] for p in groups[s]]
     print(f"sessions {len(sids)} (val {n_val}); samples train {len(train)}, val {len(val)}", flush=True)
+
+    def offset_ok(p):
+        z = np.load(p)
+        off, yaw0 = recovery_offset(z["fut_xyz"], z["fut_rot"])
+        return float(np.hypot(off[0], off[1])), float(np.degrees(abs(yaw0)))
+    stats = np.array([offset_ok(p) for p in train + val])
+    keep = (stats[:, 0] <= a.max_off_m) & (stats[:, 1] <= a.max_off_deg)
+    print(f"recovery offsets: >0.3 m in {int((stats[:, 0] > 0.3).sum())} samples, p50/p90/max "
+          f"{np.percentile(stats[:, 0], 50):.2f}/{np.percentile(stats[:, 0], 90):.2f}/{stats[:, 0].max():.2f} m, "
+          f"yaw p90/max {np.percentile(stats[:, 1], 90):.1f}/{stats[:, 1].max():.1f} deg; dropping {int((~keep).sum())}",
+          flush=True)
+    ok = {p for p, k in zip(train + val, keep) if k}
+    train, val = [p for p in train if p in ok], [p for p in val if p in ok]
 
     t0 = time.time()
     base = open_loop(model, helper, proc, val)
@@ -207,7 +249,7 @@ def main():
         for _ in range(a.accum):
             if not order:
                 order = train[:]; rng.shuffle(order)
-            s = load_sample(order.pop())
+            s = load(order.pop())
             with torch.autocast("cuda", dtype=torch.bfloat16):
                 out = teacher_forced_flow(model, build_inputs(helper, proc, s), n_noise=a.n_noise)
             loss = torch.nn.functional.mse_loss(out["v_pred"], out["v_target"]) / a.accum
