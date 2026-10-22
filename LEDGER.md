@@ -1523,3 +1523,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - H100 v5 rerun 13623486-88 (pairs with the old H100 v5 = all_h100v03snap 0.728);
   - L40S run C repeat 13623489-91.
 - **DAgger iteration with run C's own policy (A15_EXPERT_CKPT=ftC.pt):** 60 new train scenes (pai_train_e0-e2; none used, none in val), 13623492-94 on A6000/R6000. Feeds run D.
+- **H100 is scarce:** short/burst show 3 H100 nodes (2 GPUs each); ins001 and ins011 are unavailable.
+  - Slurm estimates run C's H100 batches start ~20:50 Oct 22 and the H100 v5 rerun ~Oct 24.
+  - Both stay queued. If the v5 rerun lags, run C is compared with the existing H100 v5 (all_h100v03snap 0.728).
+- **DAgger round 2:** d7 384 samples; d6 done; d8 running.
