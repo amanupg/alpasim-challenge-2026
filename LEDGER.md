@@ -1510,3 +1510,16 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **DAgger round 2 (speculative, 13621306-08):** 60 new train scenes (pai_train_d6-d8; none used before, none in val), same v5 + forced policy.
   - Runs on A6000/R6000, so the L40S screen of run C is not slowed; -t 6 h.
   - Feeds a run D if run C's closed loop shows promise.
+
+## 2026-10-22 10:30 fine-tune run C: best L40S result so far
+- **Run C closed loop (L40S, forced + snap + ftC.pt, 13617289-91), 120 scenes:** 0.733.
+  - By batch: 1-40 0.770; 41-80 0.703; 81-120 0.726. Offroad 0.05 in all three (runs A/B had 0.12-0.15 on 41-80).
+  - vs 2-run v5 average 0.693: **+0.040 [-0.025, +0.107]**; wins 29, losses 26.
+  - vs forced start 0.707: +0.026 [-0.025, +0.081].
+  - Best L40S result of the campaign. The interval still includes 0, and A/A noise on 120 scenes is ~0.01.
+  - DAgger recovery data appears to fix the offroad drift that sank the force-GT-only fine-tunes. Progress is still lower (0.70-0.79).
+- **Confirmation launched:**
+  - H100 run C 13623483-85;
+  - H100 v5 rerun 13623486-88 (pairs with the old H100 v5 = all_h100v03snap 0.728);
+  - L40S run C repeat 13623489-91.
+- **DAgger iteration with run C's own policy (A15_EXPERT_CKPT=ftC.pt):** 60 new train scenes (pai_train_e0-e2; none used, none in val), 13623492-94 on A6000/R6000. Feeds run D.
