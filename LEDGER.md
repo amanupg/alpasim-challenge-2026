@@ -1430,3 +1430,6 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Loss 0.23 → 0.22 (noisy).
   - Before training, unforced generation gave ADE 1.82 vs 1.62 forced, so forced start is also better open loop.
   - Checkpoint data/ft_ckpt/ftA.pt; closed-loop screen 13614346-48 queued. Deleted my smoke checkpoint (smoke.pt, 4.5 GB).
+- **Node faults tonight (not our code):**
+  - ins058 GPU "uncorrectable ECC error" killed DAgger d1 (13615495); resubmitted as 13615576 excluding ins058.
+  - ins085 had /local read-only/missing, which killed d4 (13615496); resubmitted as 13615701 excluding ins058 and ins085.
