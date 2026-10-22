@@ -1478,3 +1478,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Lesson:** fine-tuning on force-GT (on-recording) frames lowers open-loop ADE 21-24% but is neutral-to-negative closed loop.
   - Better imitation of on-recording behaviour does not fix closed-loop driving.
   - Run C, with DAgger recovery data, is the last fine-tune candidate in this line.
+- **Run B closed loop, all 120 scenes:** 0.709.
+  - vs forced start 0.707: +0.002, 90% interval [-0.053, +0.059]; wins 17, losses 31.
+  - vs v5 0.689: +0.020.
+  - Neutral, and it loses more scenes than it wins. 1-40 scored 0.777 (high), 41-120 scored 0.675.
+- **ins058's faulty GPU struck again:** both v5 repeat jobs 13618597-98 failed with ECC errors. Resubmitted as 13618768-69 with --exclude=ins058,ins085. Run C's screen jobs (13617289-91) were updated to exclude the same nodes.
