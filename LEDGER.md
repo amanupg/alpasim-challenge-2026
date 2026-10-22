@@ -1472,3 +1472,9 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - checks the suspected low 1-40 draw;
   - measures L40S run-to-run noise;
   - doubles the baseline for all paired comparisons.
+- **Run B closed loop, 41-120 (80 scenes):** 0.675.
+  - vs forced start 0.709: -0.034, 90% interval [-0.098, +0.032]; wins 10, losses 22.
+  - Same pattern as run A: progress 0.69 vs 0.73 (41-80), offroad 0.12 vs 0.07, dist-to-GT 1.7 m.
+- **Lesson:** fine-tuning on force-GT (on-recording) frames lowers open-loop ADE 21-24% but is neutral-to-negative closed loop.
+  - Better imitation of on-recording behaviour does not fix closed-loop driving.
+  - Run C, with DAgger recovery data, is the last fine-tune candidate in this line.
