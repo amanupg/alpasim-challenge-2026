@@ -1488,3 +1488,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - L40S reruns are NOT deterministic (Blackwell agreed within 0.006 per batch). Expect about ±0.02 per 40-scene batch from run-to-run noise alone.
   - The first v5 1-40 run was a lowish draw, which inflated the 1-40 gains of forced start (+0.081) and stall rescue (+0.047). Both were already neutral on 120 scenes.
   - All comparisons will be recomputed against the 2-run v5 average once 41-80 and 81-120 land.
+- **L40S A/A, v5 repeat on 41-80 (13618768):** 0.699 vs 0.648 first time.
+  - +0.051, 90% interval [-0.025, +0.127]; 8 scenes changed outcome.
+  - With 1-40 (+0.022), single 40-scene L40S runs move 0.02-0.05 from rerun noise alone, and the first v5 baseline (0.689) ran low.
+  - Against the v5 average, forced start and stall rescue are about 0, and fine-tunes A and B are slightly negative.
+  - For the October slot, a candidate needs a gain that survives replicate runs, not one 120-scene run.
