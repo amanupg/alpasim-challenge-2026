@@ -1406,3 +1406,9 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - The model is NOT slow open-loop on rendered on-route frames.
   - So the closed-loop slowness is a closed-loop effect (drift from the recording), not a speed bias. A fine-tune on force-GT frames can only help through image-domain adaptation (lower ADE).
 - **Training speed:** 12.3 s/step (accum 8, 4 noise draws) on A6000, peak 42 GiB; 917 steps ≈ 3.1 h. Run B loss 0.22 at step 1, 0.23 by step 150.
+- **Forced start, full L40S screen (13612149-51), paired per scene vs the L40S v5 baseline:** mean 0.707 vs 0.689.
+  - diff +0.018, 90% interval [-0.051, +0.089]; wins 25, losses 21, ties 74.
+  - By batch: 1-40 0.703 vs 0.622; 41-80 0.675 vs 0.648; 81-120 0.743 vs 0.796.
+  - Neutral within noise, below the +0.05 bar for an H100 confirmation. It stays as the fine-tune's base, since training appends the token too, and as the control for the fine-tune screens.
+- **Fast chooser, 80 scenes paired:** -0.046 [-0.128, +0.036]. Rejected.
+- Merged per-run summaries are in .bench_cache/all_l40sv5, all_l40sforced and all_l40sfast80.
