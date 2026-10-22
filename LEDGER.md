@@ -1493,3 +1493,12 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - With 1-40 (+0.022), single 40-scene L40S runs move 0.02-0.05 from rerun noise alone, and the first v5 baseline (0.689) ran low.
   - Against the v5 average, forced start and stall rescue are about 0, and fine-tunes A and B are slightly negative.
   - For the October slot, a candidate needs a gain that survives replicate runs, not one 120-scene run.
+- **L40S A/A, full 120 scenes (v5 run 2, 13618596/768/769):** 0.698 vs 0.689; diff +0.009 [-0.029, +0.048]; wins 16, losses 13.
+  - By batch: 1-40 0.645 vs 0.622; 41-80 0.699 vs 0.648; 81-120 0.751 vs 0.796.
+  - Batches move ±0.05, but 120-scene means agree within ~0.01.
+- **Vs the 2-run v5 average (0.693; .bench_cache/all_l40sv5x2):**
+  - forced start +0.013 [-0.054, +0.082];
+  - stall rescue +0.010 [-0.027, +0.049];
+  - fine-tune A -0.006 [-0.075, +0.063];
+  - fine-tune B +0.016 [-0.047, +0.080].
+  - Nothing beats v5. Run C (DAgger) is pending.
