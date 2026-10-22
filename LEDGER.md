@@ -1527,3 +1527,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Slurm estimates run C's H100 batches start ~20:50 Oct 22 and the H100 v5 rerun ~Oct 24.
   - Both stay queued. If the v5 rerun lags, run C is compared with the existing H100 v5 (all_h100v03snap 0.728).
 - **DAgger round 2:** d7 384 samples; d6 done; d8 running.
+- **DAgger round 2 complete:** d6 355, d7 384, d8 318. All DAgger d0-d8 = 3,169 samples, 180 train scenes.
+- **Run D (13624503):** run C's recipe (base init, lr 3e-5, 2 epochs) on force-GT (~7.8k) + all DAgger d0-d8 (3,169; run C had 1,433).
+  - -t 11 h. Isolates the effect of more DAgger data.
+  - L40S screen 13624505-07, afterok, excluding ins058/ins085.
