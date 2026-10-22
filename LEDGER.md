@@ -1507,3 +1507,6 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Weights moved 7.6e-2.
   - Loss 0.42 → ~0.25, with isolated spikes at steps 1275/1350 (single outliers; neighbours normal).
   - Closed-loop screen 13617289-91 started 06:50.
+- **DAgger round 2 (speculative, 13621306-08):** 60 new train scenes (pai_train_d6-d8; none used before, none in val), same v5 + forced policy.
+  - Runs on A6000/R6000, so the L40S screen of run C is not slowed; -t 6 h.
+  - Feeds a run D if run C's closed loop shows promise.
