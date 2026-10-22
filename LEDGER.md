@@ -1502,3 +1502,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - fine-tune A -0.006 [-0.075, +0.063];
   - fine-tune B +0.016 [-0.047, +0.080].
   - Nothing beats v5. Run C (DAgger) is pending.
+- **Fine-tune run C (13617288, force-GT + DAgger with smooth recovery labels, lr 3e-5, 2 epochs, 1,997 steps, 5.5 h on A6000):**
+  - Held-out open loop (150 samples, val includes DAgger sessions): ADE 2.324 → 1.933 m (-17%); length ratio median 0.995 → 0.993.
+  - Weights moved 7.6e-2.
+  - Loss 0.42 → ~0.25, with isolated spikes at steps 1275/1350 (single outliers; neighbours normal).
+  - Closed-loop screen 13617289-91 started 06:50.
