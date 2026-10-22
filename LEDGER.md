@@ -1424,3 +1424,9 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - **Why:** open-loop the model is not slow (length ratio 1.005), so closed-loop slowness and drift come from states the force-GT data never shows.
   - **Jobs:** v5 + forced-start policy on 120 new train scenes (scenes/pai_train_d0..d5, none used before, none in val), 13615493-98 in 3 afterany lanes.
   - They replace the 6 pending force-GT captures (13612133-38, cancelled before starting). Force-GT data: ~5.7k samples done or in flight.
+- **Fine-tune run A (13613201, lr 1e-5, 2 epochs, 917 steps, 3.1 h on A6000):**
+  - Held-out open loop (150 samples from 14 unseen train scenes, forced start): ADE 1.624 → 1.285 m (-21%); length ratio median 1.005 → 0.988.
+  - Weights moved: median relative change 2.4e-2 over 12 projection matrices.
+  - Loss 0.23 → 0.22 (noisy).
+  - Before training, unforced generation gave ADE 1.82 vs 1.62 forced, so forced start is also better open loop.
+  - Checkpoint data/ft_ckpt/ftA.pt; closed-loop screen 13614346-48 queued. Deleted my smoke checkpoint (smoke.pt, 4.5 GB).
