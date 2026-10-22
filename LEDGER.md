@@ -1447,3 +1447,13 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - forced +0.018 and stall +0.015, both neutral;
   - nothing clears +0.05 for an H100 confirmation.
   - The fine-tune (runs A/B, screened against forced start) is the remaining bet this round.
+
+## 2026-10-22 00:40 fine-tune run C (force-GT + DAgger)
+- The Insomnia socket was closed 00:10-00:33; no cluster access in that window. Jobs ran on.
+- **Data (data/ft_runC):** symlinks only.
+  - 11 force-GT tars (~7.8k samples: c0r, c1-c3, c4a/b, c5a/b, c6a/b, smoke).
+  - 4 DAgger tars (1,433 samples): d0 334, d1 394, d2 367, d4 338.
+  - d3 and d5 were still running and are left for a later round.
+  - DAgger keep rate: ~60-70% of the policy's 0.5 s states lie within 3 m of the recording. The policy scored 0.68-0.86 on those train scenes.
+- **Run C (13616891):** lr 3e-5 (B beat A open loop), 2 epochs, -t 10:00:00 (short allows 12 h), checkpoint every 100 steps.
+- **Closed-loop screen:** 13616892-94, afterok, same settings as the A/B screens.
