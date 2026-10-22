@@ -1467,3 +1467,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - vs v5 0.689: -0.001.
   - Neutral to slightly negative. dist-to-GT is consistently lower (1.59-1.74 vs ~2.2 m).
 - **PCS uses only the per-scene scores.** Per alpasim e2e_challenge/local_evaluation/README.md, PCS is a zoib (zero-one-inflated beta) fit over the per-scene canonical scores of all subjects, mapped to an anchor scale. dist-to-GT is a separate column and does not enter it, so the local paired scene-score comparison is the right target. Run A's closer tracking earns nothing by itself.
+- **DAgger capture complete:** d3 378 (policy 0.780), d5 301 (0.758). Total 2,112 DAgger samples; d3 and d5 are not in run C.
+- **v5 repeat on L40S (A/A), 13618596-98, same settings as 13609305-07:**
+  - checks the suspected low 1-40 draw;
+  - measures L40S run-to-run noise;
+  - doubles the baseline for all paired comparisons.
