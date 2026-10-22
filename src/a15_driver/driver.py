@@ -269,7 +269,8 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                  route_snap: float = 0.0, route_snap_max_deg: float = 0.0, route_snap_min_offset: float = 0.0,
                  route_memory: bool = False, route_mem_debug: bool = False, route_mem_dev_min: float = 20.0,
                  snap_alat: float = 0.0, mem_geom_only: bool = False, capture_dir: str | None = None,
-                 capture_every_us: int = 500_000, time_scale: float = 1.0, ts_max_turn_deg: float = 10.0,
+                 capture_every_us: int = 500_000, capture_max_dev_m: float = float("inf"),
+                 time_scale: float = 1.0, ts_max_turn_deg: float = 10.0,
                  ts_skip_snapped: bool = True):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
         self._log_choices, self._early_replan, self._nav_dist = log_choices, early_replan, nav_dist
@@ -282,6 +283,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         self._route_mem_debug, self._route_mem_dev_min = route_mem_debug, route_mem_dev_min
         self._snap_alat, self._mem_geom_only = snap_alat, mem_geom_only
         self._capturer = Capturer(capture_dir, capture_every_us) if capture_dir else None
+        self._capture_max_dev = float(capture_max_dev_m)
         self._time_scale, self._ts_max_turn_deg, self._ts_skip_snapped = time_scale, ts_max_turn_deg, ts_skip_snapped
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
@@ -416,7 +418,12 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                 return
             frames, hx, hr, t0, anchor = batch
             ap, aq = anchor.pose.vec, anchor.pose.quat
-            fut = s.gt.future_in_frame(t0, np.array([ap.x, ap.y, ap.z]), _quat_to_rot(np.array([aq.w, aq.x, aq.y, aq.z])))
+            p0, R0 = np.array([ap.x, ap.y, ap.z]), _quat_to_rot(np.array([aq.w, aq.x, aq.y, aq.z]))
+            if self._capture_max_dev < float("inf"):                 # policy-driven capture: drivable recoveries only
+                off = s.gt.offset_at(t0, p0, R0)
+                if off is None or float(np.hypot(off[0], off[1])) > self._capture_max_dev:
+                    return
+            fut = s.gt.future_in_frame(t0, p0, R0)
             if fut is None:
                 return
             s.last_capture_us = now
@@ -675,6 +682,7 @@ def main() -> None:
         mem_geom_only=os.environ.get("A15_ROUTE_MEM_GEOM_ONLY", "0") == "1",
         capture_dir=os.environ.get("A15_CAPTURE_DIR") or None,
         capture_every_us=int(os.environ.get("A15_CAPTURE_EVERY_US", "500000")),
+        capture_max_dev_m=float(os.environ.get("A15_CAPTURE_MAX_DEV_M", "inf")),
         time_scale=float(os.environ.get("A15_TIME_SCALE", "1.0")),
         ts_max_turn_deg=float(os.environ.get("A15_TS_MAX_TURN_DEG", "10")),
         ts_skip_snapped=os.environ.get("A15_TS_SKIP_SNAPPED", "1") == "1")

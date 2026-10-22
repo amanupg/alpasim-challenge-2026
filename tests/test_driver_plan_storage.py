@@ -119,6 +119,19 @@ def main():
     print(f"route memory: inferences {calls}, snapped {s.stats['snapped']} (memory {s.stats['snapped_mem']}), "
           f"memory points {len(s.route_mem.pts)}, plan stored every step {all(stored)}" + ("" if ok else "   <-- FAIL"))
     bad += not ok
+    # DAgger capture labels: recording along world +x at 10 m/s; ego 2 m left of it and 5 m behind, heading +x
+    from a15_driver.capture import GroundTruthStore
+    g = GroundTruthStore()
+    ts = np.arange(0, 20_000_001, 100_000, dtype=np.float64)
+    rec = np.stack([ts * 1e-5, np.zeros_like(ts), np.zeros_like(ts)], 1)
+    g.set_from_rig(ts, rec, np.repeat(np.eye(3)[None], len(ts), 0), np.zeros(3), np.eye(3))
+    t0 = 5_000_000
+    off = g.offset_at(t0, np.array([45.0, 2.0, 0.0]), np.eye(3))
+    fx, _ = g.future_in_frame(t0, np.array([45.0, 2.0, 0.0]), np.eye(3))
+    ok = np.allclose(off, [5.0, -2.0, 0.0]) and np.allclose(fx[0], [6.0, -2.0, 0.0]) and np.allclose(fx[-1], [69.0, -2.0, 0.0])
+    print(f"capture labels from an off-recording pose: offset {np.round(off, 2).tolist()}, future[0] "
+          f"{np.round(fx[0], 2).tolist()}, future[-1] {np.round(fx[-1], 2).tolist()}" + ("" if ok else "   <-- FAIL"))
+    bad += not ok
     print("PASS" if bad == 0 else f"FAIL ({bad} combinations)")
     sys.exit(bad > 0)
 

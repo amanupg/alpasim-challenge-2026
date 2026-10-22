@@ -1418,3 +1418,9 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - At-fault collisions 0.07-0.10 vs 0.03; dist-to-GT 3.0-3.5 m vs 2.3-2.6.
   - This is the rear-end / gap-closing failure alpasim-jepa saw on nuPlan at 1.25, here already at 1.10.
   - I cancelled the 1-40 batch (13609313).
+- **DAgger capture (CAPTURE=1 CAPTURE_POLICY=1):** the policy drives, and the runtime still sends the recording every step, in the true rig frame at step start (alpasim `events/policy.py:115`).
+  - Each sample is labelled with the recorded future from the ego's actual pose: a path back to and along the recording, catching up in time if the ego lags.
+  - Samples are skipped beyond A15_CAPTURE_MAX_DEV_M (3 m) so labels stay drivable. Output goes to data/ft_dagger/. A unit test covers the labels from an off-recording pose.
+  - **Why:** open-loop the model is not slow (length ratio 1.005), so closed-loop slowness and drift come from states the force-GT data never shows.
+  - **Jobs:** v5 + forced-start policy on 120 new train scenes (scenes/pai_train_d0..d5, none used before, none in val), 13615493-98 in 3 afterany lanes.
+  - They replace the 6 pending force-GT captures (13612133-38, cancelled before starting). Force-GT data: ~5.7k samples done or in flight.

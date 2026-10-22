@@ -61,19 +61,28 @@ trap finish_rollouts EXIT        # replaced below by the driver trap, which also
 
 # ---- CAPTURE=1: training-data generation for the action-expert fine-tune (2026-10-21). The ego is forced onto the
 # recording for the whole scene, the recording is sent to the driver, and the driver (no model) saves rendered
-# frames + history + recorded future every A15_CAPTURE_EVERY_US. Scenes download to node-local disk, and the
+# frames + history + recorded future every A15_CAPTURE_EVERY_US. CAPTURE_POLICY=1 instead lets the model drive and
+# labels its own states with the recording (DAgger; samples go to data/ft_dagger/). Scenes download to node-local disk, and the
 # samples are tarred to data/ft_capture/ at exit. Never used for evaluation runs.
 FSDIR=$A/data/fs
 if [ "${CAPTURE:-0}" = 1 ]; then
   FSDIR=$TMPDIR/fs; mkdir -p $FSDIR/nre-artifacts/all-usdzs
   cp -r $A/data/fs/nre-artifacts/ego-hoods $A/data/fs/nre-artifacts/scenesets $FSDIR/nre-artifacts/
-  export A15_CAPTURE_DIR=$TMPDIR/capture A15_NO_MODEL=1 A15_CAPTURE_EVERY_US=${A15_CAPTURE_EVERY_US:-500000}
-  EXTRA_OVERRIDES="$EXTRA_OVERRIDES runtime.simulation_config.force_gt_duration_us=60000000 runtime.simulation_config.skip_driver_during_force_gt=false runtime.simulation_config.send_recording_ground_truth=true"
+  export A15_CAPTURE_DIR=$TMPDIR/capture A15_CAPTURE_EVERY_US=${A15_CAPTURE_EVERY_US:-500000}
+  if [ "${CAPTURE_POLICY:-0}" = 1 ]; then
+    # DAgger: the model drives (all A15_* policy settings apply); the recording is still sent every step and each
+    # sample is labelled with the recorded future from the ego's actual pose (skipped beyond A15_CAPTURE_MAX_DEV_M)
+    export A15_CAPTURE_MAX_DEV_M=${A15_CAPTURE_MAX_DEV_M:-3}; CAPDIR=$A/data/ft_dagger
+    EXTRA_OVERRIDES="$EXTRA_OVERRIDES runtime.simulation_config.send_recording_ground_truth=true"
+  else
+    export A15_NO_MODEL=1; CAPDIR=$A/data/ft_capture
+    EXTRA_OVERRIDES="$EXTRA_OVERRIDES runtime.simulation_config.force_gt_duration_us=60000000 runtime.simulation_config.skip_driver_during_force_gt=false runtime.simulation_config.send_recording_ground_truth=true"
+  fi
   finish_capture() {
     [ -d $TMPDIR/capture ] || return 0
-    mkdir -p $A/data/ft_capture
-    tar -C $TMPDIR -cf $A/data/ft_capture/${TAG:-capture}_$SLURM_JOB_ID.tar capture
-    echo "captured $(find $TMPDIR/capture -name '*.npz' | wc -l) samples from $(ls $TMPDIR/capture | wc -l) sessions -> data/ft_capture/${TAG:-capture}_$SLURM_JOB_ID.tar ($(du -sh $A/data/ft_capture/${TAG:-capture}_$SLURM_JOB_ID.tar | cut -f1))"
+    mkdir -p $CAPDIR
+    tar -C $TMPDIR -cf $CAPDIR/${TAG:-capture}_$SLURM_JOB_ID.tar capture
+    echo "captured $(find $TMPDIR/capture -name '*.npz' | wc -l) samples from $(ls $TMPDIR/capture | wc -l) sessions -> $CAPDIR/${TAG:-capture}_$SLURM_JOB_ID.tar ($(du -sh $CAPDIR/${TAG:-capture}_$SLURM_JOB_ID.tar | cut -f1))"
   }
 else
   finish_capture() { :; }

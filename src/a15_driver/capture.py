@@ -1,8 +1,14 @@
 """Training-sample capture for fine-tuning Alpamayo's action expert on simulator-rendered frames.
 
-Local data generation only (A15_CAPTURE_DIR set). The runtime forces the ego onto the recorded trajectory for the
+Local data generation only (A15_CAPTURE_DIR set). Two modes:
+- force-GT (A15_NO_MODEL=1): the runtime forces the ego onto the recorded trajectory for the
 whole scene (force_gt_duration_us) and sends the recording (send_recording_ground_truth), so the driver sees rendered
-frames from the recorded viewpoint and knows the recorded future. Every `every_us` the driver saves one sample in
+frames from the recorded viewpoint and knows the recorded future.
+- policy-driven (DAgger, model on): the policy drives, and the runtime still sends the recording every step (in the
+  ego's rig frame). Each sample is labelled with the recorded future from the ego's actual pose, i.e. a path back to
+  (and along) the recording; samples farther than A15_CAPTURE_MAX_DEV_M from the recording are skipped so the labels
+  stay drivable recoveries.
+Every `every_us` the driver saves one sample in
 exactly the form the policy consumes at inference:
   frames  : n_cam x 4 frames (0.1 s apart) at the driver's resize (576x320), JPEG-encoded
   slots   : Alpamayo camera slots of those cameras
@@ -41,6 +47,13 @@ class GroundTruthStore:
         self.t = np.asarray(times_us, dtype=np.float64)
         self.p = xyz_rig @ R_w.T + pos_w
         self.R = np.einsum("ij,njk->nik", R_w, R_rig)
+
+    def offset_at(self, t0_us: int, pos0: np.ndarray, R0: np.ndarray):
+        """Recorded position at t0 in the rig frame (pos0, R0): how far the ego is from the recording (None if not covered)."""
+        if self.t is None or not (self.t[0] <= t0_us <= self.t[-1]):
+            return None
+        p = np.array([np.interp(t0_us, self.t, self.p[:, k]) for k in range(3)])
+        return (p - pos0) @ R0
 
     def future_in_frame(self, t0_us: int, pos0: np.ndarray, R0: np.ndarray, n: int = 64, dt_us: int = 100_000):
         """Recorded poses at t0 + k*dt (k = 1..n) in the rig frame (pos0, R0); None if the recording does not cover them."""
