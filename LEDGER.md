@@ -1483,3 +1483,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - vs v5 0.689: +0.020.
   - Neutral, and it loses more scenes than it wins. 1-40 scored 0.777 (high), 41-120 scored 0.675.
 - **ins058's faulty GPU struck again:** both v5 repeat jobs 13618597-98 failed with ECC errors. Resubmitted as 13618768-69 with --exclude=ins058,ins085. Run C's screen jobs (13617289-91) were updated to exclude the same nodes.
+- **L40S A/A, v5 repeat on 1-40 (13618596):** 0.645 vs 0.622 first time.
+  - +0.022, 90% interval [-0.047, +0.091]; 12 of 40 scenes changed outcome (8 up, 4 down).
+  - L40S reruns are NOT deterministic (Blackwell agreed within 0.006 per batch). Expect about ±0.02 per 40-scene batch from run-to-run noise alone.
+  - The first v5 1-40 run was a lowish draw, which inflated the 1-40 gains of forced start (+0.081) and stall rescue (+0.047). Both were already neutral on 120 scenes.
+  - All comparisons will be recomputed against the 2-run v5 average once 41-80 and 81-120 land.
