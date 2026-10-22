@@ -2,7 +2,7 @@
 
 % AlpaSim technical report (PAI track), team amanupg. Built on the organisers' template
 % (alpasim_technical_report.tex, neurips_2026.sty in this folder); not a NeurIPS submission.
-% DRAFT 2026-10-20. Items marked TODO need Aman's input or the official v5 result.
+% DRAFT 2026-10-22. Items marked TODO need Aman's input or pending results (fine-tune run C).
 \PassOptionsToPackage{numbers}{natbib}
 \usepackage[preprint]{neurips_2026}
 \makeatletter
@@ -148,6 +148,22 @@ v5, PCS 2184 [2137--2230] (scene score 0.652, at-fault distance 0.771; 987/987 r
 \item pulling the far part of the plan onto the route: $-$0.002;
 \item a waypoint memory that lets snap follow turns: +0.003, then $-$0.078 on one batch.
 \end{itemize}
+Screened on L40S against v5 (paired, 120 scenes unless noted):
+\begin{itemize}
+\item the organisers' time warp (plan read 10\% ahead, near-straight plans only): $-$0.121 [$-$0.211, $-$0.031] on 80
+scenes, from gap-closing at-fault collisions;
+\item choosing the longest of six mutually consistent samples: $-$0.046 on 80 scenes;
+\item appending the \texttt{<traj\_future\_start>} token instead of generating it (generation omits it in 30--42\% of
+closed-loop plans): +0.018 [$-$0.051, +0.089];
+\item drawing extra samples only when the plan stalls: +0.015 [$-$0.029, +0.062].
+\end{itemize}
+\textbf{Fine-tuning the action expert.} We fine-tuned the 2.3B-parameter flow-matching action expert, with the VLM
+frozen, on about 4{,}000 simulator-rendered samples recorded along the logged trajectories of the separate training
+split. Plain AdamW on bf16 weights silently dropped most updates at learning rate $10^{-5}$, so we used stochastic
+rounding. Held-out open-loop error fell by 21--24\%, but closed loop the fine-tuned driver was no better than the
+same driver without it ($-$0.019 and +0.002): it tracked the recording more closely but drove slower.
+% TODO(run C): fine-tune with DAgger recovery samples (policy-driven states, labels blended back onto the recording);
+% result pending on 2026-10-22.
 
 \section{Limitations and safety considerations}
 \textbf{Rear-end collisions from following too slowly.} Most remaining low-progress outcomes are rear-end hits by
@@ -168,7 +184,6 @@ $\pm$0.1 between configurations, so single-batch gains are not reliable. On our 
 CUDA launch failures in the driver process (6 of 25 batches). We detected them, discarded those batches and reran
 them. They did not occur on Blackwell, and we attribute them to the local driver stack.
 
-\section*{References}
 \begin{thebibliography}{9}
 \bibitem{alpamayo15} NVIDIA. \newblock Alpamayo 1.5. \newblock \url{https://huggingface.co/nvidia/Alpamayo-1.5-10B}, 2026.
 \bibitem{qwen3vl} Qwen Team. \newblock Qwen3-VL. \newblock \url{https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct}, 2025.
