@@ -1412,3 +1412,9 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Neutral within noise, below the +0.05 bar for an H100 confirmation. It stays as the fine-tune's base, since training appends the token too, and as the control for the fine-tune screens.
 - **Fast chooser, 80 scenes paired:** -0.046 [-0.128, +0.036]. Rejected.
 - Merged per-run summaries are in .bench_cache/all_l40sv5, all_l40sforced and all_l40sfast80.
+- **Time warp (1.10, straight plans only, not on snapped plans) rejected on PAI (L40S, 13609311-12, 80 scenes paired):**
+  - 0.601 vs 0.722, diff -0.121, 90% interval [-0.211, -0.031]; wins 12, losses 17.
+  - By batch: 41-80 0.624 vs 0.648; 81-120 0.578 vs 0.796.
+  - At-fault collisions 0.07-0.10 vs 0.03; dist-to-GT 3.0-3.5 m vs 2.3-2.6.
+  - This is the rear-end / gap-closing failure alpasim-jepa saw on nuPlan at 1.25, here already at 1.10.
+  - I cancelled the 1-40 batch (13609313).
