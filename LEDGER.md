@@ -1661,3 +1661,14 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **H100 A/A (v5 rerun, 1-40, 13623486):** 0.695 vs the original H100 v5 run 0.692; +0.003 [-0.000, +0.008]; 9 of 40 scenes changed.
   - **H100 runs are nearly deterministic**, unlike L40S (±0.05 per batch). One H100 run per candidate, against the existing H100 v5 (all_h100v03snap, 0.728), is a reliable test.
   - The remaining v5 rerun batches (13623487-88) were cancelled to free H100s for the w50 confirmation.
+
+## 2026-10-23 16:45 (socket closed 14:39-16:33)
+- **Run C seed 1 (C2, L40S, 13636812-14):** 0.686.
+  - By batch: 1-40 0.729; 41-80 0.655; 81-120 0.674.
+  - vs v5 x2: -0.008 [-0.076, +0.060]; wins 27, losses 38.
+  - **The recipe is not reliably good: C was a good draw, C2 is neutral.** w50 is built from C's checkpoint, so its 0.742 stands as a model, but selecting C carries a mild winner's curse on these 120 scenes.
+- **Harmonizer OFF (OFFICIAL_MIMIC, L40S), 41-80:** v5 0.734 vs w50 0.780; +0.046 [-0.031, +0.126]; wins 6, losses 9.
+  - w50 has 0 at-fault collisions and corridor 0.05 vs 0.10.
+  - Both score higher without the Harmonizer (v5 41-80 with Harmonizer: 0.648 / 0.699).
+  - v5 81-120 with Harmonizer off: 0.774. The rest are running.
+- **Pending:** soup (base + C + C2), its screen running; run R at step 1550/2000; w50 on H100 (queued); w50 + nav text (queued); the A2 teacher labeller started on an R6000 (13637632).
