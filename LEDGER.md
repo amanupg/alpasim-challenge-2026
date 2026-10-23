@@ -1672,3 +1672,11 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Both score higher without the Harmonizer (v5 41-80 with Harmonizer: 0.648 / 0.699).
   - v5 81-120 with Harmonizer off: 0.774. The rest are running.
 - **Pending:** soup (base + C + C2), its screen running; run R at step 1550/2000; w50 on H100 (queued); w50 + nav text (queued); the A2 teacher labeller started on an R6000 (13637632).
+- **A2 Super teacher labels work** (test 13644545: 30 samples, 4.5 s each, 66.7 GiB reserved, 8.5 min load on an R6000). NVIDIA's own smoke test failed only because our HF account lacks PhysicalAI-AV dataset access; our labeller reads our captures.
+  - **Sanity check on road_r0 (49 labels):**
+    - A2 path lengths match the recording and our policy's sample 0 (e.g. 183 / 183 / 180 m at 28 m/s);
+    - the first step matches the speed; turns are followed;
+    - large distances from the recording occur where our policy disagrees with it too (the recording stops at ~74-79 m, both models go to ~85 m).
+    - **The labels are valid, but A2's ADE to the recording is similar to our sample 0's.** Expect a modest effect, mainly in hard cases.
+  - Full labelling: 13644595-96 (2 shards).
+  - Then run T: force-GT + RoaD states with A2 targets (--teacher_dir), base init, then blended with base.
