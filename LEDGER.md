@@ -1696,3 +1696,5 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - That dir holds symlinks road_*_{a,b,c} → ft_a2labels/road_*, matching the x3 tar names.
   - Base init, lr 3e-5, 2,000 steps. Job 13644832 (afterok on labelling 13644596).
   - Then ftT_w50 (13644833) and its L40S screen (13644834-36).
+- **Run R (RoaD, 13640427) trained:** held-out ADE 1.748 → 1.496 m (-14%); length ratio 1.007 → 1.007 (no slowdown, unlike the force-GT fine-tunes); weights moved 7.7e-2.
+  - Screens: R alone 13640428-30 (afterok, now eligible); R_w50 averaging 13641311 → screen 13641315-17.
