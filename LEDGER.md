@@ -1550,3 +1550,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - run C 13623483-85, estimated start 00:41 Oct 23;
   - v5 rerun 13623486-88, estimated start Oct 25 14:25 (still before the Oct 27-28 slot decision);
   - meanwhile compare with the existing H100 v5 (all_h100v03snap, 0.728).
+- **Prediction track record on PAI (asked by Aman, 2026-10-23):** no PAI entry has gone the opposite way to the local prediction.
+  - v0.3: predicted ~1900-1990, got 2143-2150 (better).
+  - v5: predicted +0.071 local → ~0.68; got 0.652 (+0.041, ~58% of local).
+  - **nuPlan v6 fell for a different reason:** a NAVSIM-trained critic validated on public navtest, a benchmark known to flatter that model family.
+  - **Risks for run C:** (1) L40S-only so far (GPU-type effects seen before); (2) winner's curse over ~10 variants on the same 120 scenes; (3) wins ≈ losses (few big scene gains); (4) run D's null result suggests training-run luck.
+- **Robustness check (risk 4): run C retrained with a different seed** (--seed 1, same data and recipe), 13636811; L40S screen 13636812-14, afterok.
+  - If seed 1 lands near C (~0.735), the gain is real; if near D/forced (~0.707), C was luck and the slot should not go to it.
