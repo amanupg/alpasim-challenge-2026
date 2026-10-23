@@ -1,0 +1,46 @@
+% DRAFT sections for the v7 entry (2026-10-23). Swap into amanupg_pai_report.tex once the final candidate is chosen
+% (Oct 27-28). Numbers marked \todo{} are filled from LEDGER.md after the H100 checks.
+
+\section{Closed-loop fine-tuning of the action expert}
+Alpamayo~1.5 plans well open loop: on held-out rendered frames its predicted path length matches the recording
+(ratio 1.005). Its closed-loop failures come from states the recording never visits. We therefore fine-tune only
+the 2.3B-parameter flow-matching action expert, with the VLM frozen, on frames rendered by the simulator itself
+from the separate NuRec training split (no overlap with the validation scenes we evaluate on).
+
+\textbf{Data.} Three kinds of samples, all with the exact input the driver sees (4 front cameras, 4 frames at
+$576\times320$, 16 history poses):
+(i) \emph{recording-following}: the ego is forced onto the recording, the label is the recorded 6.4\,s future
+($\sim$7.8k samples);
+(ii) \emph{recovery}: the policy drives; the label starts at the ego's actual pose and blends onto the recording
+over 3\,s with a cosine weight (labels that jump onto the recording in 0.1\,s made the loss explode, 6.4 vs 0.2);
+(iii) \emph{own-sample (RoaD-style)}~\cite{road}: at each replan the policy draws $K{=}16$ samples and the label
+is the sample whose footprint corners stay nearest the recording over 2\,s, falling back to (ii) beyond 3\,m.
+\todo{final data mix and counts}
+
+\textbf{Optimisation pitfall.} With bf16 weights and learning rate $10^{-5}$, \texttt{torch.optim.AdamW} leaves
+the weights unchanged: each update is below bf16's resolution and rounds away (a 50-step unit test moves 0.02 to
+0.02002 instead of 0.0195). Stochastic rounding of the updated weight restores the fp32 trajectory without fp32
+master weights, which would not fit beside the 11B model on a 48\,GB card.
+
+\textbf{Weight averaging.} Fine-tuned experts lowered open-loop error by 21--24\% but were neutral closed loop:
+they tracked the recording more closely and drove slower. Averaging the fine-tuned and released expert weights
+1:1 (WiSE-FT~\cite{wiseft}) kept the gains and restored speed. On 120 local scenes this halved at-fault collisions
+(6.0 to 3.0) and cut corridor exits (17.5 to 14.0). \todo{final local and H100 numbers}
+
+\textbf{Evaluation protocol.} Local runs on the developer preset render with the Harmonizer on, as the PAI final
+runs do; the leaderboard's initial runs have it off. We screened on L40S (two runs per configuration: single
+40-scene batches move by up to $\pm$0.05 between identical runs, 120-scene means by $\sim$0.01) and confirmed on
+H100, where identical runs agree within 0.003, with the Harmonizer both on and off. \todo{H100 table}
+
+\section{Resources and training}
+\textbf{Pretrained weights:} Alpamayo~1.5~10B~\cite{alpamayo15} and its Qwen3-VL backbone~\cite{qwen3vl}, as
+released, plus our fine-tuned action expert (Section above). \textbf{Training data:} frames rendered by the AlpaSim
+simulator~\cite{alpasim} from the PAI-AV NuRec curated training split, used under its access terms; the recording
+was used only to label training samples, never at inference. \todo{if used: Alpamayo~2~Super (offline teacher labels
+only; not in the submitted image).} \textbf{Compute:} single 48\,GB GPUs (A6000/L40S) for capture and training;
+about \todo{N} GPU-hours. No private resources.
+
+% bibitems to add:
+% \bibitem{road} G. Garcia-Cobo et al. RoaD: Rollouts as Demonstrations for closed-loop training of driving
+%   policies. arXiv:2512.01993, 2025.
+% \bibitem{wiseft} M. Wortsman et al. Robust fine-tuning of zero-shot models. CVPR 2022 (arXiv:2109.01903).
