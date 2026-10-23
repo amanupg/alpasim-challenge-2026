@@ -1691,3 +1691,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - By batch: 1-40 0.742; 41-80 0.681; 81-120 0.757.
   - vs v5 x2 +0.034; below w50 (0.742). Dropped.
 - **Nav-text batch 41-80 (13642667) failed:** runtime DEADLINE_EXCEEDED on ins060, 0/40 scenes drove (infrastructure). Resubmitted as 13644725.
+- **A2 labelling shard 0 done** (528 labels, 3.8 s each); shard 1 running.
+- **Run T (A2 Super teacher) queued:** ft_runR data (force-GT + RoaD x3), with RoaD states targeting A2 labels via `--teacher_dir data/ft_a2labels_x3`.
+  - That dir holds symlinks road_*_{a,b,c} → ft_a2labels/road_*, matching the x3 tar names.
+  - Base init, lr 3e-5, 2,000 steps. Job 13644832 (afterok on labelling 13644596).
+  - Then ftT_w50 (13644833) and its L40S screen (13644834-36).
