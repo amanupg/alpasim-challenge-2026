@@ -1640,3 +1640,14 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - L40S Harmonizer-off screens, v5 vs ftC_w50 on 120 scenes each (board condition);
   - soup ftCC2_soup (0.5 base + 0.25 C + 0.25 C2), avg 13641310, screen 13641312-14;
   - ftR_w50 (0.5 base + 0.5 R), avg 13641311 afterok on run R, screen 13641315-17.
+- **Failure breakdown, L40S 120 scenes** (scene counts averaged over runs; score lost in brackets):
+
+  | | at-fault | offroad | corridor | partial progress | full pass |
+  |---|---|---|---|---|---|
+  | v5 x2 | 6.0 | 4.5 | 17.5 | 20.5 (-8.8) | 71.5 |
+  | forced | 4.0 | 8.0 | 16.0 | 19.0 (-7.2) | 73.0 |
+  | C x2 | 2.5 | 6.0 | 12.5 | 27.5 (-10.6) | 71.5 |
+  | **w50** | **3.0** | 6.0 | **14.0** | 22.0 (-7.9) | **75.0** |
+
+  - w50 halves at-fault collisions and cuts corridor exits by 3.5 while keeping progress. Zero scenes become passes, which the IRT/PCS model rewards.
+  - **Corridor exits are still the largest loss: 14 scenes, about 0.12 of the mean.**
