@@ -64,6 +64,12 @@ trap finish_rollouts EXIT        # replaced below by the driver trap, which also
 # frames + history + recorded future every A15_CAPTURE_EVERY_US. CAPTURE_POLICY=1 instead lets the model drive and
 # labels its own states with the recording (DAgger; samples go to data/ft_dagger/). Scenes download to node-local disk, and the
 # samples are tarred to data/ft_capture/ at exit. Never used for evaluation runs.
+# OFFICIAL_MIMIC=1: match the official initial (board) runs, e2e_challenge/ec2.yaml + driver/alpamayo_configs.yaml:
+# the renderer WITHOUT the Harmonizer (the developer base config, and so every other local run, has it on; the PAI
+# final runs turn it on), and no drive() calls during the 1.7 s force-GT warm-up.
+if [ "${OFFICIAL_MIMIC:-0}" = 1 ]; then
+  EXTRA_OVERRIDES="$EXTRA_OVERRIDES services.renderer.command.7=--no-enable-harmonizer runtime.simulation_config.skip_driver_during_force_gt=true"
+fi
 FSDIR=$A/data/fs
 if [ "${CAPTURE:-0}" = 1 ]; then
   FSDIR=$TMPDIR/fs; mkdir -p $FSDIR/nre-artifacts/all-usdzs

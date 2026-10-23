@@ -1,0 +1,28 @@
+# PAI image v7 (neutral tag; contents are recorded only in LEDGER.md). October's last official slot (Aman, 2026-10-23).
+# Built on the submitted v0.3 image, so its 21 GB weights and dependency layers are reused; new layers are the driver
+# code and the fine-tuned action expert (~4.5 GB bf16, loaded into the model before int8 quantization).
+#   rsync the chosen checkpoint from the cluster to container/assets/expert.pt first (git-ignored), then:
+#   docker buildx build --platform linux/amd64 --load -f container/Dockerfile.v7 \
+#     --build-arg GIT_HASH=$(git rev-parse --short HEAD) -t <ecr>/teams/amanupg:v7 .
+# Since v5: forced <traj_future_start> (appended as in NVIDIA's training forward, instead of generated) and a
+# fine-tuned action expert (closed-loop SFT on simulator renders of the separate training split, weight-averaged
+# with the released expert). Same model call as v5: one flow sample per plan, 1 Hz, 4 front cameras, route snap.
+ARG BASE=696254625193.dkr.ecr.us-east-1.amazonaws.com/teams/amanupg:v0.3-a15int8-1hz
+FROM ${BASE}
+
+USER root
+RUN rm -rf /app/a15_driver
+COPY src/a15_driver /app/a15_driver
+COPY container/assets/expert.pt /app/expert/expert.pt
+RUN python -c "import a15_driver.route_choice, a15_driver.policy, a15_driver.driver; print('driver imports ok')" \
+    && python -c "import torch; sd = torch.load('/app/expert/expert.pt', map_location='cpu'); \
+assert len([k for k in sd if not k.startswith('_')]) == 409, len(sd); print('expert ok', len(sd))"
+
+ARG GIT_HASH=unknown
+ENV A15_INFERENCE_INTERVAL_US=1000000 A15_NUM_SAMPLES=1 \
+    A15_LOG_CHOICES=0 A15_NAV=0 A15_DIFF_TEMP=1.0 \
+    A15_SPEED_SCALE=1.0 A15_EARLY_REPLAN=0 A15_ROUTE_SNAP=2.0 A15_ROUTE_SNAP_MAX_DEG=15 \
+    A15_ROUTE_SNAP_MIN_OFFSET=0 A15_ROUTE_MEMORY=0 A15_ROUTE_PULL=0 A15_SPEED_CAMS=4 \
+    A15_FORCE_TRAJ_START=1 A15_EXPERT_CKPT=/app/expert/expert.pt A15_GIT_HASH=${GIT_HASH}
+USER alpasim
+CMD ["python", "-m", "a15_driver.driver"]

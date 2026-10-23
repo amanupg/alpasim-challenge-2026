@@ -1613,3 +1613,19 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
     - unexpected non-persistent buffers (action_space stats, sinus freqs).
   - z-lab's expert weights differ from NVIDIA's release.
   - **Parked.** Its value is speed, and our levers that would spend speed (2 Hz -0.045; K-sample choosers +0.005 on H100) showed nothing. The remaining check 13639630 was cancelled. Code stays in alpasim-jepa/pai_flashdrive.
+
+## 2026-10-23 11:00 October's last slot is PAI's (Aman: "you [have] october's last slot, make it count")
+- **The catch:** finals go to the board's top 3, but the board's initial runs have the Harmonizer OFF (ec2.yaml). Every local run so far had it ON (dev preset). The entry must climb the Harmonizer-off board first.
+- **New `OFFICIAL_MIMIC=1`** in sim_local.sbatch: `services.renderer.command.7=--no-enable-harmonizer` plus `skip_driver_during_force_gt=true` (as the official initial runs). 2-scene test: 13640533.
+- **Selection plan:**
+  1. L40S 120-scene screens (Harmonizer on, the finals' condition) for each candidate:
+     - w50 (0.742, done);
+     - C2 seed check;
+     - R (RoaD);
+     - R averaged with base;
+     - soup base + C + C2;
+     - A2-teacher run (if the labels land).
+  2. The best 1-2 go to H100, 120 scenes, both Harmonizer ON (finals) and OFF via OFFICIAL_MIMIC (board), paired against v5 on the same H100 setting.
+  3. Pick the candidate best on H100 Harmonizer OFF (board ranking gates the finals), provided it is also not worse with Harmonizer ON.
+  4. Build v7 (container/Dockerfile.v7 = v5 + forced start + expert checkpoint), use the last PAI warmup to check memory and time, then Aman submits about Oct 28-29. Final container chosen Oct 31.
+- **Trial build of v7 with ftC_w50:** copying the checkpoint to container/assets/expert.pt (git-ignored).
