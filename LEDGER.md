@@ -1687,3 +1687,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - At ~0.6x local → official that is ~+0.017 scene, ~+14 PCS: short of the +32 needed to pass UJS (2251).
   - Everyone scores higher without the Harmonizer (v5 0.728 vs 0.693), so the finals will score lower for all teams.
 - **Soup (base + C + C2), L40S:** 41-80 0.681, 1-40 0.742. Below w50 on both batches; C2's neutral weights dilute C.
+- **Soup (0.5 base + 0.25 C + 0.25 C2), L40S 120 scenes:** 0.727.
+  - By batch: 1-40 0.742; 41-80 0.681; 81-120 0.757.
+  - vs v5 x2 +0.034; below w50 (0.742). Dropped.
+- **Nav-text batch 41-80 (13642667) failed:** runtime DEADLINE_EXCEEDED on ins060, 0/40 scenes drove (infrastructure). Resubmitted as 13644725.
