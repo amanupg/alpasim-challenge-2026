@@ -1658,3 +1658,6 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - **Options:**
     1. nav text in the prompt (Sept test +0.002, untested with the fine-tune);
     2. fine-tune WITH nav text conditioning. RoaD labels pick the recorded branch, but without route intent as input the model cannot learn which branch. Needs a re-capture that stores the route (about 2 days).
+- **H100 A/A (v5 rerun, 1-40, 13623486):** 0.695 vs the original H100 v5 run 0.692; +0.003 [-0.000, +0.008]; 9 of 40 scenes changed.
+  - **H100 runs are nearly deterministic**, unlike L40S (±0.05 per batch). One H100 run per candidate, against the existing H100 v5 (all_h100v03snap, 0.728), is a reliable test.
+  - The remaining v5 rerun batches (13623487-88) were cancelled to free H100s for the w50 confirmation.
