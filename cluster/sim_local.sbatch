@@ -95,12 +95,21 @@ if [ $DRIVER = a15 ]; then
     bash -c "$A15PY $A/tests/test_driver_plan_storage.py && $A15PY $A/tests/test_route_nav.py" > $RUN/driver_test.txt 2>&1 \
     || { echo "driver regression test failed"; tail -5 $RUN/driver_test.txt; exit 4; }
   HUB=$NR/.cache/hf/hub
-  export A15_MODEL_DIR=$(ls -d $HUB/models--nvidia--Alpamayo-1.5-10B/snapshots/*/ | head -1)
+  export A15_MODEL_DIR=${A15_MODEL_DIR:-$(ls -d $HUB/models--nvidia--Alpamayo-1.5-10B/snapshots/*/ | head -1)}
   export A15_VLM_DIR=$(ls -d $HUB/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/*/ | head -1)
   export A15_PROCESSOR_DIR=$(ls -d $HUB/models--Qwen--Qwen3-VL-2B-Instruct/snapshots/*/ | head -1)
+  # alternative driver build (A15_ENV_SCRIPT + A15_DRIVER_SRC; e.g. the alpasim-jepa FlashDrive port): its own
+  # Python env (exports FDPY) and driver source; overlay_torchao is built for torch 2.8, so it is left out
+  DRV_PY=$A15PY; DRV_PYPATH=$A/envs/overlay_driver:$A/envs/overlay_torchao:$A/src:$SIF/repo/src/grpc
+  if [ -n "${A15_ENV_SCRIPT:-}" ]; then
+    source $A15_ENV_SCRIPT || { echo "A15_ENV_SCRIPT failed"; exit 4; }
+    DRV_PY=${FDPY:?A15_ENV_SCRIPT must export FDPY}
+    DRV_PYPATH=$A/envs/overlay_driver:${A15_DRIVER_SRC:?A15_DRIVER_SRC required with A15_ENV_SCRIPT}:$SIF/repo/src/grpc
+    export TORCHINDUCTOR_CACHE_DIR=${TORCHINDUCTOR_CACHE_DIR:-$TMPDIR/inductor}
+    echo "driver: $DRV_PY from $A15_DRIVER_SRC"
+  fi
   env PYTHONNOUSERSITE=1 HF_HUB_OFFLINE=1 \
-      PYTHONPATH=$A/envs/overlay_driver:$A/envs/overlay_torchao:$A/src:$SIF/repo/src/grpc \
-      $A15PY -u -m a15_driver.driver > $RUN/driver.log 2>&1 &
+      PYTHONPATH=$DRV_PYPATH $DRV_PY -u -m a15_driver.driver > $RUN/driver.log 2>&1 &
   DRV=$!
   for i in $(seq 1 120); do grep -q "policy ready\|policy load failed" $RUN/driver.log && break; sleep 10; done
   grep "loaded in\|policy ready\|failed" $RUN/driver.log

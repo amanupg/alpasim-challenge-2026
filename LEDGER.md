@@ -1587,3 +1587,22 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Alpamayo 2-Super:** not gated, 71.6 GB, 15 shards; downloading in 13637597. NVlabs/alpamayo2 cloned to alpasim/external/alpamayo2 (commit 5977692).
   - Teacher pipeline: src/a15_ft/a2_label.py + cluster/a2_label.sbatch on R6000 (96 GB), with the official prebuilt flash-attn 2.8.3 wheel.
   - Labels go to data/ft_a2labels/<tar>/<session>/<t0>.npz.
+
+## 2026-10-23 10:30 Results from the night (status checks paused ~02:30-10:20)
+- **Weight average ftC_w50 = 0.5 base + 0.5 ftC (L40S, 13637519-21):** **0.742**, our best.
+  - By batch: 1-40 0.775; 41-80 0.712; 81-120 0.739.
+  - vs v5 x2 (0.693): **+0.049 [-0.010, +0.110], wins 28 / losses 22** (more balanced than C's 29/28).
+  - vs C x2: +0.006 [-0.032, +0.041], wins 26 / losses 16.
+  - Progress is back up (0.73-0.81): averaging undoes the fine-tune's slowdown.
+  - **H100 confirmation: 13640435-37.** It replaces the H100 run-C jobs (cancelled).
+- **ftC_w75 (41-80, 13637522):** 0.700, no better than C. Remaining batches cancelled.
+- **Controller idx_start_penalty=5 on C (41-80, 13637532):** 0.664, worse (offroad 0.12). Remaining batches cancelled. long_position_weight=4 still queued.
+- **Run C seed 1 (13636811):** trained (ftC2.pt). Screen 13636812-14 waiting on priority.
+- **RoaD capture (K=16, 6 cameras, base v5+forced):** about 1,066 samples from 110 sessions, plus the smoke test's 25.
+  - The road_r2 rollouts produced no results (0 samples).
+  - Policy scene scores on the train scenes: 0.54-0.87.
+- **Run R (RoaD):** force-GT ~7.8k + RoaD tars x3 (oversampled), base init, lr 3e-5, 2,000 steps (13640427); L40S screen 13640428-30.
+- **Storage:**
+  - The shared dept fileset fell to 95-156 GB free (other users' writes; alpasim is 421 GB).
+  - Aman approved deleting ftA/ftB/ftD.pt and data/ft_capture_partial (15.7 GB); done. He did not approve data/nuplan_track (43 GB).
+- **sim_local.sbatch:** A15_ENV_SCRIPT / A15_DRIVER_SRC hooks for alternative driver builds (alpasim-jepa's FlashDrive); A15_MODEL_DIR can now be overridden.

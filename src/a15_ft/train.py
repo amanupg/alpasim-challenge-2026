@@ -279,6 +279,16 @@ def main():
           f"yaw p90/max {np.percentile(stats[:, 1], 90):.1f}/{stats[:, 1].max():.1f} deg; dropping {int((~keep).sum())}",
           flush=True)
     ok = {p for p, k in zip(train + val, keep) if k}
+    rd = []
+    for p in train:
+        z = np.load(p)
+        if "samp_xyz" in z.files:
+            rd.append(road_target({k: z[k] for k in ("fut_xyz", "fut_rot", "samp_xyz", "samp_rot")})[1:])
+    if rd:
+        idx, dist = np.array([r[0] for r in rd]), np.array([r[1] for r in rd])
+        print(f"RoaD samples: {len(rd)}; recovery labels {int((idx < 0).sum())}; chosen-sample distance p50/p90 "
+              f"{np.percentile(dist, 50):.2f}/{np.percentile(dist, 90):.2f} m; sample 0 chosen {int((idx == 0).sum())}",
+              flush=True)
     train, val = [p for p in train if p in ok], [p for p in val if p in ok]
 
     t0 = time.time()
