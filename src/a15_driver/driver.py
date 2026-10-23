@@ -270,7 +270,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                  route_memory: bool = False, route_mem_debug: bool = False, route_mem_dev_min: float = 20.0,
                  snap_alat: float = 0.0, mem_geom_only: bool = False, capture_dir: str | None = None,
                  capture_every_us: int = 500_000, capture_max_dev_m: float = float("inf"),
-                 capture_at_infer: bool = False,
+                 capture_at_infer: bool = False, policy_slots: list[int] | None = None,
                  time_scale: float = 1.0, ts_max_turn_deg: float = 10.0,
                  ts_skip_snapped: bool = True):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
@@ -286,6 +286,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         self._capturer = Capturer(capture_dir, capture_every_us) if capture_dir else None
         self._capture_max_dev = float(capture_max_dev_m)
         self._capture_at_infer = bool(capture_at_infer)
+        self._policy_slots = list(policy_slots or [])
         self._time_scale, self._ts_max_turn_deg, self._ts_skip_snapped = time_scale, ts_max_turn_deg, ts_skip_snapped
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
@@ -509,6 +510,12 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                                                   nav_text=nav, route_xy=route)
                     xs, _, _ = on_gpu_thread(policy.predict, frames, s.slots, hx, hr, route_xy=None, num_samples=1)
                     xy, yaw = retime_path(np.asarray(xy), np.asarray(xs))
+                elif self._policy_slots and set(s.slots) - set(self._policy_slots):
+                    # session receives more cameras than the policy uses (capture of all six for an offline
+                    # teacher, A15_POLICY_SLOTS): the policy sees exactly its usual slots
+                    ip = [i for i, sl in enumerate(s.slots) if sl in self._policy_slots]
+                    xy, yaw, info = on_gpu_thread(policy.predict, frames[ip], [s.slots[i] for i in ip], hx, hr,
+                                                  nav_text=nav, route_xy=route)
                 else:
                     xy, yaw, info = on_gpu_thread(policy.predict, frames, s.slots, hx, hr, nav_text=nav, route_xy=route)
         except Exception:                                    # noqa: BLE001
@@ -707,6 +714,7 @@ def main() -> None:
         capture_every_us=int(os.environ.get("A15_CAPTURE_EVERY_US", "500000")),
         capture_max_dev_m=float(os.environ.get("A15_CAPTURE_MAX_DEV_M", "inf")),
         capture_at_infer=os.environ.get("A15_CAPTURE_AT_INFER", "0") == "1",
+        policy_slots=[int(x) for x in os.environ.get("A15_POLICY_SLOTS", "").replace(";", ",").split(",") if x.strip()],
         time_scale=float(os.environ.get("A15_TIME_SCALE", "1.0")),
         ts_max_turn_deg=float(os.environ.get("A15_TS_MAX_TURN_DEG", "10")),
         ts_skip_snapped=os.environ.get("A15_TS_SKIP_SNAPPED", "1") == "1")

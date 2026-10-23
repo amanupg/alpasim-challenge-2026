@@ -97,8 +97,14 @@ def load(p):
     return smooth_recovery(s)
 
 
+POLICY_SLOTS = (0, 1, 2, 6)                    # the driver's four front cameras (capture may hold all six)
+
+
 def build_inputs(helper, proc, s):
     frames, slots = s["frames"], s["slots"]
+    if set(slots) - set(POLICY_SLOTS):
+        ip = [i for i, sl in enumerate(slots) if sl in POLICY_SLOTS]
+        frames, slots = frames[ip], [slots[i] for i in ip]
     msgs = helper.create_message(frames.flatten(0, 1), camera_indices=torch.tensor(slots), nav_text=None)
     msgs[-1]["content"][0]["text"] = "<|cot_start|><|cot_end|>"
     tok = proc.apply_chat_template(msgs, tokenize=True, add_generation_prompt=False, continue_final_message=True,

@@ -1580,3 +1580,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   4. **Alpamayo 2-Super teacher:** gating/size check 13637517 (cluster/fetch_a2.sbatch), then download + NVlabs/alpamayo2 clone.
   5. **FlashDrive:** delegated to the alpasim-jepa session (Aman confirmed); it works in alpasim-jepa/pai_flashdrive/.
   - **Also running:** run C seed-1 retrain 13636811 (screen 13636812-14); H100 run C 13623483-85 and v5 rerun 13623486-88 (queued).
+- **6-camera capture for the teacher.**
+  - Alpamayo 2-Super's driving profile uses cameras (0,1,2,3,5,6), i.e. with the rears, 4 frames each, 16-step history and 64-step future at 0.1 s. Its pixel budget is 163,840-196,608, so 576x320 fits.
+  - New `A15_POLICY_SLOTS`: the session takes all 6 PAI cameras, the policy still sees 0,1,2,6, and capture saves all 6. The trainer subsets to (0,1,2,6).
+  - The RoaD capture was resubmitted with 6 cameras: smoke test 13637608, captures 13637609-20. The same captures serve RoaD labels and A2 labels.
+- **Alpamayo 2-Super:** not gated, 71.6 GB, 15 shards; downloading in 13637597. NVlabs/alpamayo2 cloned to alpasim/external/alpamayo2 (commit 5977692).
+  - Teacher pipeline: src/a15_ft/a2_label.py + cluster/a2_label.sbatch on R6000 (96 GB), with the official prebuilt flash-attn 2.8.3 wheel.
+  - Labels go to data/ft_a2labels/<tar>/<session>/<t0>.npz.
