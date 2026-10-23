@@ -1606,3 +1606,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - The shared dept fileset fell to 95-156 GB free (other users' writes; alpasim is 421 GB).
   - Aman approved deleting ftA/ftB/ftD.pt and data/ft_capture_partial (15.7 GB); done. He did not approve data/nuplan_track (43 GB).
 - **sim_local.sbatch:** A15_ENV_SCRIPT / A15_DRIVER_SRC hooks for alternative driver builds (alpasim-jepa's FlashDrive); A15_MODEL_DIR can now be overridden.
+- **FlashDrive handed back to this thread** (alpasim-jepa returns to nuPlan, extended to Nov 16).
+  - **Measured (job 13639534, A6000, 40 samples):** 884 ms/plan (v5 int8 on A6000 is ~3.4 s), nvidia-smi 11.6 GB, ADE 1.09 m; load 17.5 min.
+  - **The faster PARO-only load (13639629) fails its strict check:**
+    - missing `*.rotate_linear.qlinear.bias`;
+    - unexpected non-persistent buffers (action_space stats, sinus freqs).
+  - z-lab's expert weights differ from NVIDIA's release.
+  - **Parked.** Its value is speed, and our levers that would spend speed (2 Hz -0.045; K-sample choosers +0.005 on H100) showed nothing. The remaining check 13639630 was cancelled. Code stays in alpasim-jepa/pai_flashdrive.
