@@ -77,7 +77,7 @@ class Capturer:
         self._lock = threading.Lock()
         self.n = 0
 
-    def save(self, sid: str, t0_us: int, frames, slots, hx, hr, fut_xyz, fut_rot) -> None:
+    def save(self, sid: str, t0_us: int, frames, slots, hx, hr, fut_xyz, fut_rot, **extra) -> None:
         jpgs = [jpeg_bytes(frames[c, f]) for c in range(frames.shape[0]) for f in range(frames.shape[1])]
         lens = np.array([len(b) for b in jpgs], dtype=np.int64)
         d = os.path.join(self.out_dir, sid)
@@ -87,7 +87,7 @@ class Capturer:
                  frames_shape=np.array(frames.shape, dtype=np.int64), slots=np.array(slots, dtype=np.int64),
                  hist_xyz=hx.reshape(-1, 3).numpy().astype(np.float32),
                  hist_rot=hr.reshape(-1, 3, 3).numpy().astype(np.float32),
-                 fut_xyz=fut_xyz, fut_rot=fut_rot, t0_us=np.int64(t0_us))
+                 fut_xyz=fut_xyz, fut_rot=fut_rot, t0_us=np.int64(t0_us), **extra)
         with self._lock:
             self.n += 1
 
@@ -102,4 +102,5 @@ def load_sample(path: str):
     imgs = [np.asarray(Image.open(io.BytesIO(buf[offs[i]:offs[i + 1]])).convert("RGB")) for i in range(len(lens))]
     fr = torch.from_numpy(np.stack(imgs)).permute(0, 3, 1, 2).reshape(shape)
     return {"frames": fr, "slots": z["slots"].tolist(), "hist_xyz": z["hist_xyz"], "hist_rot": z["hist_rot"],
-            "fut_xyz": z["fut_xyz"], "fut_rot": z["fut_rot"], "t0_us": int(z["t0_us"])}
+            "fut_xyz": z["fut_xyz"], "fut_rot": z["fut_rot"], "t0_us": int(z["t0_us"]),
+            **{k: z[k] for k in ("samp_xyz", "samp_rot") if k in z.files}}

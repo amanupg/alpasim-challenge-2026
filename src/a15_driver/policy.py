@@ -185,6 +185,14 @@ class Alpamayo15Policy:
                 self.last_ends = cand[:, ::8].round(1).tolist()
                 return S[i:i + 1]
             S = torch.cat([orig(*args, batch_size=1, **kw) for _ in range(K)], 0)       # (K, *action_dims)
+            if self._chooser == "record":
+                # RoaD-style data capture: drive sample 0 (what K=1 would drive) and keep all K for labelling
+                tr = model.action_space.action_to_traj(
+                    S, hx[:, -1].repeat(K, *[1] * (hx.dim() - 2)), hr[:, -1].repeat(K, *[1] * (hr.dim() - 2)))
+                self.last_samples = (tr[0].reshape(K, -1, 3).float().cpu().numpy(),
+                                     tr[1].reshape(K, -1, 3, 3).float().cpu().numpy())
+                self.last_choice = 0
+                return S[0:1]
             xyz = to_xy(S)
             xy = xyz[..., :2].reshape(K, -1).float()
             if self._chooser == "fast":
@@ -259,6 +267,7 @@ class Alpamayo15Policy:
         nav_text: optional route instruction ("Turn left in 30m"), Alpamayo 1.5's navigation input;
         route_xy: route waypoints in the rig frame, used by the "route" chooser."""
         self._route, self.last_choice, self.last_costs, self.last_ends = route_xy, 0, None, None
+        self.last_samples = None
         self._k_now = self._num_samples if num_samples is None else max(1, int(num_samples))
         msgs = self._helper.create_message(frames.flatten(0, 1), camera_indices=torch.tensor(cam_slots),
                                            nav_text=nav_text)

@@ -1557,3 +1557,26 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - **Risks for run C:** (1) L40S-only so far (GPU-type effects seen before); (2) winner's curse over ~10 variants on the same 120 scenes; (3) wins ≈ losses (few big scene gains); (4) run D's null result suggests training-run luck.
 - **Robustness check (risk 4): run C retrained with a different seed** (--seed 1, same data and recipe), 13636811; L40S screen 13636812-14, afterok.
   - If seed 1 lands near C (~0.735), the gain is real; if near D/forced (~0.707), C was luck and the slot should not go to it.
+
+## 2026-10-23 01:30 Full PAI push (Aman: "full push now"; nuPlan dead; Alpamayo 2-Super download approved)
+- **Research sweep (4 parallel agents).** Findings:
+  - post-fix board: ACM 2316, VAIL 2258, UJS IV Squad 2251, us 2219, host 2220;
+  - PAI finals run with the Harmonizer on; there is an innovation prize;
+  - RoaD (arXiv 2512.01993: closed-loop SFT, AlpaSim 0.444 → 0.630);
+  - AlpaGym;
+  - FlashDrive (W4A8 A1.5);
+  - Alpamayo 2-Super (34B, PAI-trained, AlpaSim 1.50 vs 1.37);
+  - exact scoring code.
+- **Our local bench has always run with the Harmonizer ON.** The developer base config passes `--enable-harmonizer`; only `e2e_challenge/ec2.yaml` (official initial runs) removes it. So local results match the finals' rendering; the current board is unharmonized. This may explain part of the ~0.6x local → official ratio.
+- **Bets:**
+  1. **RoaD-style closed-loop SFT (main).** New `A15_CHOOSER=record` (K samples, drive sample 0, keep all K) and `A15_CAPTURE_AT_INFER=1` (capture at each inference with the K samples).
+     - Trainer `road_target`: the sample nearest the recording (mean 4-corner distance over 2 s); if > 3 m, the smooth recovery label.
+     - Test: tests/test_road_label.py.
+     - Smoke test 13637564; captures 13637565-76 (120 train scenes, pai_train_r0-r11; K=16; base v5+forced policy; A6000/R6000/L40), afterok on the smoke test.
+  2. **Weight averaging:** ftC_w50 (base 0.5 + C 0.5) and ftC_w75; job 13637518; L40S screens 13637519-24.
+  3. **Controller gains on run C** (lat/heading were already +0.002 in Sept):
+     - idx_start_penalty=5: 13637532-34;
+     - long_position_weight=4: 13637535-37.
+  4. **Alpamayo 2-Super teacher:** gating/size check 13637517 (cluster/fetch_a2.sbatch), then download + NVlabs/alpamayo2 clone.
+  5. **FlashDrive:** delegated to the alpasim-jepa session (Aman confirmed); it works in alpasim-jepa/pai_flashdrive/.
+  - **Also running:** run C seed-1 retrain 13636811 (screen 13636812-14); H100 run C 13623483-85 and v5 rerun 13623486-88 (queued).

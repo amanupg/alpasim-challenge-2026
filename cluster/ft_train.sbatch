@@ -16,6 +16,7 @@ source $A/cluster/a15env_local.sh
 export HUB=$NR/.cache/hf/hub HF_HUB_OFFLINE=1 PYTHONNOUSERSITE=1 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader
 cd $A && PYTHONPATH=$A/src $A15PY tests/test_sr_adamw.py || exit 3
+cd $A && $A15PY tests/test_road_label.py || exit 3
 cd $A && PYTHONPATH=$A/envs/overlay_driver:$A/envs/overlay_torchao:$A/src \
   $A15PY -u -m a15_ft.train --data ${DATA:-$A/data/ft_capture} --out ${OUT:-$A/data/ft_ckpt/expert_$SLURM_JOB_ID.pt} $ARGS 2>&1 \
   | grep --line-buffered -v -i -e "warning" -e "No <traj_future_start>"

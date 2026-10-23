@@ -66,8 +66,35 @@ def smooth_recovery(s, horizon_s=3.0, dt=0.1):
     return dict(s, fut_xyz=fx.astype(np.float32), fut_rot=fr.astype(np.float32))
 
 
+def _corners(xyz, rot, half_len=2.4, half_wid=1.0):
+    """Footprint corners (T, 4, 2) from positions (T, 3) and rotations (T, 3, 3)."""
+    yaw = np.arctan2(rot[:, 1, 0], rot[:, 0, 0])
+    c, s_ = np.cos(yaw)[:, None], np.sin(yaw)[:, None]
+    dx = np.array([half_len, half_len, -half_len, -half_len])[None]
+    dy = np.array([half_wid, -half_wid, half_wid, -half_wid])[None]
+    return np.stack([xyz[:, :1] + c * dx - s_ * dy, xyz[:, 1:2] + s_ * dx + c * dy], -1)
+
+
+def road_target(s, window=20, recover_m=3.0):
+    """RoaD (arXiv 2512.01993) target for a sample captured with K policy samples (A15_CHOOSER=record):
+    the sample whose footprint corners stay nearest the recording over the first `window` steps (2 s), so the
+    target stays in the policy's own distribution; if even that one is more than recover_m away on average,
+    the recovery label (smooth blend from the ego onto the recording, as for DAgger samples).
+    Returns (sample dict with the target as fut_xyz / fut_rot, chosen index or -1 for recovery, distance)."""
+    gt = _corners(s["fut_xyz"][:window], s["fut_rot"][:window])
+    d = np.array([np.linalg.norm(_corners(x[:window], r[:window]) - gt, axis=-1).mean()
+                  for x, r in zip(s["samp_xyz"], s["samp_rot"])])
+    i = int(d.argmin())
+    if d[i] > recover_m:
+        return smooth_recovery(s), -1, float(d[i])
+    return dict(s, fut_xyz=s["samp_xyz"][i].astype(np.float32), fut_rot=s["samp_rot"][i].astype(np.float32)), i, float(d[i])
+
+
 def load(p):
-    return smooth_recovery(load_sample(p))
+    s = load_sample(p)
+    if "samp_xyz" in s:
+        return road_target(s)[0]
+    return smooth_recovery(s)
 
 
 def build_inputs(helper, proc, s):

@@ -270,6 +270,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                  route_memory: bool = False, route_mem_debug: bool = False, route_mem_dev_min: float = 20.0,
                  snap_alat: float = 0.0, mem_geom_only: bool = False, capture_dir: str | None = None,
                  capture_every_us: int = 500_000, capture_max_dev_m: float = float("inf"),
+                 capture_at_infer: bool = False,
                  time_scale: float = 1.0, ts_max_turn_deg: float = 10.0,
                  ts_skip_snapped: bool = True):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
@@ -284,6 +285,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         self._snap_alat, self._mem_geom_only = snap_alat, mem_geom_only
         self._capturer = Capturer(capture_dir, capture_every_us) if capture_dir else None
         self._capture_max_dev = float(capture_max_dev_m)
+        self._capture_at_infer = bool(capture_at_infer)
         self._time_scale, self._ts_max_turn_deg, self._ts_skip_snapped = time_scale, ts_max_turn_deg, ts_skip_snapped
         self._interval_us, self._frame_dt_us = interval_us, int(frame_dt_s * 1e6)
         self._sessions: dict[str, SessionState] = {}
@@ -409,6 +411,24 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             s.gt.set_from_rig(times, xyz, R, hp[0], _quat_to_rot(hq[0]))
         return common_pb2.Empty()
 
+    def _capture_inference(self, s: SessionState, frames, hx, hr, t0, anchor, samples) -> None:
+        """RoaD-style capture (A15_CAPTURE_AT_INFER=1, A15_CHOOSER=record): the exact frames and history the
+        policy just planned from, the recorded future from the ego's pose, and all K policy samples; the trainer
+        picks the sample nearest the recording as the target (recovery label when none is within 3 m)."""
+        ap, aq = anchor.pose.vec, anchor.pose.quat
+        p0, R0 = np.array([ap.x, ap.y, ap.z]), _quat_to_rot(np.array([aq.w, aq.x, aq.y, aq.z]))
+        with self._lock:
+            if self._capture_max_dev < float("inf"):
+                off = s.gt.offset_at(t0, p0, R0)
+                if off is None or float(np.hypot(off[0], off[1])) > self._capture_max_dev:
+                    return
+            fut = s.gt.future_in_frame(t0, p0, R0)
+            slots = list(s.slots)
+        if fut is None:
+            return
+        self._capturer.save(s.sid, t0, frames, slots, hx, hr, *fut,
+                            samp_xyz=samples[0].astype(np.float32), samp_rot=samples[1].astype(np.float32))
+
     def _maybe_capture(self, s: SessionState, now: int) -> None:
         with self._lock:
             if now - s.last_capture_us < self._capturer.every_us:
@@ -436,7 +456,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         now = int(request.time_now_us)
         with self._lock:
             s.stats["drive"] += 1
-        if self._capturer is not None:
+        if self._capturer is not None and not self._capture_at_infer:
             self._maybe_capture(s, now)
         self._maybe_infer(s, now)
         with self._lock:
@@ -496,6 +516,9 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             with self._lock:
                 s.stats["infer_err"] += 1
             return
+        samples = getattr(policy, "last_samples", None)
+        if self._capturer is not None and self._capture_at_infer and samples is not None:
+            self._capture_inference(s, frames, hx, hr, t0, anchor, samples)
         xy, yaw = speed_scale_plan(np.asarray(xy), np.asarray(yaw), self._speed_scale)
         if self._route_pull > 0:
             xy, yaw = route_pull(xy, yaw, route, self._route_pull, self._route_pull_d0, self._route_pull_d1)
@@ -683,6 +706,7 @@ def main() -> None:
         capture_dir=os.environ.get("A15_CAPTURE_DIR") or None,
         capture_every_us=int(os.environ.get("A15_CAPTURE_EVERY_US", "500000")),
         capture_max_dev_m=float(os.environ.get("A15_CAPTURE_MAX_DEV_M", "inf")),
+        capture_at_infer=os.environ.get("A15_CAPTURE_AT_INFER", "0") == "1",
         time_scale=float(os.environ.get("A15_TIME_SCALE", "1.0")),
         ts_max_turn_deg=float(os.environ.get("A15_TS_MAX_TURN_DEG", "10")),
         ts_skip_snapped=os.environ.get("A15_TS_SKIP_SNAPPED", "1") == "1")
