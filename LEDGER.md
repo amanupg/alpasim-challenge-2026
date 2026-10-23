@@ -1635,3 +1635,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - driver files match the repo byte for byte.
   - container/Dockerfile.v7.dockerignore sends only src/a15_driver and the expert, so the build takes 93 s.
   - **Not pushed.** The final expert is chosen after the H100 checks.
+- **OFFICIAL_MIMIC verified** (13640533, 2 scenes): renderer config shows `--no-enable-harmonizer` and `skip_driver_during_force_gt: true`; 2/2 sessions clean; driver peak 14,196 MiB.
+- **Queued:**
+  - L40S Harmonizer-off screens, v5 vs ftC_w50 on 120 scenes each (board condition);
+  - soup ftCC2_soup (0.5 base + 0.25 C + 0.25 C2), avg 13641310, screen 13641312-14;
+  - ftR_w50 (0.5 base + 0.5 R), avg 13641311 afterok on run R, screen 13641315-17.
