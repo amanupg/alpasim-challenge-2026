@@ -1651,3 +1651,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 
   - w50 halves at-fault collisions and cuts corridor exits by 3.5 while keeping progress. Zero scenes become passes, which the IRT/PCS model rewards.
   - **Corridor exits are still the largest loss: 14 scenes, about 0.12 of the mean.**
+- **Corridor exits are mostly wrong branches at junctions** (per-timestep metrics, 1-40 batch):
+  - `0d10d2e3`: w50 drives faster than v5 and about 8 s in leaves the recording entirely (lateral 3 → 84 m: another road). v5, slower, follows the recorded branch.
+  - `0b54c8d4`: both v5 and w50 miss a turn at about 17-19 s.
+  - **Cause:** the model never sees the route intent (no nav text; route snap is off on turns), so at forks it guesses.
+  - **Options:**
+    1. nav text in the prompt (Sept test +0.002, untested with the fine-tune);
+    2. fine-tune WITH nav text conditioning. RoaD labels pick the recorded branch, but without route intent as input the model cannot learn which branch. Needs a re-capture that stores the route (about 2 days).
