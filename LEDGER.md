@@ -1531,3 +1531,22 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Run D (13624503):** run C's recipe (base init, lr 3e-5, 2 epochs) on force-GT (~7.8k) + all DAgger d0-d8 (3,169; run C had 1,433).
   - -t 11 h. Isolates the effect of more DAgger data.
   - L40S screen 13624505-07, afterok, excluding ins058/ins085.
+
+## 2026-10-23 00:40 run C replicated on L40S; run D no gain
+- The socket was closed 12:16 Oct 22 to 00:35 Oct 23 (Aman first reopened it on a different Mac; Insomnia port 22 also timed out from there). Jobs ran on.
+- **Run C repeat (13623489-91):** 0.740.
+  - By batch: 1-40 0.791; 41-80 0.701; 81-120 0.729.
+  - vs the first run C (0.733): +0.007 [-0.025, +0.039]; A/A agreement is good.
+- **Run C, 2 runs (all_l40sftCx2: 0.737) vs v5, 2 runs (0.693): +0.043 [-0.019, +0.106]**; wins 29, losses 28.
+  - vs forced start: +0.030 [-0.016, +0.079].
+  - The mean gain replicates across runs (+0.040, +0.047), but wins ≈ losses: a few scenes gain a lot, and the scene-level interval still spans 0.
+- **Run D (more DAgger from the base policy, d0-d8; 13624503, screen 13624505-07):** 0.707.
+  - By batch: 1-40 0.754; 41-80 0.686; 81-120 0.680.
+  - vs v5 x2: +0.013; vs forced: -0.000. Offroad is back up to 0.10-0.12.
+  - Open loop barely moved: ADE 2.217 → 2.192 on its own val set. Weights moved 8.7e-2.
+  - **More base-policy DAgger data did not help.** Run C's gain does not scale with DAgger volume, so seed luck or overfitting are possible.
+- **DAgger with run C's own policy (13623492-94):** e0 344, e1 362, e2 388 (1,094 samples).
+- **H100:**
+  - run C 13623483-85, estimated start 00:41 Oct 23;
+  - v5 rerun 13623486-88, estimated start Oct 25 14:25 (still before the Oct 27-28 slot decision);
+  - meanwhile compare with the existing H100 v5 (all_h100v03snap, 0.728).
