@@ -1680,3 +1680,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
     - **The labels are valid, but A2's ADE to the recording is similar to our sample 0's.** Expect a modest effect, mainly in hard cases.
   - Full labelling: 13644595-96 (2 shards).
   - Then run T: force-GT + RoaD states with A2 targets (--teacher_dir), base init, then blended with base.
+- **Harmonizer OFF (board condition, OFFICIAL_MIMIC, L40S, 120 scenes):** v5 0.728 vs w50 0.757.
+  - +0.029 [-0.028, +0.086]; wins 24, losses 25.
+  - By batch: 1-40 0.675 → 0.735; 41-80 0.734 → 0.780; 81-120 0.774 → 0.756.
+  - The gain is smaller than with the Harmonizer on (+0.049) and not significant.
+  - At ~0.6x local → official that is ~+0.017 scene, ~+14 PCS: short of the +32 needed to pass UJS (2251).
+  - Everyone scores higher without the Harmonizer (v5 0.728 vs 0.693), so the finals will score lower for all teams.
+- **Soup (base + C + C2), L40S:** 41-80 0.681, 1-40 0.742. Below w50 on both batches; C2's neutral weights dilute C.
