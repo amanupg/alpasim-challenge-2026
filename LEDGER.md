@@ -1629,3 +1629,9 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   3. Pick the candidate best on H100 Harmonizer OFF (board ranking gates the finals), provided it is also not worse with Harmonizer ON.
   4. Build v7 (container/Dockerfile.v7 = v5 + forced start + expert checkpoint), use the last PAI warmup to check memory and time, then Aman submits about Oct 28-29. Final container chosen Oct 31.
 - **Trial build of v7 with ftC_w50:** copying the checkpoint to container/assets/expert.pt (git-ignored).
+- **v7 trial build OK** (`local/pai:v7-trial`, git 33b9b25, expert = ftC_w50 sha256 f9da7cf3…):
+  - the driver imports and the expert has 409 tensors;
+  - env A15_FORCE_TRAJ_START=1, A15_EXPERT_CKPT=/app/expert/expert.pt, K=1, 1 Hz, snap 2.0/15;
+  - driver files match the repo byte for byte.
+  - container/Dockerfile.v7.dockerignore sends only src/a15_driver and the expert, so the build takes 93 s.
+  - **Not pushed.** The final expert is chosen after the H100 checks.
