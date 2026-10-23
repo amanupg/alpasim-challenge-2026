@@ -90,8 +90,23 @@ def road_target(s, window=20, recover_m=3.0):
     return dict(s, fut_xyz=s["samp_xyz"][i].astype(np.float32), fut_rot=s["samp_rot"][i].astype(np.float32)), i, float(d[i])
 
 
+TEACHER = {"dir": None, "scratch": None}           # --teacher_dir: Alpamayo 2 Super labels (a15_ft/a2_label.py)
+
+
+def teacher_label(p):
+    """Sidecar path of an A2 Super label for capture sample p (same <tar>/<session>/<t0>.npz layout), or None."""
+    if TEACHER["dir"] is None or not p.startswith(TEACHER["scratch"]):
+        return None
+    q = os.path.join(TEACHER["dir"], os.path.relpath(p, TEACHER["scratch"]))
+    return q if os.path.exists(q) else None
+
+
 def load(p):
     s = load_sample(p)
+    q = teacher_label(p)
+    if q is not None:
+        t = np.load(q)
+        return dict(s, fut_xyz=t["a2_xyz"].astype(np.float32), fut_rot=t["a2_rot"].astype(np.float32))
     if "samp_xyz" in s:
         return road_target(s)[0]
     return smooth_recovery(s)
@@ -229,6 +244,8 @@ def main():
     ap.add_argument("--unforced_eval", action="store_true", help="also report the open-loop check without forced start")
     ap.add_argument("--max_off_m", type=float, default=3.5, help="drop samples whose ego is farther from the recording")
     ap.add_argument("--max_off_deg", type=float, default=20.0)
+    ap.add_argument("--teacher_dir", default=None, help="A2 Super labels; samples with one use it as the target")
+    ap.add_argument("--teacher_only", action="store_true", help="train only on samples that have a teacher label")
     ap.add_argument("--eval_only", action="store_true")
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
@@ -237,6 +254,13 @@ def main():
     model, helper, proc = load_model(snap("nvidia--Alpamayo-1.5-10B"), snap("Qwen--Qwen3-VL-8B-Instruct"),
                                      snap("Qwen--Qwen3-VL-2B-Instruct"))
     groups = collect(a.data, a.scratch)
+    if a.teacher_dir:
+        TEACHER["dir"], TEACHER["scratch"] = a.teacher_dir, os.path.join(a.scratch, "")
+        if a.teacher_only:
+            groups = {k: [p for p in v if teacher_label(p)] for k, v in groups.items()}
+            groups = {k: v for k, v in groups.items() if v}
+        n_t = sum(1 for v in groups.values() for p in v if teacher_label(p))
+        print(f"teacher labels: {n_t} of {sum(len(v) for v in groups.values())} samples", flush=True)
     sids = sorted(groups); random.Random(a.seed).shuffle(sids)
     n_val = max(1, int(len(sids) * a.val_frac))
     val = [p for s in sids[:n_val] for p in sorted(groups[s])]
