@@ -1745,3 +1745,33 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - A bare `COPY --chmod=0644` into a missing dir also gives the dir 0644, so alpasim could not enter it; hence the mkdir.
   - Rebuilt `teams/amanupg:v7` (local only, not pushed), git 4d809ec. As `alpasim`: driver imports ok, expert 409 tensors, sha256 f9da7cf3… (= ftC_w50); env A15_NAV=1, intersect, FORCE_TRAJ_START=1, NUM_SAMPLES=1.
   - Rule: image checks run as the runtime user.
+
+## 2026-10-24 11:30 Aman: "deterministic gains only". New protocol; fresh held-out confirmation of v7
+- **Rule** (memory pai-deterministic-gains-only): a change enters the image only if it shows a paired gain with an interval above 0 on scenes never used for selection, under board conditions (OFFICIAL_MIMIC) on H100, and its scene flips have a mechanism. Expected official gain is quoted at ~0.6x local.
+- **Scene splits** (seed 20261024, `shuf --random-source`): the 321 curated-val scenes outside our 120 bench split into:
+  - `scenes/pai_fresh_{1_40,41_80,81_120}.txt` (120), used once to confirm v7;
+  - `scenes/pai_lockbox_201.txt` (201, read-only), only for the final container choice.
+  - The old 120 bench is now a screening set (contaminated by ~40 selections).
+- **Fresh confirmation queued, v5 vs v7, OFFICIAL_MIMIC:**
+  - H100 13648575/76, 79/80, 83/84;
+  - L40S backup 13648577/78, 81/82, 85/86.
+  - The old-bench H100 jobs 13648567-72 were cancelled before they started.
+- **Paired, old bench, board condition (vs mimic v5 0.728):**
+  - w50: +0.029 [-0.028, +0.086], W/L 24/25;
+  - **w50+nav L40S: +0.056 [+0.001, +0.111]**, 28/23;
+  - w50+nav H100: +0.054 [-0.006, +0.111], 30/22.
+  - H100 vs L40S w50+nav A/A: -0.002 [-0.020, +0.016].
+  - With the Harmonizer on (vs v5 x2 0.693): R +(-0.007), R_w50 +0.037, T_w50 +0.038, forced+nav +0.013; all intervals include 0.
+- **Where v7 still loses (H100 board, loss per 120 scenes):**
+  - rear-ended partial-progress 0.069 (19 scenes);
+  - corridor 0.067 (8);
+  - offroad 0.033 (4);
+  - at-fault 0.025 (3);
+  - slow partial 0.024 (13).
+  - 15 scenes fail in both v5 and v7; 10 flip each way (noise or mechanism, to check).
+- **Rear-end mechanism (per-step metrics):** after force-GT hands over (~3 s), the recorded car pulls away (gap 10-20 m) while ours holds at a standstill or brakes to a full stop, and the replayed follower hits us.
+  - 2f227f2c stays at 1.9 m; 268949d2 at 2.4 m; 1d6e30bc and 2c84ac16 start stopped and creep <2 m in 15-20 s; 213dfdac stops dead at 59 m.
+  - All start near a junction with "Turn left/right in 15-36 m".
+- **Diagnosis queued** on these 10 scenes (`scenes/pai_diag_stall10.txt`), with the new A15_LOG_PLANS=1 (plan distance, speed, nav, CoT):
+  - v7 with video (13648623);
+  - v7 + A15_REASONING=1 (13648624): the CoT says why it holds.

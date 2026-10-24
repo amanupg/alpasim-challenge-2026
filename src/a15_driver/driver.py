@@ -275,6 +275,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                  ts_skip_snapped: bool = True):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
         self._log_choices, self._early_replan, self._nav_dist = log_choices, early_replan, nav_dist
+        self._log_plans = os.environ.get("A15_LOG_PLANS", "0") == "1"
         self._speed_scale = speed_scale
         self._route_pull, self._route_pull_d0, self._route_pull_d1 = route_pull, route_pull_d0, route_pull_d1
         self._speed_cams = speed_cams
@@ -591,6 +592,11 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         if self._log_choices and info.get("costs") is not None:
             LOGGER.info("choice %s t0 %d: costs %s ends %s -> %d route %s", s.sid, t0, info["costs"], info["ends"],
                         info["choice"], None if route is None else np.round(route, 1).tolist())
+        if self._log_plans:                                  # diagnosis of stalls (A15_LOG_PLANS=1; CoT with A15_REASONING=1)
+            p = np.asarray(xy)
+            d = np.linalg.norm(np.diff(np.vstack([np.zeros(2), p[:, :2]]), axis=0), axis=1).cumsum()
+            LOGGER.info("plan %s t0 %d: speed %.2f, plan dist 2s %.1f 6.4s %.1f, snapped %d, nav %r, cot %r", s.sid, t0,
+                        s.speed, d[min(19, len(d) - 1)], d[-1], int(snapped), nav, info.get("cot", "")[:400])
 
     def _gather(self, s: SessionState):
         """Frames (n_cam, 4, 3, H, W), ego history, t0 and the anchor pose; None if not ready."""
