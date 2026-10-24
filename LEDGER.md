@@ -1797,3 +1797,12 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Candidate driver code now lives in `src_cand/`** (sim_local.sbatch: A15_DRIVER_SRC without A15_ENV_SCRIPT uses the standard env).
   - `$A/src/a15_driver/policy.py` stays byte-identical to the v7 image (md5 f45182e3…), so the fresh v7 confirmation jobs run the exact image code.
 - **Screen:** CFG w=2 on the old bench, OFFICIAL_MIMIC, L40S, 13648847-49, against mimw50nav L40S (0.784). If it passes, confirm on the fresh 120 on H100.
+- **12:20: both fresh H100 batches VOID** with "CUDA error: unspecified launch failure" (the 9th and 10th Insomnia H100 losses):
+  - v5 1-40 (13648575, ins050): 4 sessions completed, then 6,505 failure lines; summary n=76, mean 0.145;
+  - v7 1-40 (13648576, ins048): 3,179 failures; cancelled.
+  - The fault starts 5-15 min after "policy ready". Insomnia has only 3 H100 nodes (ins048-050) and every one has faulted (ins049 and ins050 since Oct 13). This is the cluster's driver 550 + cuda-compat setup; the official H100 run of v5 completed 987/987.
+  - **Fresh confirmation moved to L40S, two runs per config:**
+    - L40S agrees with H100 on w50+nav: A/A -0.002 [-0.020, +0.016], 85 ties of 120.
+    - Run 1: 13648577/78, 81/82, 85/86. Run 2: 13648949-54.
+    - Cancelled H100 jobs: 13648576, 79, 80, 83, 84.
+  - If an H100 number is still needed for the final decision, rent one (Aman approved renting in that case).
