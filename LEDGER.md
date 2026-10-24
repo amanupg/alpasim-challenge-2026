@@ -1698,3 +1698,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Then ftT_w50 (13644833) and its L40S screen (13644834-36).
 - **Run R (RoaD, 13640427) trained:** held-out ADE 1.748 → 1.496 m (-14%); length ratio 1.007 → 1.007 (no slowdown, unlike the force-GT fine-tunes); weights moved 7.7e-2.
   - Screens: R alone 13640428-30 (afterok, now eligible); R_w50 averaging 13641311 → screen 13641315-17.
+- **w50 + nav text (A15_NAV=1, A15_NAV_DIST=intersect), L40S, Harmonizer on:**
+  - 81-120: 0.805 vs w50 0.739 (corridor 0.05 vs 0.10; at-fault 0.00);
+  - 1-40: **0.834** vs w50 0.775 (v5 0.622/0.645);
+  - 41-80 still running (rerun 13644725).
+  - **+0.06 on both finished batches, via fewer corridor exits (junction branch errors).** Now the lead candidate.
+  - **Queued:** H100 Harmonizer-off (board condition) 13646122-24 and L40S Harmonizer-off 13646125-27.
+  - The pending w50 H100 batches (13640436-37) were cancelled to free H100s; the running w50 H100 batch (13640435) stays as a reference.
