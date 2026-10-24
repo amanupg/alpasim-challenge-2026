@@ -140,6 +140,9 @@ class Alpamayo15Policy:
         self._fast_tol = fast_tol                  # chooser "fast": path-shape tolerance to the medoid, m
         self._stall_m = stall_m                    # chooser "stall": sample 0 moving less than this in 4 s stalls
         self._force_start = force_start            # append <traj_future_start> instead of generating it
+        # classifier-free guidance on the nav text (A15_NAV_CFG=w; Alpamayo 1.5's own cfg_nav sampler, eq. 6 of
+        # arXiv:2311.13443): v = (1-w) v(no nav) + w v(nav). 1.0 = off (plain nav conditioning). Forced path only.
+        self._nav_cfg = float(os.environ.get("A15_NAV_CFG", "1.0"))
         self._route_big_gap, self._route_big_gap_min_len = route_big_gap, route_big_gap_min_len
         # initial-noise temperature of the flow-matching sampler (Alpamayo 1.5 nav notebook uses 0.6:
         # "more stable but less diverse" trajectories); 1.0 is the library default we ran until 2026-10-04
@@ -236,26 +239,43 @@ class Alpamayo15Policy:
         if td.get("attention_mask") is not None:
             am = td["attention_mask"]
             td["attention_mask"] = torch.cat([am, torch.ones((am.shape[0], 1), dtype=am.dtype, device=am.device)], 1)
-        out = m.vlm(input_ids=ids, use_cache=True, return_dict=True, **td)
-        cache = out.past_key_values
-        L = cache.get_seq_length()
         n_tok = m.action_space.get_action_space_dims()[0]
-        pos = einops.repeat(torch.arange(n_tok, device=dev), "l -> 3 b l", b=1).clone()
-        pos += (m.vlm.model.rope_deltas + torch.full((1,), L, device=dev, dtype=torch.long)[:, None]).to(pos.device)
-        mask = torch.zeros((1, 1, n_tok, L + n_tok), dtype=torch.float32, device=dev)
         fwd = {"is_causal": False} if m.config.expert_non_causal_attention else {}
 
-        def step_fn(x, t):
-            b = x.shape[0]
-            e = m.action_in_proj(x, t)
-            if e.dim() == 2:
-                e = e.view(b, n_tok, -1)
-            o = m.expert(inputs_embeds=e, position_ids=pos.expand(3, b, n_tok) if b > 1 else pos,
-                         past_key_values=cache, attention_mask=mask.expand(b, -1, -1, -1), use_cache=True, **fwd)
-            cache.crop(L)
-            return m.action_out_proj(o.last_hidden_state[:, -n_tok:]).view(-1, *m.action_space.get_action_space_dims())
+        def prefill(ids, td):
+            """KV cache, its length, and the expert's position ids / mask for one prompt (one sequence)."""
+            out = m.vlm(input_ids=ids, use_cache=True, return_dict=True, **td)
+            cache = out.past_key_values
+            L = cache.get_seq_length()
+            pos = einops.repeat(torch.arange(n_tok, device=dev), "l -> 3 b l", b=1).clone()
+            pos += (m.vlm.model.rope_deltas + torch.full((1,), L, device=dev, dtype=torch.long)[:, None]).to(pos.device)
+            return cache, L, pos, torch.zeros((1, 1, n_tok, L + n_tok), dtype=torch.float32, device=dev)
 
-        a = m.diffusion.sample(batch_size=1, step_fn=step_fn, device=dev, return_all_steps=False, **self._diff_kwargs)
+        def make_step(cache, L, pos, mask):
+            def step_fn(x, t):
+                b = x.shape[0]
+                e = m.action_in_proj(x, t)
+                if e.dim() == 2:
+                    e = e.view(b, n_tok, -1)
+                o = m.expert(inputs_embeds=e, position_ids=pos.expand(3, b, n_tok) if b > 1 else pos,
+                             past_key_values=cache, attention_mask=mask.expand(b, -1, -1, -1), use_cache=True, **fwd)
+                cache.crop(L)
+                return m.action_out_proj(o.last_hidden_state[:, -n_tok:]).view(-1, *m.action_space.get_action_space_dims())
+            return step_fn
+
+        guided = make_step(*prefill(ids, td))
+        kw = dict(self._diff_kwargs)
+        from alpamayo1_5.nav_utils import ROUTE_START_TOKEN, remove_nav_text
+        if self._nav_cfg != 1.0 and m.tokenizer.convert_tokens_to_ids(ROUTE_START_TOKEN) in ids[0].tolist():
+            # unguided branch: the same prompt with <|route_start|>...<|route_end|> removed, as the library's
+            # sample_trajectories_from_data_with_vlm_rollout_cfg_nav builds it (same images, own prefill)
+            uids = remove_nav_text(ids, m.tokenizer, 0)
+            utd = dict(td)
+            if utd.get("attention_mask") is not None:
+                utd["attention_mask"] = torch.ones_like(uids)
+            kw.update(unguided_step_fn=make_step(*prefill(uids, utd)), use_classifier_free_guidance=True,
+                      inference_guidance_weight=self._nav_cfg)
+        a = m.diffusion.sample(batch_size=1, step_fn=guided, device=dev, return_all_steps=False, **kw)
         return m.action_space.action_to_traj(a, hx[:, -1], hr[:, -1])
 
     @torch.no_grad()

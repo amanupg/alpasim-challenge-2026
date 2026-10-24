@@ -107,6 +107,11 @@ if [ $DRIVER = a15 ]; then
   # alternative driver build (A15_ENV_SCRIPT + A15_DRIVER_SRC; e.g. the alpasim-jepa FlashDrive port): its own
   # Python env (exports FDPY) and driver source; overlay_torchao is built for torch 2.8, so it is left out
   DRV_PY=$A15PY; DRV_PYPATH=$A/envs/overlay_driver:$A/envs/overlay_torchao:$A/src:$SIF/repo/src/grpc
+  if [ -n "${A15_DRIVER_SRC:-}" ] && [ -z "${A15_ENV_SCRIPT:-}" ]; then
+    # candidate driver code in its own tree with the standard env, so jobs confirming the image keep $A/src
+    DRV_PYPATH=$A/envs/overlay_driver:$A/envs/overlay_torchao:$A15_DRIVER_SRC:$SIF/repo/src/grpc
+    echo "driver: standard env, source $A15_DRIVER_SRC"
+  fi
   if [ -n "${A15_ENV_SCRIPT:-}" ]; then
     source $A15_ENV_SCRIPT || { echo "A15_ENV_SCRIPT failed"; exit 4; }
     DRV_PY=${FDPY:?A15_ENV_SCRIPT must export FDPY}

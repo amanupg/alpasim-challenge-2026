@@ -1788,3 +1788,12 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - The linear MPC uses horizon 20 × 0.1 s.
   - So the Oct 22 idx_start_penalty=5 run moved it **down**, which hurt (-0.040 [-0.090, -0.001], offroad). Upward (15) is untested.
   - long_position_weight 4 never ran (cancelled). Shared with alpasim-jepa for its nuPlan gain sweep.
+- **New lever: classifier-free guidance on the nav text (A15_NAV_CFG=w).**
+  - Alpamayo 1.5 ships `sample_trajectories_from_data_with_vlm_rollout_cfg_nav`: v = (1-w)·v(no nav) + w·v(nav), from Guided Flows eq. 6. The unguided prompt is the same one with `<|route_start|>…<|route_end|>` removed, prefilled separately.
+  - We ported it into our forced-start path (policy._forced_rollout; refactored into prefill/make_step). With w=1 or no nav text it is off.
+  - The model config sets no default weight (so 1.0). NVIDIA's nav examples use "Turn left onto <street> in 40m".
+  - Cost: one more VLM prefill and 2× expert passes, on plans with nav text only. Memory to be read from gpu_mem.log.
+  - Target: corridor exits (junction branch errors, 0.067 of the score lost on 120 scenes).
+- **Candidate driver code now lives in `src_cand/`** (sim_local.sbatch: A15_DRIVER_SRC without A15_ENV_SCRIPT uses the standard env).
+  - `$A/src/a15_driver/policy.py` stays byte-identical to the v7 image (md5 f45182e3…), so the fresh v7 confirmation jobs run the exact image code.
+- **Screen:** CFG w=2 on the old bench, OFFICIAL_MIMIC, L40S, 13648847-49, against mimw50nav L40S (0.784). If it passes, confirm on the fresh 120 on H100.
