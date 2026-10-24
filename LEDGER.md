@@ -1852,3 +1852,16 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - v7 + SNAP_MIN_T=3: 13651324/26/28.
 - **Fresh 41-80, L40S run 1:** v5 (13650548, LOCAL_FS) 0.774 vs v7 0.816, **+0.041 [-0.022, +0.110], W/L 9/4**. v5 81-120 is done (13650549); v7 81-120 is running (13650550).
 - Diagnostics: the v7 video run 13650554 completed; the CoT run 13650555 FAILED (exit 1, to inspect).
+
+## 2026-10-24 19:25 **Fresh-scene confirmation, run 1 complete: v7 +0.046 [+0.000, +0.094]**
+- **120 never-used val scenes, OFFICIAL_MIMIC, L40S, all batches clean** (40/40 sessions, 0 errors):
+  - v5 (13648577, 13650548, 13650549) **0.761**;
+  - v7 (13648578, 13648582, 13650550) **0.807**;
+  - diff +0.046 [+0.000, +0.094], W/L 22/16, 82 ties.
+  - By batch: +0.072 / +0.041 / +0.026.
+- **Failures v5 → v7:** corridor 11 → 6, offroad 7 → 3, at-fault 2 → 4, partial-progress passes 20 → 25.
+  - The at-fault rise is mostly not new. 7d16a9a9 and 8a812020 fail in both. 9f393c8a was offroad in v5 (score 0 either way).
+  - **dc401449** is new: v5 0.57 → v7 lateral at-fault collision at 46%. Check it in run 2.
+- **Reading:** the old-bench gain under the same conditions was +0.054/+0.056. The fresh result (+0.046) is close, so the winner's curse is small here. The interval only just touches 0.
+- **Run 2 queued** (LOCAL_FS): v5 13652022/24/26, v7 13652023/25/27.
+- R6000 screen: v7 baseline (src_cand) 1-40 13651323 done; snap-min-T=3 batches are running.
