@@ -6,7 +6,9 @@
 #     --build-arg GIT_HASH=$(git rev-parse --short HEAD) -t <ecr>/teams/amanupg:v7 .
 # Since v5: forced <traj_future_start> (appended as in NVIDIA's training forward, instead of generated) and a
 # fine-tuned action expert (closed-loop SFT on simulator renders of the separate training split, weight-averaged
-# with the released expert). Same model call as v5: one flow sample per plan, 1 Hz, 4 front cameras, route snap.
+# with the released expert), and the route as navigation text in the prompt ("Turn left in 30m", Alpamayo 1.5's own
+# navigation input; A15_NAV=1, distance to the turn measured where the turned road meets the car's axis).
+# Same model call as v5: one flow sample per plan, 1 Hz, 4 front cameras, route snap.
 ARG BASE=696254625193.dkr.ecr.us-east-1.amazonaws.com/teams/amanupg:v0.3-a15int8-1hz
 FROM ${BASE}
 
@@ -20,7 +22,7 @@ assert len([k for k in sd if not k.startswith('_')]) == 409, len(sd); print('exp
 
 ARG GIT_HASH=unknown
 ENV A15_INFERENCE_INTERVAL_US=1000000 A15_NUM_SAMPLES=1 \
-    A15_LOG_CHOICES=0 A15_NAV=0 A15_DIFF_TEMP=1.0 \
+    A15_LOG_CHOICES=0 A15_NAV=1 A15_NAV_DIST=intersect A15_DIFF_TEMP=1.0 \
     A15_SPEED_SCALE=1.0 A15_EARLY_REPLAN=0 A15_ROUTE_SNAP=2.0 A15_ROUTE_SNAP_MAX_DEG=15 \
     A15_ROUTE_SNAP_MIN_OFFSET=0 A15_ROUTE_MEMORY=0 A15_ROUTE_PULL=0 A15_SPEED_CAMS=4 \
     A15_FORCE_TRAJ_START=1 A15_EXPERT_CKPT=/app/expert/expert.pt A15_GIT_HASH=${GIT_HASH}
