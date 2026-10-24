@@ -1806,3 +1806,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
     - Run 1: 13648577/78, 81/82, 85/86. Run 2: 13648949-54.
     - Cancelled H100 jobs: 13648576, 79, 80, 83, 84.
   - If an H100 number is still needed for the final decision, rent one (Aman approved renting in that case).
+- **Fresh 1-40, L40S run 1 (clean: 40/40 sessions, 0 errors; v7 loaded the expert):** v5 0.787, v7 **0.860**.
+  - Diff +0.072 [-0.012, +0.166], W/L 6/5, 29 ties.
+  - The 82 vs 42 min wall difference is the node (ins057 vs ins061).
+  - 41-80 and 81-120 run 1, and all of run 2, are pending.
