@@ -276,6 +276,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         self._handle, self._pai_cameras, self._nav = handle, pai_cameras, nav
         self._log_choices, self._early_replan, self._nav_dist = log_choices, early_replan, nav_dist
         self._log_plans = os.environ.get("A15_LOG_PLANS", "0") == "1"
+        self._snap_min_t = float(os.environ.get("A15_SNAP_MIN_T", "0"))   # s of travel the snap bridge spans at least
         self._speed_scale = speed_scale
         self._route_pull, self._route_pull_d0, self._route_pull_d1 = route_pull, route_pull_d0, route_pull_d1
         self._speed_cams = speed_cams
@@ -561,7 +562,7 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             # way continues regardless, so a lane change is finished.
             if ok and self._route_snap_min_offset > 0 and not s.snapping:
                 ok = route_lateral_offset(route) >= self._route_snap_min_offset
-            path = (mpath if mpath is not None else route_path(route)) if ok and dev is not None and dev > limit else None
+            path = (mpath if mpath is not None else route_path(route, min_join_m=self._snap_min_t * s.speed)) if ok and dev is not None and dev > limit else None
             if path is not None:
                 # memory paths can carry the recorded turn: cap the model's speed by the path's curvature
                 # (A15_SNAP_ALAT m/s^2 lateral, 0 = off)

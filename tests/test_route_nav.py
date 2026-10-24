@@ -104,6 +104,16 @@ check("snap: model speed kept (64 m along the new path)", round(float(np.linalg.
 check("snap: ends in the route's lane", round(float(snap_xy[-1, 1]), 1), 3.5)
 check("snap: deviation after snapping ~0", round(route_deviation(snap_xy, lane_route), 2), 0.0)
 check("route_path: no route", route_path(None), None)
+# speed-aware bridge (A15_SNAP_MIN_T): join the route no closer than min_join_m
+long_route = np.stack([np.arange(40.0, 200.0, 8.0), np.full(20, -3.9)], 1)    # one lane right, from 40 m
+rp0, rp96 = route_path(long_route), route_path(long_route, min_join_m=96.0)   # 32 m/s x 3 s
+check("min_join 0: same as before", np.allclose(rp0, route_path(long_route, min_join_m=0.0)), True)
+check("min_join 30 below the first waypoint: unchanged", np.allclose(rp0, route_path(long_route, min_join_m=30.0)), True)
+check("min_join 96: bridge reaches the lane at >= 96 m",
+      round(float(rp96[np.argmax(np.isclose(rp96[:, 1], -3.9))][0]), 1) >= 96.0, True)
+check("min_join 96: lateral at 32 m much smaller than the 42 m bridge",
+      bool(abs(np.interp(32.0, rp96[:, 0], rp96[:, 1])) < 0.5 * abs(np.interp(32.0, rp0[:, 0], rp0[:, 1]))), True)
+check("min_join beyond the route: keeps the last two waypoints", np.allclose(route_path(long_route, min_join_m=1e4)[-2:], long_route[-2:]), True)
 check("parallel: lane-change route (3.5 m left at 40 m, straight) is parallel", route_parallel(lane_route, 15), True)
 check("parallel: turned road (route at x=15 heading +y) is not", route_parallel(turn_route, 15), False)
 check("parallel: route bending 30 deg at its start is not", route_parallel(np.array([[40.0, 0.0], [48.7, 5.0]]), 15), False)

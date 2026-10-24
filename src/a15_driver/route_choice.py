@@ -156,17 +156,25 @@ def route_deviation(xy: np.ndarray, route: np.ndarray | None) -> float | None:
     return float(_dist_to_polyline(r, poly).mean())
 
 
-def route_path(route: np.ndarray | None, step_m: float = 1.0) -> np.ndarray | None:
+def route_path(route: np.ndarray | None, step_m: float = 1.0, min_join_m: float = 0.0) -> np.ndarray | None:
     """A drivable path from the car onto the route: a cubic Hermite curve from the car (heading +x) to the
     first waypoint, arriving along the route's direction, then the route waypoints. Excludes the origin.
 
     PAI v2 rerun (2026-10-09): in 11 of 14 corridor exits every one of the 6 samples stayed 3-12 m off the
     route (the recorded driver changed lane or took an exit; ours kept its lane), so no choice among samples
     can fix them. route_pull bent only points 30 m+ ahead and the car replans every second, so the bend
-    never came closer; this path starts bending at the car."""
+    never came closer; this path starts bending at the car.
+
+    min_join_m > 0: join the route at its first waypoint at least that far from the car (A15_SNAP_MIN_T x speed).
+    PAI 2026-10-24: at 24-32 m/s the bridge to the first waypoint (~42 m, 1.3 s) asked for a 3.9 m lane change in
+    1.3 s; the car overshot and left the corridor ~1 s after handover (0e05cb0c, 15fd88d6 pass without snap)."""
     r = _route_points(route)
     if r is None:
         return None
+    if min_join_m > 0:
+        far = np.nonzero(np.linalg.norm(r, axis=1) >= min_join_m)[0]
+        j = int(far[0]) if len(far) else len(r) - 2      # keep >= 2 points for the arrival direction
+        r = r[min(j, len(r) - 2):]
     p1 = r[0]
     d = np.linalg.norm(p1)
     t1 = (r[1] - r[0]) / max(np.linalg.norm(r[1] - r[0]), 1e-9)

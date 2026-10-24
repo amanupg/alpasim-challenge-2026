@@ -1831,3 +1831,22 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - CFG w=2 screen: 13650551-53;
   - diagnostics on R6000: 13650554 (video), 13650555 (CoT).
   - Run 2 of the fresh check goes in after these.
+
+## 2026-10-24 18:30 Diagnosis: route snap at highway speed causes the early post-handover failures
+- **Diagnostic run** (13650554, R6000, v7 + A15_LOG_PLANS) gives the first plans after handover.
+  - 0e05cb0c (session 072ee540, 32.5 m/s): plan 1 is **snapped**. Route first waypoint [42.1, -3.9]; plan lateral -3.29 m at 1 s.
+    Plan 2 sees the route 3.8 m to the LEFT ([41.9, +3.8]): the car overshot right and left the corridor at 3.0 s.
+  - 2466266e (6b4e8f0c): plan 2 snapped toward a route 6.5 m left at 41 m → offroad at 3.8 s.
+  - 15fd88d6 (a5e457ec, 24.6 m/s): plan 1 snapped → offroad at 3.2 s.
+  - 32be03e4 (a2eca934, 37.9 m/s): no snap; the model drifts left of a route bending right (a model error, not the snap).
+- **Cross-check:**
+  - v0.3 without snap **passes** 0e05cb0c (1.00) and 15fd88d6 (1.00);
+  - v0.3 + snap fails 15fd88d6 (offroad at 0.11);
+  - every snap config fails 0e05cb0c except v03snap.
+- **Mechanism:** route_path bridges from the car to the route's first waypoint (~40-42 m) at any speed. At 32 m/s that is a 3.9 m lateral move in 1.3 s, ~14 m/s² peak lateral acceleration. Humans take 3-5 s.
+- **Fix (candidate):** `A15_SNAP_MIN_T=T`: join the route at the first waypoint at least T × speed away.
+  - Identical below 40/T m/s (13.3 m/s for T=3), so it only touches fast snaps.
+  - Unit tests in tests/test_route_nav.py pass (in the v7 image); the tests are kept local until adoption, because cluster jobs test the main src.
+- **Screen on R6000 (free GPUs), paired on the same hardware, old bench, OFFICIAL_MIMIC:**
+  - v7 baseline (src_cand, all candidate switches off): 13651323/25/27;
+  - v7 + SNAP_MIN_T=3: 13651324/26/28.
