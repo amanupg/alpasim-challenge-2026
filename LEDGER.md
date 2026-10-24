@@ -1725,3 +1725,18 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - The fileset was at 61 GB free; alpasim-jepa deleted the FlashDrive weights (32 GB, Aman approved). Code and kernel stay in alpasim-jepa/pai_flashdrive.
   - nuPlan: py123d v0.2.0 joint64 seed 0 scores 0.908 local; it goes in on Nov 1.
 - **Aman: keep the A2 Super weights (72 GB) for now**, in case of another labelling round.
+
+## 2026-10-24 10:30 Overnight results (all jobs COMPLETED; batch means, paired compares pending fetch)
+- **Board condition (Harmonizer off, skip_driver_during_force_gt), H100, w50+nav (13646122-24):** 1-40 0.787; 41-80 0.756; 81-120 0.802 → **~0.782**. No launch failures.
+- **Same, L40S:** w50+nav 0.797 / 0.780 / 0.775 (**~0.784**) vs mimic v5 ~0.728 and mimic w50 ~0.757. The nav gain holds with the Harmonizer off (+0.056 over v5), and L40S agrees with H100 within 0.002.
+- **Harmonizer on, L40S:**
+  - R (RoaD) alone: 0.725 / 0.636 / 0.697, ~0.686 (below v5 x2 0.693);
+  - R_w50: 0.750 / 0.685 / 0.756, ~0.730;
+  - T_w50 (A2 Super teacher): 0.769 / 0.705 / 0.720, ~0.731. Run T open loop: ADE 1.639 → 1.535; 3258/10619 teacher labels; weights moved 6.78e-2.
+  - All three are below w50 (0.742) and w50+nav (0.778). RoaD and the A2 teacher are not adopted for the slot.
+- **forced+nav without fine-tune:** 0.718 / 0.704 / 0.699, ~0.707 (v5 x2 0.693). Nav alone ≈ +0.014, so the gain needs the fine-tuned blended expert plus nav together.
+- **Slot candidate: v7 = ftC_w50 expert + A15_NAV=1 intersect + forced traj start** (Dockerfile.v7 already set).
+- **Queued 10:25 (excluding ins058/ins085):**
+  - H100 board-condition v5 baseline 13648567-69 (pairs with the H100 w50+nav ~0.782);
+  - H100 Harmonizer-on (finals condition) w50+nav 13648570-72.
+- 10:30: the socket closed again; summaries for mimic w50nav/R/R_w50/T_w50/fnav are not yet in .bench_cache.
