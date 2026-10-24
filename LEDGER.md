@@ -1705,3 +1705,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - **+0.06 on both finished batches, via fewer corridor exits (junction branch errors).** Now the lead candidate.
   - **Queued:** H100 Harmonizer-off (board condition) 13646122-24 and L40S Harmonizer-off 13646125-27.
   - The pending w50 H100 batches (13640436-37) were cancelled to free H100s; the running w50 H100 batch (13640435) stays as a reference.
+- **H100 w50 1-40 (13640435) VOID:** "CUDA error: unspecified launch failure" in the driver (4,572 failed inferences); only 15/40 scenes drove (the summary shows n=65, mean 0.305).
+  - This is the 8th Insomnia H100 batch lost to this cluster-specific fault (driver 550 + cuda-compat); the official evaluator ran v5 987/987.
+  - Not rerun: w50+nav is now the lead.
+  - If the H100 board-condition screens of w50+nav (13646122-24) hit the same fault, rent an H100 for the final check (Aman approved renting if needed).
