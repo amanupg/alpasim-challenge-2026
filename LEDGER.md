@@ -1810,3 +1810,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Diff +0.072 [-0.012, +0.166], W/L 6/5, 29 ties.
   - The 82 vs 42 min wall difference is the node (ins057 vs ins061).
   - 41-80 and 81-120 run 1, and all of run 2, are pending.
+- **13:20:** only 2 L40S jobs run at a time, so the 13 queued jobs would take ~6-7 h in series.
+  - The stall/handover diagnostics moved to R6000 (Blackwell, driver 575, so no cuda-compat): v7+video 13649393, v7+CoT 13649394; old 13648623/24 cancelled.
+  - The diagnosis does not need L40S parity.
+  - The CFG screen and the fresh confirmation stay on L40S.
