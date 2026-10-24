@@ -1709,3 +1709,14 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - This is the 8th Insomnia H100 batch lost to this cluster-specific fault (driver 550 + cuda-compat); the official evaluator ran v5 987/987.
   - Not rerun: w50+nav is now the lead.
   - If the H100 board-condition screens of w50+nav (13646122-24) hit the same fault, rent an H100 for the final check (Aman approved renting if needed).
+
+## 2026-10-23 22:00 **w50 + nav text: first significant gain (L40S, Harmonizer on, 120 scenes)**
+- **w50 + A15_NAV=1 (intersect distance), 13642668/13642669/13644725:** **0.778**.
+  - By batch: 1-40 0.834; 41-80 0.694; 81-120 0.805.
+  - **vs v5 x2 (0.693): +0.084 [+0.027, +0.142]; wins 31, losses 19.** The first interval excluding 0.
+  - vs w50: +0.035 [+0.000, +0.075]; wins 17, losses 14.
+- **Failures** (scenes of 120): at-fault 6.0 → 3.0 (w50) → **2.0**; corridor 17.5 → 14.0 → **9.0**; full pass 71.5 → 75.0 → **81.0**.
+  - Corridor exits nearly halve: these are the junction branch errors; nav text supplies the route intent.
+- **Official estimate at 0.6x:** about +0.05 scene, ~+40 PCS, about 2260 (VAIL 2258, UJS 2251).
+- **Attribution test:** v5 + forced + nav, no fine-tune. In Sept, nav on v0.3 + chooser gave +0.002. If the gain is mostly nav, that is a cleaner candidate with no seed luck.
+- Board-condition screens of w50+nav queued: H100 13646122-24, L40S 13646125-27.
