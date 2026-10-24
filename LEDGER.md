@@ -1850,3 +1850,5 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Screen on R6000 (free GPUs), paired on the same hardware, old bench, OFFICIAL_MIMIC:**
   - v7 baseline (src_cand, all candidate switches off): 13651323/25/27;
   - v7 + SNAP_MIN_T=3: 13651324/26/28.
+- **Fresh 41-80, L40S run 1:** v5 (13650548, LOCAL_FS) 0.774 vs v7 0.816, **+0.041 [-0.022, +0.110], W/L 9/4**. v5 81-120 is done (13650549); v7 81-120 is running (13650550).
+- Diagnostics: the v7 video run 13650554 completed; the CoT run 13650555 FAILED (exit 1, to inspect).
