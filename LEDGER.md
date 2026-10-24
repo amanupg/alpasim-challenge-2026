@@ -1775,3 +1775,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Diagnosis queued** on these 10 scenes (`scenes/pai_diag_stall10.txt`), with the new A15_LOG_PLANS=1 (plan distance, speed, nav, CoT):
   - v7 with video (13648623);
   - v7 + A15_REASONING=1 (13648624): the CoT says why it holds.
+- **Early failures are structural, not caused by the board setting.** 0e05cb0c, 15fd88d6, 2466266e, 0f4b8753 and 32be03e4 fail in every config and condition (mimic or Harmonizer on, v5/v2/v7).
+  - Each fails ~1 s after handover (handover ~2 s; fail at 3.0-3.8 s).
+  - Mostly highway at 24-36 m/s, with the route bending within 42 m (0e05cb0c: first waypoint [42.1, -3.7]).
+  - 0e05cb0c: lateral error 0.04 → 4.1 m in 1.1 s (peak lateral speed ~5.5 m/s), then corrects back, too late.
+  - The frames, history (32 m/s) and sim timing (synchronous) look right.
+  - Open question: plan or controller? A15_LOG_PLANS now also logs plan xy at 1/2/4/6.4 s and the route's first point.
+  - These 5 scenes were added to the diagnostic list, now 15 scenes (both diag jobs still pending).

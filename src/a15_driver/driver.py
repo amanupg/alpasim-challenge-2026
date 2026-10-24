@@ -595,8 +595,11 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         if self._log_plans:                                  # diagnosis of stalls (A15_LOG_PLANS=1; CoT with A15_REASONING=1)
             p = np.asarray(xy)
             d = np.linalg.norm(np.diff(np.vstack([np.zeros(2), p[:, :2]]), axis=0), axis=1).cumsum()
-            LOGGER.info("plan %s t0 %d: speed %.2f, plan dist 2s %.1f 6.4s %.1f, snapped %d, nav %r, cot %r", s.sid, t0,
-                        s.speed, d[min(19, len(d) - 1)], d[-1], int(snapped), nav, info.get("cot", "")[:400])
+            pts = [np.round(p[min(i, len(p) - 1), :2], 2).tolist() for i in (9, 19, 39, len(p) - 1)]   # 1, 2, 4, 6.4 s
+            LOGGER.info("plan %s t0 %d: speed %.2f, plan dist 2s %.1f 6.4s %.1f, xy@1/2/4/6.4s %s, route0 %s, snapped %d, "
+                        "nav %r, cot %r", s.sid, t0, s.speed, d[min(19, len(d) - 1)], d[-1], pts,
+                        None if route is None else np.round(route[0], 1).tolist(), int(snapped), nav,
+                        info.get("cot", "")[:400])
 
     def _gather(self, s: SessionState):
         """Frames (n_cam, 4, 3, H, W), ego history, t0 and the anchor pose; None if not ready."""
