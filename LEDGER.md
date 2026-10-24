@@ -1782,3 +1782,9 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - The frames, history (32 m/s) and sim timing (synchronous) look right.
   - Open question: plan or controller? A15_LOG_PLANS now also logs plan xy at 1/2/4/6.4 s and the route's first point.
   - These 5 scenes were added to the diagnostic list, now 15 scenes (both diag jobs still pending).
+- **Correction (alpasim-jepa, verified in external/alpasim/src/wizard/configs/controller/default.yaml):** the default gains are:
+  - long_position 2.0, lat_position 1.0, heading 1.0, acceleration 0.1;
+  - rel_front_steering 5.0, rel_acceleration 1.0, **idx_start_penalty 10**.
+  - The linear MPC uses horizon 20 × 0.1 s.
+  - So the Oct 22 idx_start_penalty=5 run moved it **down**, which hurt (-0.040 [-0.090, -0.001], offroad). Upward (15) is untested.
+  - long_position_weight 4 never ran (cancelled). Shared with alpasim-jepa for its nuPlan gain sweep.
