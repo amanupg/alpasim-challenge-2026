@@ -1720,3 +1720,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Official estimate at 0.6x:** about +0.05 scene, ~+40 PCS, about 2260 (VAIL 2258, UJS 2251).
 - **Attribution test:** v5 + forced + nav, no fine-tune. In Sept, nav on v0.3 + chooser gave +0.002. If the gain is mostly nav, that is a cleaner candidate with no seed luck.
 - Board-condition screens of w50+nav queued: H100 13646122-24, L40S 13646125-27.
+- **2026-10-23 23:20: socket closed again.**
+- **Storage and nuPlan notes from alpasim-jepa:**
+  - The fileset was at 61 GB free; alpasim-jepa deleted the FlashDrive weights (32 GB, Aman approved). Code and kernel stay in alpasim-jepa/pai_flashdrive.
+  - nuPlan: py123d v0.2.0 joint64 seed 0 scores 0.908 local; it goes in on Nov 1.
+- **Aman: keep the A2 Super weights (72 GB) for now**, in case of another labelling round.
