@@ -1814,3 +1814,20 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - The stall/handover diagnostics moved to R6000 (Blackwell, driver 575, so no cuda-compat): v7+video 13649393, v7+CoT 13649394; old 13648623/24 cancelled.
   - The diagnosis does not need L40S parity.
   - The CFG screen and the fresh confirmation stay on L40S.
+
+## 2026-10-24 13:30 Dept fileset full (5 TB quota, 640 MB free); my fault, fixed
+- **Cause:** the fresh-scene runs fetched 88 NuRec usdz (149.9 GB) into the shared `data/fs` today. That set now holds 207 usdz, 370 GB.
+  - alpasim-jepa reported it: two of its nuPlan sims died on write.
+  - The full disk failed 11 of my jobs (exit 4/1); the 4 running ones were cancelled.
+- **Freed (Aman approved these two; he did not approve the fresh usdz):**
+  - 7 rejected checkpoints (ftC2, ftCC2_soup, ftC_w75, ftR, ftR_w50, ftT, ftT_w50; 30 GB);
+  - the Alpamayo 2-Super weights (`.cache/hf`, 67 GB).
+  - Result: 133 GB free. Kept: ftC.pt, ftC_w50.pt.
+- **Fix:** `LOCAL_FS=1` in sim_local.sbatch stages scenes on node-local /local (262-291 GB free on ins057/061) and drops them at job end, as capture runs always did. Every fresh and lockbox run uses it.
+- **Inventory** (13649482): alpasim 596 G = data 449 G (fs 360, nuplan_track 43, ft_ckpt 39 → 9) + .cache 67 + sandbox 46 + runs 21 + cache/uv 15.
+- **Fresh 41-80 run 1:** v7 (13648582) is clean, 40/40 sessions, mean below. v5 (13648581) failed on the full disk; rerun.
+- **Resubmitted:**
+  - run-1 fresh: v5 41-80 13650548; v5 81-120 13650549; v7 81-120 13650550 (LOCAL_FS);
+  - CFG w=2 screen: 13650551-53;
+  - diagnostics on R6000: 13650554 (video), 13650555 (CoT).
+  - Run 2 of the fresh check goes in after these.

@@ -71,9 +71,14 @@ if [ "${OFFICIAL_MIMIC:-0}" = 1 ]; then
   EXTRA_OVERRIDES="$EXTRA_OVERRIDES services.renderer.command.7=--no-enable-harmonizer runtime.simulation_config.skip_driver_during_force_gt=true"
 fi
 FSDIR=$A/data/fs
-if [ "${CAPTURE:-0}" = 1 ]; then
+# LOCAL_FS=1 (2026-10-24): scenes download to node-local disk and vanish with the job, as for capture. The shared
+# fileset filled up (5 TB dept quota) when 87 fresh-scene usdz (~160 GB) were fetched into data/fs.
+if [ "${CAPTURE:-0}" = 1 ] || [ "${LOCAL_FS:-0}" = 1 ]; then
   FSDIR=$TMPDIR/fs; mkdir -p $FSDIR/nre-artifacts/all-usdzs
   cp -r $A/data/fs/nre-artifacts/ego-hoods $A/data/fs/nre-artifacts/scenesets $FSDIR/nre-artifacts/
+  echo "scenes on node-local $FSDIR ($(df -h $TMPDIR | tail -1 | awk '{print $4}') free)"
+fi
+if [ "${CAPTURE:-0}" = 1 ]; then
   export A15_CAPTURE_DIR=$TMPDIR/capture A15_CAPTURE_EVERY_US=${A15_CAPTURE_EVERY_US:-500000}
   if [ "${CAPTURE_POLICY:-0}" = 1 ]; then
     # DAgger: the model drives (all A15_* policy settings apply); the recording is still sent every step and each
