@@ -1740,3 +1740,8 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - H100 board-condition v5 baseline 13648567-69 (pairs with the H100 w50+nav ~0.782);
   - H100 Harmonizer-on (finals condition) w50+nav 13648570-72.
 - 10:30: the socket closed again; summaries for mimic w50nav/R/R_w50/T_w50/fnav are not yet in .bench_cache.
+- **v7 image bug caught before any push (10:45):** /app/expert/expert.pt was root:root 0640 (from the host file), so the driver, which runs as `alpasim`, would raise PermissionError at model load. That would make it a zero-score submission. The trial build's checks ran as root, so they missed it.
+  - Fix in Dockerfile.v7: `mkdir -m 0755 /app/expert`, `COPY --chmod=0644`, and the build checks now run as `alpasim`.
+  - A bare `COPY --chmod=0644` into a missing dir also gives the dir 0644, so alpasim could not enter it; hence the mkdir.
+  - Rebuilt `teams/amanupg:v7` (local only, not pushed), git 4d809ec. As `alpasim`: driver imports ok, expert 409 tensors, sha256 f9da7cf3… (= ftC_w50); env A15_NAV=1, intersect, FORCE_TRAJ_START=1, NUM_SAMPLES=1.
+  - Rule: image checks run as the runtime user.

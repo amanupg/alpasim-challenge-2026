@@ -13,9 +13,12 @@ ARG BASE=696254625193.dkr.ecr.us-east-1.amazonaws.com/teams/amanupg:v0.3-a15int8
 FROM ${BASE}
 
 USER root
-RUN rm -rf /app/a15_driver
-COPY src/a15_driver /app/a15_driver
-COPY container/assets/expert.pt /app/expert/expert.pt
+RUN rm -rf /app/a15_driver && mkdir -m 0755 /app/expert
+COPY --chmod=0755 src/a15_driver /app/a15_driver
+# --chmod: the driver runs as alpasim and the host file was 0640 (unreadable). mkdir first: COPY --chmod=0644 into a
+# missing dir creates the dir with 0644 too (no x bit), so alpasim could not enter it.
+COPY --chmod=0644 container/assets/expert.pt /app/expert/expert.pt
+USER alpasim
 RUN python -c "import a15_driver.route_choice, a15_driver.policy, a15_driver.driver; print('driver imports ok')" \
     && python -c "import torch; sd = torch.load('/app/expert/expert.pt', map_location='cpu'); \
 assert len([k for k in sd if not k.startswith('_')]) == 409, len(sd); print('expert ok', len(sd))"
