@@ -1865,3 +1865,14 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Reading:** the old-bench gain under the same conditions was +0.054/+0.056. The fresh result (+0.046) is close, so the winner's curse is small here. The interval only just touches 0.
 - **Run 2 queued** (LOCAL_FS): v5 13652022/24/26, v7 13652023/25/27.
 - R6000 screen: v7 baseline (src_cand) 1-40 13651323 done; snap-min-T=3 batches are running.
+- **Screens, batch 1-40:**
+  - **CFG w=2** (13650551, L40S) vs mimw50nav L40S (0.797): 0.808, +0.010 [-0.027, +0.058], W/L 2/3.
+    - Fixed: 0a228e44 corridor → pass. Lost: 0810968d 0.68 → 0.18; 00fabf60 1.0 → 0.94.
+    - Driver peak **15,214 MiB** vs 14,914 without CFG (+300 MiB on L40S; H100 runs ~0.4 GB higher, so ~15.6 GB of the 16,384 MiB cap). Mean inference 1.79 s.
+  - **SNAP_MIN_T=3** (13651324, R6000) vs R6000 v7 (13651323, 0.811): 0.786, -0.025 [-0.075, +0.000], W/L 0/1. Lost: 000525f6 pass → corridor.
+    - The bridge changed as designed in 0e05cb0c: lateral -1.53 m at 1 s, was -3.29.
+    - **But 0e05cb0c still left the corridor**: lateral distance to GT 3.93 m peak (was 4.55), corridor at about the same time.
+  - **Diagnosis corrected:** in 0e05cb0c the route's first waypoint ([42.1, -3.9]) is NOT where the recorded car went. Moving toward it moves the car away from GT. A gentler bridge only slows the departure.
+    - v0.3 without snap passes this scene; any snap there fails.
+    - The issue is "route offset from GT at handover", not bridge steepness.
+    - SNAP_MIN_T is unlikely to help. 41-80 and 81-120 still run (15fd88d6 and 2466266e are there) before dropping it.
