@@ -1991,3 +1991,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Run N (nav-conditioned) first attempt (13655207) died silently** at ~step 75 on ins039 (a node in the "Kill task failed" drain list earlier).
   - Resubmitted with all 14 nav captures (capnav n0-n7 + dagv7 v0-v5 + ft_runE = 32 tars), excluding ins039: train 13660566, average 13660567, screen 13660568-70.
 - Fileset 75 GB free.
+- **New screens on v7 (old 120, OFFICIAL_MIMIC, L40S, deterministic, vs mimw50nav):**
+  - **2 Hz replanning** (A15_INFERENCE_INTERVAL_US=500000): 13660574/76/78. Faster reaction to braking leads (v7's new frontal at-fault crashes). Model work is ~16 s/wave at 1 Hz, so 2 Hz adds roughly +500 s to the official 9,522/14,400.
+  - **20 flow-sampler Euler steps** (A15_DIFF_STEPS=20, new knob in src_cand policy.py; model default 10): 13660575/77/79.
+  - **src_cand A/A** (all candidate switches off) on 1-40: must equal mimw50nav exactly if the refactored forced-rollout path is equivalent.

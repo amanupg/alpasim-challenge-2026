@@ -147,6 +147,9 @@ class Alpamayo15Policy:
         # initial-noise temperature of the flow-matching sampler (Alpamayo 1.5 nav notebook uses 0.6:
         # "more stable but less diverse" trajectories); 1.0 is the library default we ran until 2026-10-04
         self._diff_kwargs = {} if diffusion_temperature == 1.0 else {"temperature": float(diffusion_temperature)}
+        steps = int(os.environ.get("A15_DIFF_STEPS", "0"))      # Euler steps of the flow sampler; 0 = model default (10)
+        if steps > 0:
+            self._diff_kwargs["inference_step"] = steps
         if self._num_samples > 1:
             self._wrap_diffusion_medoid()
         LOGGER.info("Alpamayo 1.5 loaded in %.0fs, quantized %s (%.2fB params) in %.0fs, reserved %.2f GiB",
