@@ -1922,3 +1922,5 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - force-GT `capnav_n0..n7` (160 scenes): 13653067/69/71/73/75/77/79/80;
   - DAgger with **the v7 policy itself** (ftC_w50 + nav + forced + snap) `dagv7_v0..v5` (120 scenes): 13653068/70/72/74/76/78.
   - Next: run N = base init on ft_runE + the new nav captures with `--nav`, then w50, then screen with nav.
+- **Lockbox parts 0-1 (80 scenes, clean):** part 0 v5 0.674 → v7 0.745, +0.071 [-0.042, +0.193], W/L 9/6; part 1 0.768 → 0.818, +0.050 [-0.030, +0.130], W/L 5/3. Same direction and size as the fresh set. Parts 2-5 are running.
+- The ftC_w40/w60 averages are done (13653048). Run E training and the nav captures are pending (A6000/R6000 queue). Fileset 112 GB free.
