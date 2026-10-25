@@ -1966,3 +1966,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Resubmitted v3/n4/v5/n6 as 13654978-81, excluding ins082.
   - Pending n5/v4/n7 got ExcNodeList ins082.
 - Done so far: capnav n0-n3, dagv7 v0-v1; v2/n3 running.
+- **Run N (nav-conditioned fine-tune), first version**, started early on the captures finished so far rather than waiting for all 14:
+  - data `ft_runN` = ft_runE (~11k, no nav) + capnav n0-n2 + dagv7 v0-v2 (~3k new samples, ~20% of them with a turn instruction);
+  - `--epochs 2 --lr 3e-5 --nav`, base init. Train 13655207 (-t 11 h), then average ftN_w50 (13655208), then screen with nav on the old 120 (13655209-11).
+  - Caveat: only ~600 samples carry turn text, so the nav-conditioning signal is thin. A run N2 on all captures follows if N shows a direction.
