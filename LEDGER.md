@@ -1953,3 +1953,4 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - controller idx_start_penalty=15: -0.056 / -0.080 (81-120 cancelled; clearly worse; both directions from the default 10 hurt).
   - **w50 and the default gains stay.**
 - **Finals-condition check (Harmonizer ON), fresh 120, v5 vs v7, L40S, LOCAL_FS**, queued. Harmonizer-on runs are noisy, so this is one run for direction, not proof.
+- 03:30: the nav captures (13653067-80) were stuck on ReqNodeNotAvail (A6000/R6000/L40 busy). Their constraint was widened to include l40s (scontrol update Features).
