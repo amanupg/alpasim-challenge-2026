@@ -1947,3 +1947,9 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - **new in v7:** 403d558a, 6e6cbe67, a784414a, b661da67 (FRONT collisions late in the scene, at 72-83% of 20 s), dc401449 (lateral); 9f393c8a was offroad in v5.
   - **Reading:** v7 closes on slowing lead vehicles late in some scenes; it drives faster than v5 (the w50 average restored speed). This costs at-fault incident spacing (the rank tie-break) while scene score rises.
   - There is no detection signal to brake on outside the model, so this is a known cost, not something fixable this week.
+- **Screens vs v7 (mimw50nav, old 120, L40S, deterministic):**
+  - ftC_w40 + nav: -0.013 / -0.030 / +0.029 (≈ -0.005, neutral);
+  - ftC_w60 + nav: -0.018 / -0.026 / -0.017 (≈ -0.020, worse);
+  - controller idx_start_penalty=15: -0.056 / -0.080 (81-120 cancelled; clearly worse; both directions from the default 10 hurt).
+  - **w50 and the default gains stay.**
+- **Finals-condition check (Harmonizer ON), fresh 120, v5 vs v7, L40S, LOCAL_FS**, queued. Harmonizer-on runs are noisy, so this is one run for direction, not proof.
