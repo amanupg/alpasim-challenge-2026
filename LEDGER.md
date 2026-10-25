@@ -1895,3 +1895,14 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - the stall fix is not viable;
   - **v7 (ftC_w50 + nav + forced token + snap) is the candidate**, pending fresh run 2.
   - The built `teams/amanupg:v7` image (git 4d809ec code, expert sha f9da7cf3, permissions fixed) has the same policy code the fresh runs used ($A/src/policy.py md5 f45182e3). driver.py differs only by default-off logging.
+
+## 2026-10-24 22:25 **With the Harmonizer off, L40S closed loop is deterministic**; lockbox launched
+- **Fresh run 2 = run 1 exactly:** 1-40 v5 0.787/0.787 and v7 0.860/0.860; all 40 scenes tie for both (13652022-25 vs run 1). 41-80 is also identical (v5 0.774, v7 0.816).
+  - The L40S run-to-run noise measured before (±0.05 per batch, 13618596 etc.) was in **Harmonizer-ON** runs: the diffusion Harmonizer is the source of the non-determinism.
+  - Board-condition (OFFICIAL_MIMIC) runs repeat bit-for-bit.
+  - **So v7's fresh +0.046 [+0.000, +0.094] is exact on those 120 scenes.** The interval reflects scene sampling only, and more scenes, not reruns, tighten it.
+  - Run-2 81-120 (13652026/27) cancelled as redundant.
+- **dc401449** repeats: v5 0.57, v7 lateral at-fault collision (a real, repeatable v7 loss).
+- **Lockbox (201 never-used scenes, `scenes/pai_lockbox_part_0..5`), v5 vs v7, OFFICIAL_MIMIC, L40S, LOCAL_FS:**
+  - parts 0-4 (40 each) + part 5 (1 scene): v5 13652824/26/28/30/32/34, v7 13652825/27/29/31/33/35.
+  - With the fresh 120 this gives 321 held-out scenes for the final v5 vs v7 decision.
