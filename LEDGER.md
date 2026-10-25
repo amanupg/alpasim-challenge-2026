@@ -1883,3 +1883,15 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Changes: 000525f6 pass → corridor; 1fcacc17 corridor → pass; 2837a7e8 corridor → 0.63; 26004ca8 0.85 → 0.70.
   - The highway scenes it targeted (0e05cb0c, 15fd88d6, 2466266e) still fail: the route there disagrees with the recording, and a gentler bridge does not change that.
   - R6000 is nearly deterministic (115/120 ties, as Blackwell was before). R6000 v7 vs L40S v7 (same config): -0.017 [-0.043, +0.007].
+- **Stall diagnosis from the v7 videos (13650554, front-wide camera plus BEV, frames at 1.5/2.5/4/7 s):**
+  - **2f227f2c** (rain, day): our lane's signal is **red**. The car stops at the line; the recorded driver turned right (likely a separate right-turn signal); the replayed follower rear-ends us.
+  - **1d6e30bc** (night, rain, fog): red signals ahead. The recorded driver turned right on red; ours waits.
+  - **2c84ac16** (night intersection, route turns left): the recorded driver went after a pause; ours waits all 20 s.
+  - **Reading:** these stalls are the model obeying (or being unsure about) signals where the human went legally or opportunistically. A "go" rule would trade them for at-fault risk elsewhere, and we cannot confirm it deterministically. **Not pursued.**
+  - The CoT diagnostic (13650555) did not crash: driver readiness timed out after 20 min (checkpoint shards took 4 min on slow storage, plus the expert load and quantization). Not rerun, since the videos answer the question.
+- **State of PAI levers on 24 Oct evening:**
+  - CFG nav rejected (-0.03 on 80);
+  - SNAP_MIN_T neutral (+0.004);
+  - the stall fix is not viable;
+  - **v7 (ftC_w50 + nav + forced token + snap) is the candidate**, pending fresh run 2.
+  - The built `teams/amanupg:v7` image (git 4d809ec code, expert sha f9da7cf3, permissions fixed) has the same policy code the fresh runs used ($A/src/policy.py md5 f45182e3). driver.py differs only by default-off logging.
