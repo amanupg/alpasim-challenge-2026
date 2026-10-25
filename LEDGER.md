@@ -1957,3 +1957,4 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Run E trained (13653047, 2,227 steps, 4.9 h):** open loop on its val set ADE 2.109 → 1.899 m (-10%); length ratio median 1.001 → 0.999; weights moved 8.2e-2. ftE_w50 built (13653049). Screen 13653053/57/61 pending.
 - **Nav captures work:** capnav_n0 (13653067): 552 samples from 20 sessions, 352 MB. In a 28-sample check, 6 carry a turn instruction ("Turn right in 21-37m", "Turn left in 27m") and 22 are "" (no turn). That is the ~20% rate seen at inference. n1-n3 are running.
 - Fileset 102 GB free (99%).
+- **Finals condition (Harmonizer ON), fresh 1-40:** v5 0.806 (13653600) vs v7 0.840 (13653601), +0.033 [-0.030, +0.102], W/L 4/5. The direction matches the board condition. v7 Harmonizer on vs off on these scenes: 0.840 vs 0.860. Batches 41-80/81-120 are running. Run E screen (13653053/57/61) has started.
