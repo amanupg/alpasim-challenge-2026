@@ -1924,3 +1924,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Next: run N = base init on ft_runE + the new nav captures with `--nav`, then w50, then screen with nav.
 - **Lockbox parts 0-1 (80 scenes, clean):** part 0 v5 0.674 → v7 0.745, +0.071 [-0.042, +0.193], W/L 9/6; part 1 0.768 → 0.818, +0.050 [-0.030, +0.130], W/L 5/3. Same direction and size as the fresh set. Parts 2-5 are running.
 - The ftC_w40/w60 averages are done (13653048). Run E training and the nav captures are pending (A6000/R6000 queue). Fileset 112 GB free.
+
+## 2026-10-25 01:10 **v7 confirmed on held-out scenes: +0.044 [+0.005, +0.081] over 281**
+- Lockbox part 2 (40) +0.032 [-0.074, +0.140], W/L 7/5; part 3 (40) +0.014 [-0.131, +0.165], 10/9; part 5 (1 scene) tie. All clean.
+- **Held-out so far (fresh 120 + lockbox parts 0-3, 5 = 281 scenes, OFFICIAL_MIMIC, L40S, deterministic):**
+  - v5 0.746 → v7 0.790, **+0.044 [+0.005, +0.081], W/L 53/39.**
+  - The interval excludes 0: v7 passes the "deterministic gains only" rule against v5. Lockbox part 4 (40 scenes, v7 13652833) is still running.
+  - Expected official effect at ~0.6×: about +0.026 scene score.
