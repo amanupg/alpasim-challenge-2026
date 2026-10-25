@@ -426,11 +426,12 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
                 if off is None or float(np.hypot(off[0], off[1])) > self._capture_max_dev:
                     return
             fut = s.gt.future_in_frame(t0, p0, R0)
-            slots = list(s.slots)
+            slots, route = list(s.slots), s.route_xy
         if fut is None:
             return
         self._capturer.save(s.sid, t0, frames, slots, hx, hr, *fut,
-                            samp_xyz=samples[0].astype(np.float32), samp_rot=samples[1].astype(np.float32))
+                            samp_xyz=samples[0].astype(np.float32), samp_rot=samples[1].astype(np.float32),
+                            nav=np.array(self._capture_nav(route)))
 
     def _maybe_capture(self, s: SessionState, now: int) -> None:
         with self._lock:
@@ -450,8 +451,13 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
             if fut is None:
                 return
             s.last_capture_us = now
-            slots = list(s.slots)
-        self._capturer.save(s.sid, t0, frames, slots, hx, hr, *fut)
+            slots, route = list(s.slots), s.route_xy
+        self._capturer.save(s.sid, t0, frames, slots, hx, hr, *fut, nav=np.array(self._capture_nav(route)))
+
+    def _capture_nav(self, route) -> str:
+        """The route instruction the driver would give the model here (same rule as inference, A15_NAV_DIST),
+        stored with each capture so the fine-tune can train on prompts that carry it; "" when none."""
+        return (route_nav_text(route, dist_mode=self._nav_dist) if route is not None else None) or ""
 
     # ------------------------------------------------------------ drive
     def drive(self, request, context):

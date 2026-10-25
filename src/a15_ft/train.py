@@ -112,6 +112,8 @@ def load(p):
     return smooth_recovery(s)
 
 
+NAV = {"on": False}
+
 POLICY_SLOTS = (0, 1, 2, 6)                    # the driver's four front cameras (capture may hold all six)
 
 
@@ -120,7 +122,8 @@ def build_inputs(helper, proc, s):
     if set(slots) - set(POLICY_SLOTS):
         ip = [i for i, sl in enumerate(slots) if sl in POLICY_SLOTS]
         frames, slots = frames[ip], [slots[i] for i in ip]
-    msgs = helper.create_message(frames.flatten(0, 1), camera_indices=torch.tensor(slots), nav_text=None)
+    nav = s.get("nav") if NAV["on"] else None        # --nav: the route instruction stored at capture time
+    msgs = helper.create_message(frames.flatten(0, 1), camera_indices=torch.tensor(slots), nav_text=nav)
     msgs[-1]["content"][0]["text"] = "<|cot_start|><|cot_end|>"
     tok = proc.apply_chat_template(msgs, tokenize=True, add_generation_prompt=False, continue_final_message=True,
                                    return_dict=True, return_tensors="pt")
@@ -248,7 +251,9 @@ def main():
     ap.add_argument("--teacher_only", action="store_true", help="train only on samples that have a teacher label")
     ap.add_argument("--eval_only", action="store_true")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--nav", action="store_true", help="put each sample's stored route instruction in the prompt")
     a = ap.parse_args()
+    NAV["on"] = a.nav
     hub = os.environ["HUB"]
     snap = lambda r: sorted(glob.glob(f"{hub}/models--{r}/snapshots/*/"))[0]
     model, helper, proc = load_model(snap("nvidia--Alpamayo-1.5-10B"), snap("Qwen--Qwen3-VL-8B-Instruct"),

@@ -103,4 +103,5 @@ def load_sample(path: str):
     fr = torch.from_numpy(np.stack(imgs)).permute(0, 3, 1, 2).reshape(shape)
     return {"frames": fr, "slots": z["slots"].tolist(), "hist_xyz": z["hist_xyz"], "hist_rot": z["hist_rot"],
             "fut_xyz": z["fut_xyz"], "fut_rot": z["fut_rot"], "t0_us": int(z["t0_us"]),
-            **{k: z[k] for k in ("samp_xyz", "samp_rot") if k in z.files}}
+            **{k: z[k] for k in ("samp_xyz", "samp_rot") if k in z.files},
+            **({"nav": str(z["nav"]) or None} if "nav" in z.files else {})}

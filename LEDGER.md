@@ -1906,3 +1906,19 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Lockbox (201 never-used scenes, `scenes/pai_lockbox_part_0..5`), v5 vs v7, OFFICIAL_MIMIC, L40S, LOCAL_FS:**
   - parts 0-4 (40 each) + part 5 (1 scene): v5 13652824/26/28/30/32/34, v7 13652825/27/29/31/33/35.
   - With the fresh 120 this gives 321 held-out scenes for the final v5 vs v7 decision.
+
+## 2026-10-24 23:50 Aman: "keep pushing, we have a week, not submitting soon". New improvement round (all screened deterministically, Harmonizer off)
+- **Lockbox (201 scenes) running:** v5 part 0 done (13652824); the rest are running or pending.
+- **Screens on the old 120, OFFICIAL_MIMIC, L40S, vs mimw50nav (L40S, deterministic):**
+  - **Weight-mix sweep:** ftC_w40 (0.6 base + 0.4 C) and ftC_w60 (0.4 + 0.6), from averaging job 13653048. Screens: w40 13653050/54/58, w60 13653051/55/59.
+  - **Controller idx_start_penalty=15** (default 10; 5 hurt): 13653052/56/60.
+  - **Run E** = run C recipe (`--epochs 2 --lr 3e-5`) on ft_runE = ft_runC + the unused on-policy DAgger from ftC (dagC_e0-e2, 1,094 samples).
+    - Train 13653047; average ftE_w50 13653049; screen with nav 13653053/57/61.
+- **Nav-conditioned fine-tune (train/inference mismatch fix).** v7 uses route text at inference, but every fine-tune trained with `nav_text=None`. Now:
+  - the driver stores each capture's route instruction (`nav`, the same `route_nav_text` rule as inference; "" when none). Code: `_capture_nav` in src_cand driver.py;
+  - `load_sample` returns it; `train.py --nav` puts it in the prompt. Old samples without it train as before, which acts as nav dropout.
+  - Test: tests/test_capture_nav.py (round trip, turn/straight), passed in the v7 image. Main `src/a15_driver/policy.py` is unchanged (md5 f45182e3 = v7); driver.py with the capture change lives only in src_cand.
+- **Captures with nav, 280 new train scenes** (none used before, none in val), A6000/R6000/L40, 4 afterany lanes:
+  - force-GT `capnav_n0..n7` (160 scenes): 13653067/69/71/73/75/77/79/80;
+  - DAgger with **the v7 policy itself** (ftC_w50 + nav + forced + snap) `dagv7_v0..v5` (120 scenes): 13653068/70/72/74/76/78.
+  - Next: run N = base init on ft_runE + the new nav captures with `--nav`, then w50, then screen with nav.
