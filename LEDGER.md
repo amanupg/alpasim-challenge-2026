@@ -1931,3 +1931,13 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - v5 0.746 → v7 0.790, **+0.044 [+0.005, +0.081], W/L 53/39.**
   - The interval excludes 0: v7 passes the "deterministic gains only" rule against v5. Lockbox part 4 (40 scenes, v7 13652833) is still running.
   - Expected official effect at ~0.6×: about +0.026 scene score.
+
+## 2026-10-25 01:55 **Held-out verdict, 321 never-used scenes: v7 +0.057 [+0.023, +0.093]**
+- Lockbox part 4: v5 0.687 → v7 0.841, +0.153 [+0.063, +0.252], W/L 12/9.
+- **Lockbox (201):** 0.726 → 0.790, **+0.064 [+0.016, +0.113]**, W/L 43/32.
+- **All held-out (fresh 120 + lockbox 201):** 0.739 → 0.796, **+0.057 [+0.023, +0.093]**, W/L 65/48, 208 ties. Board condition (Harmonizer off), deterministic L40S.
+  - Failures v5 → v7: corridor 37 → 22, offroad 15 → 12, **at-fault 9 → 11** (the tie-break metric; worth a look), partial passes 50 → 60.
+  - The old-bench estimate (+0.054/+0.056) is confirmed on held-out data, so no winner's curse to speak of.
+  - Expected official effect at ~0.6× local: about +0.034 scene score.
+- **v7 is the PAI final-entry candidate under the deterministic-gains rule.** Anything else must beat v7 on the same held-out sets.
+- Screens: ftC_w40 + nav, 1-40 (13653050): 0.785 vs w50 0.797, -0.013 [-0.038, +0.004], W/L 4/5.
