@@ -1970,3 +1970,11 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - data `ft_runN` = ft_runE (~11k, no nav) + capnav n0-n2 + dagv7 v0-v2 (~3k new samples, ~20% of them with a turn instruction);
   - `--epochs 2 --lr 3e-5 --nav`, base init. Train 13655207 (-t 11 h), then average ftN_w50 (13655208), then screen with nav on the old 120 (13655209-11).
   - Caveat: only ~600 samples carry turn text, so the nav-conditioning signal is thin. A run N2 on all captures follows if N shows a direction.
+
+## 2026-10-25 10:05 **Finals condition (Harmonizer ON), fresh 120, run 1: v7 ≈ v5 (-0.012 [-0.063, +0.039], W/L 12/25)**
+- By batch: +0.033 (4/5), -0.060 (4/12), -0.009 (4/8, 81-120: v5 0.680, v7 0.671). Means: v5 0.767, v7 0.756.
+- Contrast with Harmonizer OFF (leaderboard): +0.057 [+0.023, +0.093] over 321 held-out scenes.
+- **Open question with consequences:** the board (Harmonizer off), which decides who reaches the finals, favours v7. The finals reruns (Harmonizer on) may not.
+  - On the screening 120 with the Harmonizer on, v7 was +0.084 vs v5 x2; the fresh scenes do not repeat that in run 1.
+  - Harmonizer-on runs are non-deterministic (±0.05 per batch), so run 2 (13654801-06, running) is needed before reading anything.
+  - Note: our fine-tune captures ran with the dev preset, i.e. Harmonizer ON, so the expert was trained on harmonized renders.
