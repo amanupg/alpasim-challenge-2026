@@ -1978,3 +1978,16 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - On the screening 120 with the Harmonizer on, v7 was +0.084 vs v5 x2; the fresh scenes do not repeat that in run 1.
   - Harmonizer-on runs are non-deterministic (±0.05 per batch), so run 2 (13654801-06, running) is needed before reading anything.
   - Note: our fine-tune captures ran with the dev preset, i.e. Harmonizer ON, so the expert was trained on harmonized renders.
+
+## 2026-10-25 18:35 **Finals condition (Harmonizer ON), fresh 120, two runs: v7 ≈ v5 (+0.006 [-0.042, +0.053])**
+- Run 2 (13654801-06, all clean): v5 0.758, v7 0.781, +0.023 [-0.030, +0.078], W/L 15/25. By batch: +0.042 / -0.013 / +0.040.
+- Run 1: -0.012. Per-scene average of both runs: v5 0.763, v7 0.768, **+0.006 [-0.042, +0.053], W/L 17/29**.
+- A/A with the Harmonizer on: v5 run 1 vs 2 -0.009 (13/10); v7 +0.026 (19/13). Per-scene noise is large in this mode.
+- **Reading:**
+  - With the Harmonizer OFF (leaderboard initial runs) v7 is clearly better: +0.057 [+0.023, +0.093] over 321 held-out scenes.
+  - With it ON (PAI final reruns) v7 is level with v5: no measurable gain, and no measurable loss either.
+  - So v7 helps where it is needed to reach the finals (board rank), and is neutral in the finals themselves.
+  - Rough board effect: +0.034 scene score at ~0.6× local → about +28 PCS (v5's +0.041 gave +34). That puts v7 near 2247, against UJS 2251 and VAIL 2258.
+- **Run N (nav-conditioned) first attempt (13655207) died silently** at ~step 75 on ins039 (a node in the "Kill task failed" drain list earlier).
+  - Resubmitted with all 14 nav captures (capnav n0-n7 + dagv7 v0-v5 + ft_runE = 32 tars), excluding ins039: train 13660566, average 13660567, screen 13660568-70.
+- Fileset 75 GB free.
