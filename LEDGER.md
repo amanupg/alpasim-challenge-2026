@@ -1962,3 +1962,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Finals condition (Harmonizer ON), fresh 41-80:** v5 0.816 vs v7 0.755, **-0.060 [-0.154, +0.034], W/L 4/12.** 1-40 was +0.033.
   - This is noisy: Harmonizer-on single batches move ±0.05 run to run. Here v5 scored higher with the Harmonizer on than off (0.816 vs 0.774) and v7 lower (0.755 vs 0.816), which also points to noise.
   - It matters because the finals use this condition, so a **second Harmonizer-on run** of fresh v5/v7 (all three batches) is queued to average. 81-120 run 1 is still running.
+- **Node ins082 (A6000) has a GPU fault** ("CUDA unknown error" at torch init). Captures dagv7_v3 (13653074), capnav_n4 (13653075, empty 10 KB tar removed) and dagv7_v5 (13653078) failed on it; n6 (13653079) was cancelled there.
+  - Resubmitted v3/n4/v5/n6 as 13654978-81, excluding ins082.
+  - Pending n5/v4/n7 got ExcNodeList ins082.
+- Done so far: capnav n0-n3, dagv7 v0-v1; v2/n3 running.
