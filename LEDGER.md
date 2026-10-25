@@ -1958,3 +1958,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Nav captures work:** capnav_n0 (13653067): 552 samples from 20 sessions, 352 MB. In a 28-sample check, 6 carry a turn instruction ("Turn right in 21-37m", "Turn left in 27m") and 22 are "" (no turn). That is the ~20% rate seen at inference. n1-n3 are running.
 - Fileset 102 GB free (99%).
 - **Finals condition (Harmonizer ON), fresh 1-40:** v5 0.806 (13653600) vs v7 0.840 (13653601), +0.033 [-0.030, +0.102], W/L 4/5. The direction matches the board condition. v7 Harmonizer on vs off on these scenes: 0.840 vs 0.860. Batches 41-80/81-120 are running. Run E screen (13653053/57/61) has started.
+- **Run E (ftE_w50 + nav) vs v7, old 120 (13653053/57/61):** +0.014 / -0.065 / -0.036, total **-0.029 [-0.065, +0.005], W/L 16/24. Rejected.** More on-policy DAgger did not help, the same as run D.
+- **Finals condition (Harmonizer ON), fresh 41-80:** v5 0.816 vs v7 0.755, **-0.060 [-0.154, +0.034], W/L 4/12.** 1-40 was +0.033.
+  - This is noisy: Harmonizer-on single batches move ±0.05 run to run. Here v5 scored higher with the Harmonizer on than off (0.816 vs 0.774) and v7 lower (0.755 vs 0.816), which also points to noise.
+  - It matters because the finals use this condition, so a **second Harmonizer-on run** of fresh v5/v7 (all three batches) is queued to average. 81-120 run 1 is still running.
