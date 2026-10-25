@@ -1879,3 +1879,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **CFG w=2, batch 41-80 (13650552):** 0.710 vs mimw50nav 0.780, **-0.070 [-0.133, -0.015], W/L 2/9**.
   - 22fa5c92 1.0 → 0.01 (stall); 1d6e30bc 0.45 → 0.02; 1d879259 → at-fault; 26004ca8 → offroad; 268949d2 → corridor.
   - Over 80 scenes: about -0.03. **CFG on nav text rejected**: amplifying the instruction makes the car hesitate or swerve more. The 81-120 batch (13650553) was cancelled to free the L40S for fresh run 2.
+- **SNAP_MIN_T=3, full 120 on R6000 (13651324/26/28) vs R6000 v7 (13651323/25/27, 0.767):** 0.771, **+0.004 [-0.018, +0.026], W/L 2/3, 115 ties. Neutral; not adopted.**
+  - Changes: 000525f6 pass → corridor; 1fcacc17 corridor → pass; 2837a7e8 corridor → 0.63; 26004ca8 0.85 → 0.70.
+  - The highway scenes it targeted (0e05cb0c, 15fd88d6, 2466266e) still fail: the route there disagrees with the recording, and a gentler bridge does not change that.
+  - R6000 is nearly deterministic (115/120 ties, as Blackwell was before). R6000 v7 vs L40S v7 (same config): -0.017 [-0.043, +0.007].
