@@ -27,6 +27,17 @@ they tracked the recording more closely and drove slower. Averaging the fine-tun
 1:1 (WiSE-FT~\cite{wiseft}) kept the gains and restored speed. On 120 local scenes this halved at-fault collisions
 (6.0 to 3.0) and cut corridor exits (17.5 to 14.0). \todo{final local and H100 numbers}
 
+\textbf{Route text.} Alpamayo~1.5 accepts a navigation instruction (``Turn left in 30m''). We derive it from the
+route waypoints, measuring the distance to where the turned road meets the car's forward axis. With the released
+expert it added nothing (+0.002); with the weight-averaged fine-tuned expert it added +0.036 and nearly halved
+corridor exits (17.5 to 9.0 per 120 scenes). Amplifying it with the model's classifier-free guidance on navigation
+($w=2$) hurt ($-$0.03 on 80 scenes: more hesitation and swerves).
+
+\textbf{Held-out confirmation.} About 40 decisions were taken on the same 120 local scenes, so we confirmed the final
+candidate on 120 further curated-validation scenes never used before, with the Harmonizer off as in the leaderboard
+runs: +0.046 [+0.000, +0.094] over our previous entry (0.761 to 0.807; corridor exits 11 to 6, offroad 7 to 3)
+\todo{second run}. The 201 remaining validation scenes were held back for the final check.
+
 \textbf{Evaluation protocol.} Local runs on the developer preset render with the Harmonizer on, as the PAI final
 runs do; the leaderboard's initial runs have it off. We screened on L40S (two runs per configuration: single
 40-scene batches move by up to $\pm$0.05 between identical runs, 120-scene means by $\sim$0.01) and confirmed on
