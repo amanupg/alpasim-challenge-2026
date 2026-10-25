@@ -1941,3 +1941,9 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Expected official effect at ~0.6× local: about +0.034 scene score.
 - **v7 is the PAI final-entry candidate under the deterministic-gains rule.** Anything else must beat v7 on the same held-out sets.
 - Screens: ftC_w40 + nav, 1-40 (13653050): 0.785 vs w50 0.797, -0.013 [-0.038, +0.004], W/L 4/5.
+- **At-fault collisions on held-out (v5 9 → v7 11), per scene:**
+  - shared: 7d16a9a9, 7dc59d0d, 8a812020, c92137b4, d32206ef;
+  - fixed by v7: 4f779a92, 58814d76, dd0f84df (v7 passes), and 4a863a41 (→ offroad);
+  - **new in v7:** 403d558a, 6e6cbe67, a784414a, b661da67 (FRONT collisions late in the scene, at 72-83% of 20 s), dc401449 (lateral); 9f393c8a was offroad in v5.
+  - **Reading:** v7 closes on slowing lead vehicles late in some scenes; it drives faster than v5 (the w50 average restored speed). This costs at-fault incident spacing (the rank tie-break) while scene score rises.
+  - There is no detection signal to brake on outside the model, so this is a known cost, not something fixable this week.
