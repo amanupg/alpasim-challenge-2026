@@ -1954,3 +1954,6 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - **w50 and the default gains stay.**
 - **Finals-condition check (Harmonizer ON), fresh 120, v5 vs v7, L40S, LOCAL_FS**, queued. Harmonizer-on runs are noisy, so this is one run for direction, not proof.
 - 03:30: the nav captures (13653067-80) were stuck on ReqNodeNotAvail (A6000/R6000/L40 busy). Their constraint was widened to include l40s (scontrol update Features).
+- **Run E trained (13653047, 2,227 steps, 4.9 h):** open loop on its val set ADE 2.109 → 1.899 m (-10%); length ratio median 1.001 → 0.999; weights moved 8.2e-2. ftE_w50 built (13653049). Screen 13653053/57/61 pending.
+- **Nav captures work:** capnav_n0 (13653067): 552 samples from 20 sessions, 352 MB. In a 28-sample check, 6 carry a turn instruction ("Turn right in 21-37m", "Turn left in 27m") and 22 are "" (no turn). That is the ~20% rate seen at inference. n1-n3 are running.
+- Fileset 102 GB free (99%).
