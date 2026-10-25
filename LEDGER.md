@@ -1876,3 +1876,6 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
     - v0.3 without snap passes this scene; any snap there fails.
     - The issue is "route offset from GT at handover", not bridge steepness.
     - SNAP_MIN_T is unlikely to help. 41-80 and 81-120 still run (15fd88d6 and 2466266e are there) before dropping it.
+- **CFG w=2, batch 41-80 (13650552):** 0.710 vs mimw50nav 0.780, **-0.070 [-0.133, -0.015], W/L 2/9**.
+  - 22fa5c92 1.0 → 0.01 (stall); 1d6e30bc 0.45 → 0.02; 1d879259 → at-fault; 26004ca8 → offroad; 268949d2 → corridor.
+  - Over 80 scenes: about -0.03. **CFG on nav text rejected**: amplifying the instruction makes the car hesitate or swerve more. The 81-120 batch (13650553) was cancelled to free the L40S for fresh run 2.
