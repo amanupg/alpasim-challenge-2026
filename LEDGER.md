@@ -2039,3 +2039,4 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Candidate `A15_WAITGO_K=3`** (src_cand; `route_choice.start_now`): when stopped (< 0.5 m/s) and the plan moves < 1 m in 2 s but > `A15_WAITGO_FAR` (5 m) by 6.4 s, for 3 plans in a row, the plan's waiting prefix (points within 0.3 m) is dropped so the move starts now.
   - Tests in tests/test_route_nav.py pass in the v7 image.
   - Screen on the old 120 (deterministic, vs mimw50nav) queued. If positive, held-out 321 follows.
+- Wait-go screen moved to R6000 (L40S saturated); compared against R6000 v7 (all_bwv7, src_cand, all switches off, 0.767). L40S jobs 13671507-09 cancelled.
