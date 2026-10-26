@@ -2022,3 +2022,13 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **To check (from alpasim-jepa):** on nuPlan the policy planned "wait ~2 s, then go" at every replan, so the car never started; a rule dropping the waiting prefix after 3 identical plans gave +0.015.
   - Check v7's plan logs for the stall scenes (diag 13650554 has A15_LOG_PLANS): a near-zero 2 s plan distance with a large 6.4 s distance, repeated, would be the same "always later" pattern, separate from genuine red-light stops.
   - Needs the socket.
+
+## 2026-10-26 17:05 Run N, 20 steps, candidate A/A (results from while the socket was down)
+- **src_cand A/A (13660580):** identical to mimw50nav on 1-40 (40/40 ties). The refactored forced-rollout path is exact, so all src_cand screens are clean comparisons.
+- **Run N** (nav-conditioned fine-tune: ft_runE + all 14 nav captures, 14,821 samples, `--nav`, 3,701 steps, 8.5 h):
+  - open loop ADE 1.944 → 1.619 (-17%); weights moved 0.107.
+  - ftN_w50 + nav vs v7, old 120: +0.018 / -0.030 / +0.001, total **-0.004 [-0.044, +0.036], W/L 17/21. No gain; not adopted.** Matching train and test prompts on nav did not change closed-loop driving.
+- **20 flow-sampler steps (v7):** -0.014 / -0.072 / -0.066, total **-0.051 [-0.091, -0.013], W/L 11/28. Rejected.** The model was trained for 10 Euler steps.
+- **v7 stays the final candidate.**
+- Process note: one remote check fell back to direct ssh when the socket file was missing; it timed out with no connection made. Every remote command is now gated with `ssh -O check &&` and uses `-o ControlMaster=no`.
+- Fileset 56 GB free.
