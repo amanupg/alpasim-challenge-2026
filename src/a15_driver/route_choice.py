@@ -400,3 +400,22 @@ def stall_rescue_choice(xy: np.ndarray, stall_m: float = 3.0, min_move_m: float 
         return 0
     flat = xy[mov].reshape(len(mov), -1)
     return int(mov[np.linalg.norm(flat[:, None] - flat[None], axis=2).sum(1).argmin()])
+
+
+def start_now(xy: np.ndarray, yaw: np.ndarray, still_m: float = 0.3) -> tuple[np.ndarray, np.ndarray]:
+    """Drop a plan's waiting prefix: the leading points that stay within still_m of the car are removed, so the
+    motion the plan defers to later starts now; the tail is padded by holding the last pose's heading at the
+    plan's final step length. A plan that never leaves still_m is returned unchanged.
+
+    PAI/nuPlan 2026-10-26 (alpasim-jepa's finding, ported): from rest the policy can plan "wait ~2 s, then go" at
+    every replan; the controller tracks only the next ~2 s, so the car never starts (receding-horizon stall)."""
+    xy, yaw = np.asarray(xy, dtype=float), np.asarray(yaw, dtype=float)
+    far = np.nonzero(np.linalg.norm(xy[:, :2], axis=1) > still_m)[0]
+    if len(far) == 0 or far[0] == 0:
+        return xy, yaw
+    j = int(far[0]) - 1                                   # keep the last still point as the new first point
+    n = len(xy)
+    head_xy, head_yaw = xy[j:], yaw[j:]
+    step = head_xy[-1] - head_xy[-2] if len(head_xy) > 1 else np.zeros(2)
+    pad = head_xy[-1] + np.outer(np.arange(1, n - len(head_xy) + 1), step)
+    return np.vstack([head_xy, pad])[:n], np.concatenate([head_yaw, np.full(n - len(head_yaw), head_yaw[-1])])[:n]

@@ -2032,3 +2032,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **v7 stays the final candidate.**
 - Process note: one remote check fell back to direct ssh when the socket file was missing; it timed out with no connection made. Every remote command is now gated with `ssh -O check &&` and uses `-o ControlMaster=no`.
 - Fileset 56 GB free.
+- **Wait-then-go check (alpasim-jepa's nuPlan finding) on the v7 stall scenes (diag 13650554 plan logs):**
+  - present in **1d6e30bc**: ~10 consecutive plans with 2 s distance < 0.6 m but 6.4 s distance 3-14 m while stopped; the start keeps slipping;
+  - weaker in 2c84ac16 (6.4 s distance 2-5 m);
+  - 268949d2 is a genuine full stop (0.0 m at both horizons for 13 plans, likely a red light); 2f227f2c stops 3 plans then plans and starts moving.
+- **Candidate `A15_WAITGO_K=3`** (src_cand; `route_choice.start_now`): when stopped (< 0.5 m/s) and the plan moves < 1 m in 2 s but > `A15_WAITGO_FAR` (5 m) by 6.4 s, for 3 plans in a row, the plan's waiting prefix (points within 0.3 m) is dropped so the move starts now.
+  - Tests in tests/test_route_nav.py pass in the v7 image.
+  - Screen on the old 120 (deterministic, vs mimw50nav) queued. If positive, held-out 321 follows.

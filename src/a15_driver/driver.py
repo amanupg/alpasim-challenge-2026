@@ -47,7 +47,7 @@ from PIL import Image                                               # noqa: E402
 import grpc                                                         # noqa: E402
 
 from .policy import CAMERA_NAME_TO_INDEX, NUPLAN_TO_SLOT, Alpamayo15Policy  # noqa: E402
-from .route_choice import (RouteMemory, cap_speed_on_path, heading_change_deg, retime_path,  # noqa: E402
+from .route_choice import (RouteMemory, cap_speed_on_path, heading_change_deg, retime_path, start_now,  # noqa: E402
                            route_deviation, route_lateral_offset, route_parallel, route_path, route_pull,
                            time_warp_plan)
 from .trajectory import CachedPlan, build_trajectory_from_plan, make_cached_plan  # noqa: E402
@@ -253,6 +253,7 @@ class SessionState:
     plan_nframes: int = 0                                   # distinct frames per camera behind the cached plan
     last_nav: str | None = None
     snapping: bool = False                                  # route snap active (hysteresis)
+    waitgo: int = 0                                         # consecutive stopped wait-then-go plans (A15_WAITGO_K)
     route_mem: RouteMemory = field(default_factory=RouteMemory)   # recorded path seen so far, world frame
     gt: GroundTruthStore = field(default_factory=GroundTruthStore)   # recording (capture mode only)
     last_capture_us: int = -10**18
@@ -277,6 +278,8 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         self._log_choices, self._early_replan, self._nav_dist = log_choices, early_replan, nav_dist
         self._log_plans = os.environ.get("A15_LOG_PLANS", "0") == "1"
         self._snap_min_t = float(os.environ.get("A15_SNAP_MIN_T", "0"))   # s of travel the snap bridge spans at least
+        self._waitgo_k = int(os.environ.get("A15_WAITGO_K", "0"))          # 0 = off
+        self._waitgo_far = float(os.environ.get("A15_WAITGO_FAR", "5.0"))  # m the plan reaches by 6.4 s
         self._speed_scale = speed_scale
         self._route_pull, self._route_pull_d0, self._route_pull_d1 = route_pull, route_pull_d0, route_pull_d1
         self._speed_cams = speed_cams
@@ -535,6 +538,17 @@ class A15ChallengeDriver(egodriver_pb2_grpc.EgodriverServiceServicer):
         if self._capturer is not None and self._capture_at_infer and samples is not None:
             self._capture_inference(s, frames, hx, hr, t0, anchor, samples)
         xy, yaw = speed_scale_plan(np.asarray(xy), np.asarray(yaw), self._speed_scale)
+        if self._waitgo_k > 0:
+            # receding-horizon stall: stopped, and the plan waits ~2 s then drives far; after K such plans in a row,
+            # drop the waiting prefix so the move starts now (alpasim-jepa's nuPlan fix, ported 2026-10-26)
+            p = np.asarray(xy)
+            d = np.linalg.norm(np.diff(np.vstack([np.zeros(2), p[:, :2]]), axis=0), axis=1).cumsum()
+            waiting = s.speed < 0.5 and d[min(19, len(d) - 1)] < 1.0 and d[-1] > self._waitgo_far
+            s.waitgo = s.waitgo + 1 if waiting else 0
+            if s.waitgo >= self._waitgo_k:
+                xy, yaw = start_now(p, np.asarray(yaw))
+                with self._lock:
+                    s.stats["waitgo"] = s.stats.get("waitgo", 0) + 1
         if self._route_pull > 0:
             xy, yaw = route_pull(xy, yaw, route, self._route_pull, self._route_pull_d0, self._route_pull_d1)
         snapped = False

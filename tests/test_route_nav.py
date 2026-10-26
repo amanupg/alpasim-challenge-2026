@@ -6,7 +6,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from a15_driver.driver import route_nav_text, speed_scale_plan  # noqa: E402
-from a15_driver.route_choice import (RouteMemory, cap_speed_on_path, choose, choose_fast, heading_change_deg,  # noqa: E402
+from a15_driver.route_choice import (start_now, RouteMemory, cap_speed_on_path, choose, choose_fast, heading_change_deg,  # noqa: E402
                                      retime_path, stall_rescue_choice, time_warp_plan,
                                      route_deviation, route_lateral_offset, route_parallel, route_path,
                                      route_pull)
@@ -183,5 +183,15 @@ _stop = np.zeros((64, 2))
 check("stall: majority moves -> a moving sample", stall_rescue_choice(np.stack([_stop, _line(5.0), _line(6.0), _line(5.5), _stop, _line(4.0)])) in (1, 2, 3, 5), True)
 check("stall: majority stopped -> keep sample 0", stall_rescue_choice(np.stack([_stop, _line(5.0), _stop, _stop, _stop, _line(4.0)])), 0)
 check("stall: sample 0 moving -> keep it", stall_rescue_choice(np.stack([_line(3.0), _line(5.0), _line(6.0)])), 0)
+# wait-then-go: plan still for 2 s then accelerating; start_now drops the still prefix
+tw = np.arange(64) * 0.1
+wx = np.where(tw < 2.0, 0.0, 0.5 * 2.0 * (tw - 2.0) ** 2)                 # still 2 s, then 2 m/s^2
+wplan = np.stack([wx, 0 * wx], 1); wyaw = np.zeros(64)
+sx, sy = start_now(wplan, wyaw)
+check("start_now: motion starts within 0.2 s", bool(np.linalg.norm(sx[2]) > 0.0), True)
+check("start_now: keeps 64 points", sx.shape, (64, 2))
+check("start_now: path is the plan's path shifted in time", round(float(sx[10, 0]), 2), round(float(wx[np.nonzero(wx > 0.3)[0][0] - 1 + 10]), 2))
+check("start_now: a moving plan is unchanged", bool(np.allclose(start_now(np.stack([tw * 5, 0 * tw], 1), wyaw)[0], np.stack([tw * 5, 0 * tw], 1))), True)
+check("start_now: a fully stopped plan is unchanged", float(np.abs(start_now(np.zeros((64, 2)), wyaw)[0]).max()), 0.0)
 print("PASS" if bad == 0 else f"FAIL ({bad})")
 sys.exit(bad > 0)
