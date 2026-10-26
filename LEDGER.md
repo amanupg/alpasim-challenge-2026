@@ -2018,3 +2018,7 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **v7 + 2 Hz replanning, 1-40 (13660574):** 0.749 vs 0.797, **-0.049 [-0.134, +0.041], W/L 4/14**. Rejected, as on v2 earlier. The other batches (13660576/78) were cancelled. Mean inference 1.72 s, peak 14,914 MiB.
 - **v7 + 20 flow steps, 1-40 (13660575):** 0.784 vs 0.797, -0.014 [-0.100, +0.072], W/L 4/7 (inference 1.96 s, 14,794 MiB). 41-80/81-120 continue.
 - Run N at step 1,600/3,701 (~4.6 h left). The challenge CLI session is still expired (needs Aman's configure-token before the warmup).
+- **Tag register (2026-10-26):** PAI's final entry uses `v7` (built locally, not pushed). **`v8` is reserved for nuPlan** (alpasim-jepa, py123d v0.2.0 + a wait-then-go start fix, Nov 1+ submission), at their request.
+- **To check (from alpasim-jepa):** on nuPlan the policy planned "wait ~2 s, then go" at every replan, so the car never started; a rule dropping the waiting prefix after 3 identical plans gave +0.015.
+  - Check v7's plan logs for the stall scenes (diag 13650554 has A15_LOG_PLANS): a near-zero 2 s plan distance with a large 6.4 s distance, repeated, would be the same "always later" pattern, separate from genuine red-light stops.
+  - Needs the socket.
