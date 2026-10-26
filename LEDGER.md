@@ -2014,3 +2014,4 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - T/R retrains with nav (pre-nav 0.730-0.731 < w50 0.742; run E with nav was worse than v7).
   - Low priors; they would delay the better-motivated run N, 2 Hz and 20-step screens on the L40S bottleneck.
   - The answer to Aman's question: tried methods were run on the recipe of their time. Only these pre-v7 components were never re-run on v7.
+- Report author line set (Aman, 2026-10-25): Aman Upganlawar, Columbia University, au2327@columbia.edu. Final-week roles: I push + run the PAI warmup, Aman submits.
