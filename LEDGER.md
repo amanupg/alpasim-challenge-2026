@@ -1995,3 +1995,15 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - **2 Hz replanning** (A15_INFERENCE_INTERVAL_US=500000): 13660574/76/78. Faster reaction to braking leads (v7's new frontal at-fault crashes). Model work is ~16 s/wave at 1 Hz, so 2 Hz adds roughly +500 s to the official 9,522/14,400.
   - **20 flow-sampler Euler steps** (A15_DIFF_STEPS=20, new knob in src_cand policy.py; model default 10): 13660575/77/79.
   - **src_cand A/A** (all candidate switches off) on 1-40: must equal mimw50nav exactly if the refactored forced-rollout path is equivalent.
+
+## 2026-10-25 21:15 Re-test earlier components inside the current recipe (Aman's question: are tried methods integrated?)
+- Most experiments ran on top of the best recipe of their time. Fine-tune screens all used forced start + route snap, and since Oct 23 also nav.
+- **Gap:** components tested before v7's parts existed were never re-tested on v7. Nav only helped with the fine-tuned expert, so such interactions are real.
+- **Re-tests on v7, old 120, OFFICIAL_MIMIC, deterministic:**
+  - sampler temperature 0.6: 13661431/34/37;
+  - stall rescue (A15_CHOOSER=stall): 13661432/35/38;
+  - route chooser v2 (K=6, margin 1, speed guard 0.9; +~2.5x model work): 13661433/36/39.
+- **Fine-tunes rejected before nav, retrained and screened WITH nav** (their old checkpoints were deleted for space):
+  - T (A2-Super teacher labels, ft_runR + ft_a2labels_x3): train 13661440 → ftT_w50 → screen 13661444/46/48;
+  - R (RoaD): train 13661441 → ftR_w50 → screen 13661445/47/49.
+  - Training runs on A6000/R6000/L40.
