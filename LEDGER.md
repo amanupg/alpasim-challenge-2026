@@ -2015,3 +2015,6 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Low priors; they would delay the better-motivated run N, 2 Hz and 20-step screens on the L40S bottleneck.
   - The answer to Aman's question: tried methods were run on the recipe of their time. Only these pre-v7 components were never re-run on v7.
 - Report author line set (Aman, 2026-10-25): Aman Upganlawar, Columbia University, au2327@columbia.edu. Final-week roles: I push + run the PAI warmup, Aman submits.
+- **v7 + 2 Hz replanning, 1-40 (13660574):** 0.749 vs 0.797, **-0.049 [-0.134, +0.041], W/L 4/14**. Rejected, as on v2 earlier. The other batches (13660576/78) were cancelled. Mean inference 1.72 s, peak 14,914 MiB.
+- **v7 + 20 flow steps, 1-40 (13660575):** 0.784 vs 0.797, -0.014 [-0.100, +0.072], W/L 4/7 (inference 1.96 s, 14,794 MiB). 41-80/81-120 continue.
+- Run N at step 1,600/3,701 (~4.6 h left). The challenge CLI session is still expired (needs Aman's configure-token before the warmup).
