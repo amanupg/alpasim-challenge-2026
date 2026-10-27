@@ -2040,3 +2040,4 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Tests in tests/test_route_nav.py pass in the v7 image.
   - Screen on the old 120 (deterministic, vs mimw50nav) queued. If positive, held-out 321 follows.
 - Wait-go screen moved to R6000 (L40S saturated); compared against R6000 v7 (all_bwv7, src_cand, all switches off, 0.767). L40S jobs 13671507-09 cancelled.
+- **Process slip (20:10):** a socket check piped through head did not gate. With the socket missing, one read-only squeue/sacct query ran over a direct ssh login. Gate fixed (no pipe on the check). R6000 wait-go jobs 13671759-61 still pending.
