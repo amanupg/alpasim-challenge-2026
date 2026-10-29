@@ -2122,3 +2122,14 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Failure counts v7 → T2b: rear-ended 26 → 16, at-fault 3 → 1, but corridor 8 → 11 and offroad 4 → 6.
   - So T2b drives longitudinally better (pace, fewer rear-ends) but makes more lateral/branch errors.
   - Not a screening winner on its own. The held-out run (13702153-61) decides. If the lateral chooser (consistency) cuts corridor exits on v7, T2b + lateral is the natural combination to test next.
+- T2b duplicate R6000 screens 13700794-96 cancelled (the L40S screen finished).
+- **T2b held-out fresh 1-40 (with wait-go) vs v7+wait-go: 0.860 → 0.853, -0.007 [-0.070, +0.051], W/L 5/2.**
+- **T2b held-out fresh 41-80: 0.830 → 0.876, +0.046, W/L 11/0. Held-out running total (80): +0.020 [-0.016, +0.052], W/L 16/2.** (Running totals: scratchpad ho_total.py.)
+- **T2b held-out fresh 81-120: 0.746 → 0.711, -0.035, W/L 5/4; lockbox part 5 (1 scene): 1.000 → 0.865. Running total (121): +0.000 [-0.030, +0.028], W/L 21/7.**
+- **T2b held-out lockbox part 0: 0.745 → 0.698, -0.047, W/L 6/4. Running total (161): -0.012 [-0.042, +0.018], W/L 27/11.** Pattern: many small wins, fewer but larger losses.
+- **T2b held-out lockbox part 3: +0.011, W/L 5/5. Running total (201): -0.007 [-0.035, +0.021], W/L 32/16.**
+- **T2b held-out lockbox parts 2 and 4 done. Running total (281): +0.005 [-0.018, +0.029], W/L 49/21.** Part 1 still running.
+- **T2b held-out FINAL (321 scenes, OFFICIAL_MIMIC, L40S, deterministic; T2b+wait-go vs v7+wait-go): 0.8002 → 0.8051, +0.005 [90% -0.017, +0.027], W/L 53/23. The interval includes 0 → NOT adopted (deterministic-gains rule).**
+  - **Longitudinal gains are real:** full passes 200 → 220, rear-ended 52 → 38 (points lost 0.038 → 0.029), low progress 24 → 15.
+  - **Zero-score events churn:** at-fault 11 → 13, offroad 12 → 12, corridor 22 → 23. T2b fixes many corridor scenes (4cb05d65, a6941bb6, afcb2149, d08a71c4, e904e9c0, e9384415: 0 → 1) and breaks others (8457182d, 9f8acd00, ba62e10d: 1 → 0; 3 new at-fault).
+  - **Reading:** lane/branch decisions in these scenes are fragile coin flips that any model change flips both ways. The zero-score events dominate the score, so T2b's real pace gains net out. A selection rule that stabilises lateral choices (the lateral chooser, queued) is the natural complement; T2b + lateral is the next test if lateral helps v7.
