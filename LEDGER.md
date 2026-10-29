@@ -2159,3 +2159,15 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Cause: my conservative choice (lr 1e-5, 600 steps from ftC_w50), then halved by averaging. **So T2b's held-out +0.005 tests a weak dose, not the method.** It should have been flagged when the training log came in.
 - **T2c (fair dose):** init ftC_w50, data ft_runT2a (run C data + T2 states ×3 with teacher + RoaD targets), `--steps 1200 --lr 3e-5 --nav`, 32 GB. Train 13706660 → average ftT2c_w50 (0.5 ftC_w50 + 0.5 T2c) 13706661.
   - **Gate before any screen:** loss must fall and open-loop ADE must drop ≥ 10%. Otherwise report "under-trained", not a result.
+- **10:05 Audit of all fine-tunes (loss first→last sixth, open-loop ADE, weights moved).**
+  - Trained properly: A (-21% ADE, weak lr), B (-24%), C (-17%), C2 (-10%), E (-10%), N (-17%), T2a (-4.5%).
+  - D: train loss fell but held-out ADE only -1% (uninformative).
+  - R: -14%, but judged with the Harmonizer on (±0.05 noise; -0.012 vs C is inside it).
+  - T: -6%; only 30% teacher labels, no nav (weak by design).
+  - **T2b: did not train** (flat loss, -3%, moved 2.1e-2).
+  - **Reporting rule from now on:** every result carries a validity line (trained or activated; loss and ADE) and a power note, and a verdict that says "no gain shown (underpowered)" or "tested properly, no gain".
+- **Relaunched (Aman: "retest R and T2c both", stronger fine-tunes):** each is trained, averaged 0.5 base + 0.5, then screened on old 120 (OFFICIAL_MIMIC, nav, L40S) vs mimw50nav.
+  - **R2** = run R's exact recipe (ft_runR, `--steps 2000 --lr 3e-5`): 13706765 → 13706766 → 13706767-69.
+  - **Cs2 / Cs3** = run C's recipe with `--seed 2` / `--seed 3` (the seed effect C vs C2 was 0.05): 13706770 → 71 → 72-74 and 13706775 → 76 → 77-79.
+  - After both seeds, a soup (0.5 base + C, Cs2, Cs3 at 1/6 each) gets a fair deterministic test; the old C+C2 soup was also judged under Harmonizer noise.
+  - **T2c** (13706660) running; its screen starts only after the validity gate.
