@@ -2180,3 +2180,17 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - Offline check on the real data: 2,466 states, all 240 sessions matched; 198 fail-window states (target source: teacher 32/40, recovery 8/40, never policy); 1,828 pass-scene states (policy 38/40).
   - Train 13706868 (init ftC_w50, ft_runT2b, `--steps 800 --lr 3e-5 --nav`, 32 GB) → average ftT2d_w50 13706869.
   - Screen after the validity gate (loss falling, ADE dropping), like T2c.
+- **T2d trained (13706868, 1 h 55 min): VALIDITY: loss 0.536 → 0.361 (sixths 0.536 / 0.458 / 0.398 / 0.360 / 0.404 / 0.361); weights moved 5.1e-2; open-loop ADE vs recording 2.39 → 2.40 (unchanged); path-length ratio median 0.970 → 0.981, mean 0.949 → 1.009.** It learned, but not toward the recording, which is expected since its targets are policy/teacher samples. The ≥10% ADE gate is not meaningful for non-recording targets. Screen queued after average 13706869.
+- **T2c trained (13706660, 3 h 43 min). VALIDITY: weights moved 5.8e-2 (a proper dose, like C's 7.6e-2); loss flat 0.331 → 0.328 (v7's expert already fits run C's data, and T2 targets add little); open-loop ADE vs recording 2.48 → 2.62 (+6%, toward policy/teacher targets). A fair dose of more training from v7 on this data.** Screens queued after average 13706661.
+- **Cs2 trained (13706770, 4 h 27 min). VALIDITY: loss 0.327 → 0.289; ADE 1.749 → 1.562 (-11%); weights moved 7.9e-2. A proper dose, comparable to C.** Average and screen chained.
+- **R2 trained (13706765): VALIDITY: loss 0.377 → 0.295; ADE 1.747 → 1.468 (-16%; original R -14%); moved 7.8e-2. Valid. Cs3 (13706775): loss 0.343 → 0.309; ADE 1.962 → 1.605 (-18%); moved 7.6e-2. Valid.** Averages and screens chained.
+- **T2d screen (old 1-80): -0.037 [-0.088, +0.010], W/L 14/9** (-0.035 / -0.040). Valid training (loss fell, moved 5.1e-2), no gain shown so far; batch 81-120 running.
+- **T2d screen, old 120: -0.021 [-0.063, +0.019], W/L 23/15 (by batch -0.035 / -0.040 / +0.011). Valid training; tested properly, no gain → not taken to held-out.**
+- T2c screen 1-40: -0.011, W/L 6/3.
+- R2 screen 1-40 (13706767): -0.021, W/L 5/3.
+- T2c screen 41-80: -0.058, W/L 7/6. T2c old 80: -0.035 [-0.083, +0.012], W/L 13/9.
+- R2 screen 41-80: -0.067, W/L 10/5. R2 old 80: -0.044 [-0.091, -0.004], W/L 15/8. RoaD on the base policy's states, tested properly (deterministic, nav, valid training): no gain.
+- **17:40 Deleted with Aman's approval:** ftT2a.pt, ftT2a_w50.pt, ftT2b.pt, ftT2b_w50.pt (rejected; 18 GB). No queued or running job uses them.
+- **T2c screen, old 120: -0.020 [-0.060, +0.019], W/L 21/16. Valid dose (moved 5.8e-2), tested properly, no gain → not taken to held-out.**
+- **R2 screen, old 120: -0.058 [-0.094, -0.024], W/L 20/16. RoaD retested properly (valid training, deterministic, nav): worse than v7.**
+- **Both teacher+RoaD and RoaD are now tested properly at a fair dose: no gain over v7.** Remaining: the Cs2, Cs3 and seed-soup screens.
