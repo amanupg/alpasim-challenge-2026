@@ -68,7 +68,7 @@ the 16\,GiB cap. It replans at 1\,Hz and serves the cached plan re-anchored to t
 \draw[ar] (cam) -- (a15); \draw[ar] (nav) -- (a15); \draw[ar] (a15) -- (plan); \draw[ar] (plan) -- (snap);
 \draw[ar] (route) -- (snap); \draw[ar] (snap) -- (out);
 \end{tikzpicture}
-\caption{Final system. Ours: route text from the waypoints, the fine-tuned and averaged expert, route snap.}
+\caption{Final system. Ours: route text from the waypoints, the fine-tuned and averaged expert, route snap, and the wait-then-go start fix (not drawn).}
 \end{figure}
 
 \textbf{Route text.} The route arrives as waypoints starting about 40\,m ahead. When a route segment within 100\,m
@@ -82,6 +82,11 @@ plans; we append it, as NVIDIA's teacher-forced training does.
 under way) and the route lies within 15$^\circ$ of the car's heading, the plan's geometry is replaced by a cubic Hermite
 curve onto the route, re-timed so the model keeps control of speed. The angle guard stops corner cutting on turns.
 On H100 it gave +0.071 [+0.011,\,+0.131] over the plain model on 120 scenes (official: 0.611 $\rightarrow$ 0.652).
+
+\textbf{Wait-then-go start.} Stopped at a light, the model sometimes plans ``wait about 2\,s, then go'' at every replan,
+so the start keeps receding and the non-reactive car behind ends the scene. When the car is stopped and three
+consecutive plans cover under 1\,m in 2\,s but over 5\,m by 6.4\,s, we drop the waiting prefix so the car starts now.
+On the 321 held-out scenes it changes 4 scenes, all for the better (e.g.\ 0.39 $\rightarrow$ 1.00), and no other.
 
 \section{Closed-loop fine-tuning of the action expert}
 Open loop, the released model is not slow on rendered on-route frames (predicted/recorded path length 1.005); its
@@ -103,6 +108,15 @@ closed loop: the car tracked the recording and drove slower. Adding recovery sam
 Averaging the fine-tuned and released expert weights 1:1 (WiSE-FT~\cite{wiseft}) restored speed (+0.049). Route text
 did nothing with the released expert (+0.002) but added +0.036 with the averaged one, nearly halving corridor exits
 (Table~\ref{tab:ladder}).
+
+\textbf{A stronger teacher on the policy's own states.} We let the final policy drive 240 unused training scenes,
+saved its 16 samples per plan (2{,}466 states, all six cameras, route text), and had Alpamayo~2-Super (34B) propose 8
+plans per state with the same route text. Following RoaD~\cite{road}, the label is the candidate from either pool nearest
+the recording over the first 2\,s (a recovery blend if none is within 3\,m): the policy's own sample in 62\% of states,
+the teacher's in 26\%. Per sample the teacher is no closer to the recording than our policy (0.83 vs 0.82\,m), so its
+value is diversity. Fine-tuned from our expert and averaged, this gave 20 more full passes and 14 fewer rear-end
+endings on the held-out scenes, but the same number of zero-score failures, and +0.005 [$-$0.017,\,+0.027] overall;
+we did not adopt it.
 
 \section{Evaluation protocol}
 \textbf{Determinism.} With the Harmonizer off, as in the leaderboard's initial runs, local closed-loop runs on one GPU
@@ -134,6 +148,7 @@ Held-out scenes, v5 $\rightarrow$ v7 & v5 & v7 & diff [90\%] \\
 \midrule
 321 scenes, Harmonizer off (deterministic) & 0.739 & 0.796 & \textbf{+0.057 [+0.023, +0.093]} \\
 \quad corridor / offroad / at-fault (count) & 37 / 15 / 9 & 22 / 12 / 11 & \\
+v7 $\rightarrow$ v7 + wait-then-go start (321) & 0.796 & 0.800 & +0.004 [+0.000, +0.009] \\
 120 scenes, Harmonizer on (2 runs averaged) & 0.763 & 0.768 & +0.006 [$-$0.042, +0.053] \\
 \bottomrule
 \end{tabular}
@@ -150,13 +165,19 @@ same scenes (no measurable gain or loss). Local gains have transferred to the le
 $-$0.049 on 40 scenes with v7); driving 15\% faster ($-$0.307); all six cameras ($-$0.023; rear-ends halved but own
 failures rose); the organisers' time warp ($-$0.121); a waypoint memory to snap through turns (+0.003 to $-$0.026);
 classifier-free guidance on route text, $w{=}2$ ($-$0.03); 40/60\% instead of 50\% averaging; more on-policy recovery
-data ($-$0.029); RoaD-style own-sample labels~\cite{road} and Alpamayo~2-Super teacher labels (0.730/0.731 vs 0.742);
+data ($-$0.029); RoaD-style own-sample labels~\cite{road} and Alpamayo~2-Super teacher labels from the released policy's
+states (0.730/0.731 vs 0.742), and the same from the final policy's states (above; from the released expert $-$0.041);
+NVIDIA's closest-lateral selection among 6 samples ($-$0.073);
 a speed-aware snap bridge (+0.004); controller gains ($\le$+0.002, idx\_start\_penalty 5 or 15: $-$0.04 to $-$0.08);
 route text in the fine-tuning prompts ($-$0.004); 20 flow-sampler steps instead of the 10 the expert was trained with
 ($-$0.051).
 
 \section{Limitations and safety}
-\textbf{Front-end collisions.} v7 adds four late frontal at-fault collisions on held-out scenes (it removes three of
+\textbf{Fragile lane and branch choices.} Zero-score corridor exits dominate the remaining loss (0.069 of 0.20 per
+scene), and they flip in both directions under any change of the expert: the teacher-trained expert fixed six such
+scenes and broke a similar number. Gains in pace and progress, which every fine-tune delivered, are then cancelled by
+this churn; a policy whose lane choice is stable across small perturbations matters more than one that is better on
+average. \textbf{Front-end collisions.} v7 adds four late frontal at-fault collisions on held-out scenes (it removes three of
 v5's): it drives faster and sometimes closes on a slowing lead. \textbf{Signal compliance vs.\ progress.} Many
 remaining low-progress scenes are stops at red or unclear signals where the recorded driver went (e.g.\ a right turn
 on red); the non-reactive car behind then ends the scene. We did not override these stops. \textbf{Route snap trusts
