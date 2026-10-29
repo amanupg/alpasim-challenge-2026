@@ -2116,3 +2116,9 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - **T2b unblended** (ftT2b.pt, init ftC_w50, no averaging) vs mimw50nav: 13702366-68.
   - **T2b Harmonizer ON** (finals condition), fresh 120, 2 runs (Harmonizer is not deterministic), vs frh_v7/frh_v7b: 13702369-74.
 - **01:21 Insomnia socket dropped** (mux 'broken pipe'; the control file is gone). The fallback ssh to the placeholder host 'x' failed to resolve, so no direct login happened. All jobs are queued or running on the cluster and chained; results are read when Aman reopens the socket.
+- **T2b screen 41-80 (13690870): 0.780 → 0.702, -0.078 [-0.158, -0.004], W/L 7/7.** Four new corridor exits (1fcacc17, 22fa5c92, 2837a7e8, 1a69f757), one new offroad (26004ca8); wins include 1d879259 0.51 → 1.00 and 2a0efada 0.81 → 1.00. Old 1-80 combined ≈ -0.012: T2b moves lane/branch choices in both directions. Held-out (321) decides.
+- **T2b screen 81-120 (13690871): 0.775 → 0.820, +0.045 [-0.013, +0.113], W/L 12/2.**
+- **T2b screen, old 120 total: 0.784 → 0.791, +0.007 [-0.033, +0.047], W/L 27/10.**
+  - Failure counts v7 → T2b: rear-ended 26 → 16, at-fault 3 → 1, but corridor 8 → 11 and offroad 4 → 6.
+  - So T2b drives longitudinally better (pace, fewer rear-ends) but makes more lateral/branch errors.
+  - Not a screening winner on its own. The held-out run (13702153-61) decides. If the lateral chooser (consistency) cuts corridor exits on v7, T2b + lateral is the natural combination to test next.
