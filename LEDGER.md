@@ -2138,3 +2138,10 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Rejected (old 120, L40S, deterministic, vs mimw50nav):**
   - **T2b unblended** (ftT2b.pt): -0.036 [-0.090, +0.016], W/L 27/16 (-0.048 / -0.016 / -0.044 by batch). Averaging with ftC_w50 is better.
   - **Lateral chooser on v7** (K=6, NVIDIA's CLOSEST_LATERAL): -0.073 [-0.145, -0.002] over 80 scenes, W/L 12/22. It drives non-default samples 89% of the time. Batch 81-120 (13702365) and the T2b+lateral screen (13703443-45) were cancelled.
+- **T2a done (13690862, 7 h 07 min):** open loop ADE 2.69 → 2.57, weights moved 7.9e-2 (base init, like run C). Average ftT2a_w50 (13690864) running; screen 13690866-68 follows.
+- **04:22 ftT2a_w50 built (13690864). T2a held-out queued early** (+wait-go, src_cand, LOCAL_FS): 13703895-903; screen 13690866-68 also queued. The held-out will be cancelled if the screen is clearly negative.
+- 06:00 Harmonizer-on T2b replicate b (13702372-74, ~45% done) cancelled: T2b was not adopted, and the GPUs go to T2a's screen and held-out. Replicate a (13702369-71) continues for one finals-condition reading.
+- **T2a screen old 1-40 (13690866): 0.797 → 0.781, -0.017, W/L 7/3** (same pattern: more small wins, a few big losses).
+- **T2a screen 81-120: -0.049, W/L 10/8. Old 80 total: -0.033 [-0.095, +0.025], W/L 17/11.** If 41-80 leaves the 120 total ≤ -0.02, the T2a held-out (13703895-903) is cancelled (low prior; GPU etiquette).
+- **T2a screen, old 120: -0.041 [-0.086, +0.004], W/L 26/15 (by batch -0.017 / -0.056 / -0.049). Rejected; T2a held-out 13703895-903 cancelled.** Starting from the released expert with T2 data is worse than starting from v7's expert (T2b +0.007).
+- **Overnight summary:** T2b (held-out +0.005, n.s.), T2a, unblended T2b and lateral are all rejected; wait-go is adopted. **The final candidate stays v7 + wait-go** (local image 05e650bdbecb).
