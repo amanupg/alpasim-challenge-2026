@@ -2194,3 +2194,23 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **T2c screen, old 120: -0.020 [-0.060, +0.019], W/L 21/16. Valid dose (moved 5.8e-2), tested properly, no gain → not taken to held-out.**
 - **R2 screen, old 120: -0.058 [-0.094, -0.024], W/L 20/16. RoaD retested properly (valid training, deterministic, nav): worse than v7.**
 - **Both teacher+RoaD and RoaD are now tested properly at a fair dose: no gain over v7.** Remaining: the Cs2, Cs3 and seed-soup screens.
+- Cs2 screen 1-40 (13706772): -0.004 [-0.073, +0.064], W/L 2/10 (two large wins, ten small losses).
+- Cs2 screen 41-80: -0.114, W/L 7/8. Cs2 old 80: -0.059 [-0.112, -0.008], W/L 9/18. Seed 2 of C's recipe is a worse draw than C (consistent with C2 at 0.686).
+- **Cs2 screen, old 120: -0.034 [-0.079, +0.008], W/L 15/28. Valid training, tested properly: a worse draw than C.**
+- Cs3 screen old 80: -0.033 [-0.079, +0.011], W/L 10/15 (-0.054 / -0.011).
+- **Cs3 screen, old 120: -0.026 [-0.062, +0.010], W/L 16/23. Valid; a worse draw than C.** Seed draws of C's recipe: C (v7) is the best of four (C2, Cs2, Cs3 all below). Soup screen (13713516-18) running.
+- **Seed soup** (0.5 base + C/Cs2/Cs3 at 1/6 each), old 120: **+0.003 [-0.033, +0.040], W/L 20/24 → level with v7, not adopted.**
+- **Zero-score scenes (at-fault + offroad + corridor) vs v7's 15, on old 120:**
+
+  | Candidate | Zero-score | Fixed | Broke | Rear-ended | Full passes |
+  |---|---|---|---|---|---|
+  | v7 | 15 | | | 26 | 67 |
+  | soup | 14 | 4 | 3 | 24 | 68 |
+  | T2c | 18 | 3 | 6 | 23 | 71 |
+  | T2d | 20 | 3 | 8 | 24 | 70 |
+  | R2 | 24 | 0 | 9 | 20 | 70 |
+  | Cs2 | 18 | 4 | 7 | 25 | 66 |
+  | Cs3 | 17 | 2 | 4 | 26 | 67 |
+
+  - **Every single fine-tune adds net zero-score failures (lane/branch flips) while improving pace (fewer rear-ends, more full passes). The soup is the only one that does not.**
+- **Day summary (29 Oct):** after the audit, fair-dose retests of teacher+RoaD (T2c), outcome weighting (T2d), RoaD (R2), two new seeds of C's recipe and a seed soup: none beats v7. **Final stays v7 + wait-go.**
