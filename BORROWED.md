@@ -20,9 +20,9 @@ Anything borrowed is listed here with its source, so either project can be rebui
 | nuReasoning validation clips | `nureasoning/cache/validation`, `nureasoning/img_a15/validation` | `src/a15_fit.py` | real multi-camera inputs until PAI scenes are available |
 | ~~HF token~~ | not borrowed: AlpaSim uses HF account **`amanupg-columbia`** (the challenge account). Token in `alpasim/.cache/hf/token` (mode 600, never on a command line) | NuRec / nuPlan downloads | nuReasoning uses the personal `amanupg` account |
 
-Candidates to borrow later (not used yet): the fine-tuned Alpamayo checkpoints
-(`nureasoning/runs_a15ft`, Motional 3-camera domain) and the nuVLA full-recipe half-models
-(`nureasoning/runs_vla/q3vl2b_full_h0`, `_h1`; 8 Motional cameras, the nuPlan-track rig).
+Considered but never used (2026-10-29: not needed by AlpaSim; nureasoning may clean them up): the fine-tuned
+Alpamayo checkpoints (`nureasoning/runs_a15ft`, Motional 3-camera domain) and the nuVLA full-recipe half-models
+(`nureasoning/runs_vla/q3vl2b_full_h0`, `_h1`). AlpaSim's own fine-tunes are in `alpasim/data/ft_ckpt`.
 Anything that moves the other way (an AlpaSim idea or model reused for nuReasoning) is
 recorded in the nuReasoning LEDGER, not here.
 
