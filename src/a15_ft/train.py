@@ -106,6 +106,14 @@ def load(p):
     q = teacher_label(p)
     if q is not None:
         t = np.load(q)
+        if "a2_samp_xyz" in t.files:
+            # RoaD rule (nearest the recording over 2 s) over the teacher's K samples, joined by the policy's own K
+            # samples when the capture kept them (A15_CHOOSER=record): the policy's own wins when it tracks the
+            # recording as well (in-distribution, RoaD's point), the teacher's where the policy has no good option
+            sx, sr = t["a2_samp_xyz"], t["a2_samp_rot"]
+            if "samp_xyz" in s:
+                sx, sr = np.concatenate([s["samp_xyz"], sx]), np.concatenate([s["samp_rot"], sr])
+            return road_target(dict(s, samp_xyz=sx, samp_rot=sr))[0]
         return dict(s, fut_xyz=t["a2_xyz"].astype(np.float32), fut_rot=t["a2_rot"].astype(np.float32))
     if "samp_xyz" in s:
         return road_target(s)[0]
@@ -252,12 +260,19 @@ def main():
     ap.add_argument("--eval_only", action="store_true")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--nav", action="store_true", help="put each sample's stored route instruction in the prompt")
+    ap.add_argument("--init", default=None, help="start from this expert checkpoint (e.g. v7's ftC_w50) instead of the released one")
     a = ap.parse_args()
     NAV["on"] = a.nav
     hub = os.environ["HUB"]
     snap = lambda r: sorted(glob.glob(f"{hub}/models--{r}/snapshots/*/"))[0]
     model, helper, proc = load_model(snap("nvidia--Alpamayo-1.5-10B"), snap("Qwen--Qwen3-VL-8B-Instruct"),
                                      snap("Qwen--Qwen3-VL-2B-Instruct"))
+    if a.init:
+        sd = torch.load(a.init, map_location="cpu")
+        assert sd and all(k.startswith(TRAIN_PREFIXES) for k in sd), "not an expert checkpoint"
+        missing, unexpected = model.load_state_dict(sd, strict=False)
+        assert not unexpected and not any(k.startswith(TRAIN_PREFIXES) for k in missing), (unexpected, missing[:5])
+        print(f"init from {a.init}: {len(sd)} tensors", flush=True)
     groups = collect(a.data, a.scratch)
     if a.teacher_dir:
         TEACHER["dir"], TEACHER["scratch"] = a.teacher_dir, os.path.join(a.scratch, "")
@@ -284,6 +299,21 @@ def main():
           f"yaw p90/max {np.percentile(stats[:, 1], 90):.1f}/{stats[:, 1].max():.1f} deg; dropping {int((~keep).sum())}",
           flush=True)
     ok = {p for p, k in zip(train + val, keep) if k}
+    src = {"policy": 0, "teacher": 0, "recovery": 0}
+    for p in train:
+        q = teacher_label(p)
+        if q is None:
+            continue
+        t, z = np.load(q), np.load(p)
+        if "a2_samp_xyz" not in t.files:
+            continue
+        kp = len(z["samp_xyz"]) if "samp_xyz" in z.files else 0
+        sx = np.concatenate([z["samp_xyz"], t["a2_samp_xyz"]]) if kp else t["a2_samp_xyz"]
+        sr = np.concatenate([z["samp_rot"], t["a2_samp_rot"]]) if kp else t["a2_samp_rot"]
+        i = road_target({"fut_xyz": z["fut_xyz"], "fut_rot": z["fut_rot"], "samp_xyz": sx, "samp_rot": sr})[1]
+        src["recovery" if i < 0 else ("policy" if i < kp else "teacher")] += 1
+    if any(src.values()):
+        print(f"teacher-labelled targets by source: {src}", flush=True)
     rd = []
     for p in train:
         z = np.load(p)

@@ -2043,3 +2043,64 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Process slip (20:10):** a socket check piped through head did not gate. With the socket missing, one read-only squeue/sacct query ran over a direct ssh login. Gate fixed (no pipe on the check). R6000 wait-go jobs 13671759-61 still pending.
 - alpasim-jepa (20:20): since ~17:00 the dept fileset's small-file/metadata access is ~10x slower (big reads fine). PAI risk: the per-job env build from the shared uv cache (many files). If env builds time out, stage cache/uv as a tar node-local.
 - **2026-10-28: v7 image re-verified** (local `teams/amanupg:v7`, id 540284f12d4a): runs as alpasim; expert readable, sha256 f9da7cf3; policy.py md5 f45182e3 (= held-out-evaluated code); env A15_NAV=1 intersect, FORCE_TRAJ_START=1, NUM_SAMPLES=1, 1 Hz, snap 2.0/15. **Ready to push.** Blocked on Aman: challenge CLI session expired (configure-token); Insomnia socket closed since 10-26 20:10.
+
+## 2026-10-28 13:20 Aman: keep training to the end; final fine-tune round (queued for when the socket returns)
+- Aman (17:11 UTC): wants more training, accepts submitting at the very end. Deadline gate is unchanged: only a held-out-confirmed gain replaces v7.
+- Tally so far: 9 expert fine-tunes (A, B, C, C2, D, E, R, T, N). Only run C helped (via w50 + nav = v7), and C's seed-1 retrain scored 0.686 vs 0.737, so training-seed variance is about as large as any data/label change we tried.
+- **Not yet tried:** every run started from the released expert. None continued from v7's own expert, which is the second DAgger iteration in the textbook sense.
+- **New trainer flag `--init <ckpt>`** (src/a15_ft/train.py) loads an expert checkpoint before training; asserts every key is an expert key.
+- **Round (launch on socket return):**
+  - V1 "iterate v7": `--init ftC_w50.pt --nav --lr 1e-5 --epochs 1` on the on-policy v7 DAgger + nav captures (dagv7_v0-v5 + capnav_n0-n7), then 0.5 ftC_w50 + 0.5 V1.
+  - V2 "seed lottery": run C recipe exactly (ft_runC, base init, lr 3e-5, 2 epochs), --seed 2, then w50.
+  - Screen each vs v7 on the old 120 (deterministic), then held-out 321 only if positive.
+- **Hard cutoff:** anything not held-out-confirmed by Oct 30 evening is dropped, and v7 ships. The v7 push + warmup go first regardless (needs configure-token).
+- **Correction (14:00):** Slurm was never down. My commands skipped `source /etc/profile` (configless DNS lookup fails without it).
+- **Alpamayo 2-Super takes route text** (prompt component `nav_instruction`, as in NVIDIA's examples/two_gpu_nav_cfg_demo.py), and its pixel budget (163,840-196,608) already fits our 576x320 frames, so low resolution was not a cause of run T's result.
+
+## 2026-10-28 14:20 Run T2: Alpamayo 2-Super teacher + RoaD, done properly (Aman: "go ahead with the proper A2 teacher retry")
+- **States:** v7 itself drives (ftC_w50 + nav + forced + snap; sample 0 = the v7 plan) on **240 unused train scenes** (`scenes/pai_train_t0..t11`).
+  - Captured at each 1 Hz plan with all 6 cameras, its 16 own samples (`A15_CHOOSER=record A15_NUM_SAMPLES=16 A15_CAPTURE_AT_INFER=1`), the recording, and the route text; ego within 4 m of the recording.
+  - Jobs 13690848-59 (A6000/L40/L40S, src_cand).
+- **Teacher:** `a2_label.py --k 6 --nav`: 6 Alpamayo 2-Super samples per state, given the same route text. Weights download to node-local disk (`A2_LOCAL=1`; shared fileset 29 GB free). 2 jobs × 2 R6000: 13690860-61, after smoke 13690824 (6 samples, forced route text).
+- **Target (train.py):** RoaD rule over the union of the policy's 16 and the teacher's 6 samples. The policy's own sample wins when it tracks the recording as well (in-distribution), the teacher's where the policy has no good option, and a recovery blend when none is within 3 m. The trainer prints the split by source.
+- **Training:**
+  - T2a: base init, ft_runC + T2 states ×3, `--steps 2000 --lr 3e-5 --nav`, then 0.5 base + 0.5 (13690862 → 13690864).
+  - T2b: `--init ftC_w50`, T2 states only, `--steps 600 --lr 1e-5 --nav`, then 0.5 ftC_w50 + 0.5 (13690863 → 13690865).
+- **Screens:** old 120, OFFICIAL_MIMIC, L40S, vs mimw50nav (v7, 0.784): T2a 13690866-68, T2b 13690869-71. Held-out 321 only for a clear winner; cutoff Oct 30 evening, else v7 ships.
+- Superseded and cancelled before starting: 13690812-19, 13690832-43 (6-camera DAgger capture without policy samples).
+- **14:35 Deleted with Aman's approval:** ftE, ftE_w50, ftN, ftN_w50, ftC_w40, ftC_w60 (6 × 4.56 GB, all rejected). ft_ckpt now holds ftC.pt and ftC_w50.pt (v7's expert) only. Fileset 41 GB free afterwards: other users wrote about 15 GB in the same minutes.
+- Aman: stay on Insomnia for now (renting held in reserve for the teacher labelling); he is pausing the other agents so this competition gets the account's full priority.
+- **Wait-go (`A15_WAITGO_K=3`) vs v7, R6000, old 41-120 (80 scenes, deterministic):** +0.012 [+0.000, +0.037]. Exactly 1 scene changed, 79 identical: **1d6e30bc** 0.021 → 1.000. v7 stalls at a red light whose start keeps slipping, moves 1 m and is rear-ended; with the fix it drives 57/64 m. This is the stall diagnosed from the plan logs. No losses. Batch 1-40 (13671759) produced no results (sim side); not rerun.
+- **Held-out confirmation, L40S, LOCAL_FS, src_cand + A15_WAITGO_K=3, paired with ho_v7 (frv7l + lbv7):** fresh 13692004-06, lockbox parts 0-5 13692007-12.
+- **18:30 T2 progress:**
+  - Smoke 13690824 passed: 6/6 labelled with route text, 5.3 s per state, peak 77.5 GiB; A2 download to node-local 938 s.
+  - Union selection tested offline on a real capture + label: pool (22, 64, 3), picked a policy sample at 0.05 m (teacher best 0.35 m under a forced fake instruction).
+  - Captures: 10/12 done, ~197 states per 20 scenes (4 m filter).
+  - **Labelling split** to start sooner: early job 13698073 (2 GPUs) on the 10 finished tars; late job 13698074 (1 GPU) after the last two captures and the early job, labels only what is missing. L0/L1 13690860-61 cancelled; T2a/T2b now depend on 13698074.
+- **Wait-go held-out fresh 1-40:** 40/40 identical to v7 (0.860). The other 8 parts are queued or running.
+- **19:00 R6000 bottleneck:** both R6000 nodes (ins046/047) are filled with other users' multi-day CPU-only jobs. ins046 has 0 free cores; ins047 has 1 GPU + 2 cores but is PLANNED for queued work. The partition's MaxMemPerCPU 6400 MB turns a big --mem request into many cores. A2 labelling needs only ~6.6 GB RSS (smoke MaxRSS), so it is resubmitted as 1-GPU, 2-core, 12 GB jobs: A 13698202 / B 13698203 (shards of the 10 finished tars), late 13698204 (rest; after captures + A). T2a/T2b now depend on 13698204. Slurm's start estimate for A is 21:48.
+- **19:15 all 12 T2 captures done: 2,466 states** (240 scenes). Labelling re-split into 3 equal 1-GPU shards over all 12 tars: 13698436-38 (2 cores, 12 GB each). The A/B/late jobs 13698202-04 were cancelled. T2a/T2b depend on all three shards.
+- **Wait-go held-out fresh 41-80:** +0.014 [+0.000, +0.042], 1 win, 0 losses, 39 identical. **7b5c9fd6** 0.442 → 1.000 (v7 rear-ended after 24/69 m; wait-go drives 64/69 m). Held-out so far (fresh 1-80): 1 win, 0 losses, 79 identical.
+- 19:20 Aman: stay on Insomnia (no rental for labelling).
+- **19:30 Labelling plan (Aman: go with a rental):**
+  - `a2_label.py` gains `--hard_first` (order by the policy's best-own-sample distance to the recording, the trainer's RoaD measure; a check on 2 real samples matched train.road_target to 4 decimals), `--min_policy_dist` (skip states where the policy already has a sample that close), `--reverse`, and atomic label writes.
+  - Insomnia backup X 13698482 (1 R6000 GPU, `--k 6 --nav --hard_first --min_policy_dist 0.5`); T2a/T2b depend on it. If the rental's labels arrive first: copy them into data/ft_a2labels_t2, then scancel X (afterany releases training).
+  - Rental bundle staged on the Mac (scratchpad/rental: 12 tars 2.7 GB, alpamayo2 code, labeller, run_label.sh). Waiting on Aman for the host.
+- **19:55-20:20 Rental (Aman approved; RunPod via his Chrome session): pod 1mmp3tg546mej7, 4× RTX PRO 6000 96 GB, $10.00/hr, 300 GB container disk, Mac public key via PUBLIC_KEY env.**
+  - Env: torch 2.8.0+cu128, flash-attn 2.8.3. A2 Super snapshot 00554695 (same as Insomnia), downloaded in 63 s.
+  - Labelling all 2,466 states (Aman: no compromises), `--k 8 --nav --hard_first`, 4 GPU shards. Peak 81.1 GiB, ~8.5 s/state per GPU; pass 1 on the 7 uploaded tars, pass 2 (rest, skip-existing) after the upload.
+  - Insomnia jobs re-sized to measured RAM: training MaxRSS ~6.8 GB → T2a/T2b 32 GB (were 120 GB = 20 cores); sim MaxRSS ~32 GB → pending sims 56 GB.
+- **Wait-go held-out fresh 81-120:** +0.000 (98694f91 0.455 → 0.465, a slightly earlier start; 39 identical). Fresh 120 total: 2 wins, 0 losses.
+- 20:15 Aman added $10 to RunPod (total $30).
+- 20:25 Insomnia backup labeller 13698482 cancelled (the rental is labelling); T2a/T2b put on hold until the rental labels are copied in.
+- **Wait-go held-out lockbox part 0:** 40/40 identical (0.745). Held-out so far 160 scenes: 2 wins, 0 losses.
+- **21:00 Rental labelling done:** 2,466/2,466 labels (493 with route text), `--k 8`, about 55 min on 4 GPUs. Copied pod → Mac → Insomnia data/ft_a2labels_t2 (2,466; x3 view 7,398). Pod 1mmp3tg546mej7 **stopped** ($0/hr); RunPod balance $17.66 of $30 (run cost ~$12).
+- **T2a 13690862 and T2b 13690863 released, running on ins093 (21:06).**
+- **What the teacher adds (offline, trainer's RoaD rule over the union of the policy's 16 + the teacher's 8):**
+  - Chosen target: policy 1,519 (62%), teacher 636 (26%), recovery 311 (13%).
+  - Best-sample distance to the recording, median / p90: policy (16) 0.61 / 3.31 m; teacher (8) 0.70 / 3.49 m.
+  - At an equal budget (best of 8), the teacher is closer in 68% of states (0.70 vs 0.76 m). Per typical sample they are equal (0.83 vs 0.82 m).
+  - In states where the policy's best is > 1 m off (975), the teacher is closer in only 25%.
+  - **So A2 Super is not a markedly better driver than v7 on v7's own states. Its value is mostly extra candidate diversity.** T2 is in effect RoaD on v7 with a 26% teacher share; expect a modest effect.
+- **Wait-go held-out lockbox parts 1, 2, 4, 5:** parts 1, 2 and 5 identical (81 scenes); part 4 +0.001 (f8ee31cb 0.466 → 0.489, slightly earlier start). Held-out so far 281 scenes: 3 wins (2 large), 0 losses. Part 3 running.
+- **Wait-go (A15_WAITGO_K=3) held-out, all 321 scenes (fresh 120 + lockbox 201), OFFICIAL_MIMIC, L40S, deterministic: 0.7964 → 0.8002, +0.0037 [90% +0.0001, +0.0089]; 4 wins, 0 losses, 317 identical.** Lockbox part 3 adds one win (+0.015 on that batch). Every changed scene is a stalled start that now goes. **It meets the deterministic-gains bar → adopt in the final image** (an env setting on top of v7; the code path is the src_cand driver, A/A-identical to v7 when the switch is off).

@@ -151,8 +151,9 @@ $-$0.049 on 40 scenes with v7); driving 15\% faster ($-$0.307); all six cameras 
 failures rose); the organisers' time warp ($-$0.121); a waypoint memory to snap through turns (+0.003 to $-$0.026);
 classifier-free guidance on route text, $w{=}2$ ($-$0.03); 40/60\% instead of 50\% averaging; more on-policy recovery
 data ($-$0.029); RoaD-style own-sample labels~\cite{road} and Alpamayo~2-Super teacher labels (0.730/0.731 vs 0.742);
-a speed-aware snap bridge (+0.004); controller gains ($\le$+0.002, idx\_start\_penalty 5 or 15: $-$0.04 to $-$0.08).
-\todo{run N (route text in the fine-tuning prompts), 20 sampler steps}
+a speed-aware snap bridge (+0.004); controller gains ($\le$+0.002, idx\_start\_penalty 5 or 15: $-$0.04 to $-$0.08);
+route text in the fine-tuning prompts ($-$0.004); 20 flow-sampler steps instead of the 10 the expert was trained with
+($-$0.051).
 
 \section{Limitations and safety}
 \textbf{Front-end collisions.} v7 adds four late frontal at-fault collisions on held-out scenes (it removes three of

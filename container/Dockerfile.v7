@@ -9,6 +9,8 @@
 # with the released expert), and the route as navigation text in the prompt ("Turn left in 30m", Alpamayo 1.5's own
 # navigation input; A15_NAV=1, distance to the turn measured where the turned road meets the car's axis).
 # Same model call as v5: one flow sample per plan, 1 Hz, 4 front cameras, route snap.
+# Wait-then-go start (2026-10-28, held-out 321: +0.004, 4 wins, 0 losses): when stopped and the plan covers < 1 m by
+# 2 s but > A15_WAITGO_FAR by 6.4 s for A15_WAITGO_K plans in a row, the waiting prefix is dropped so the car starts.
 ARG BASE=696254625193.dkr.ecr.us-east-1.amazonaws.com/teams/amanupg:v0.3-a15int8-1hz
 FROM ${BASE}
 
@@ -28,6 +30,7 @@ ENV A15_INFERENCE_INTERVAL_US=1000000 A15_NUM_SAMPLES=1 \
     A15_LOG_CHOICES=0 A15_NAV=1 A15_NAV_DIST=intersect A15_DIFF_TEMP=1.0 \
     A15_SPEED_SCALE=1.0 A15_EARLY_REPLAN=0 A15_ROUTE_SNAP=2.0 A15_ROUTE_SNAP_MAX_DEG=15 \
     A15_ROUTE_SNAP_MIN_OFFSET=0 A15_ROUTE_MEMORY=0 A15_ROUTE_PULL=0 A15_SPEED_CAMS=4 \
-    A15_FORCE_TRAJ_START=1 A15_EXPERT_CKPT=/app/expert/expert.pt A15_GIT_HASH=${GIT_HASH}
+    A15_FORCE_TRAJ_START=1 A15_EXPERT_CKPT=/app/expert/expert.pt A15_WAITGO_K=3 A15_WAITGO_FAR=5.0 \
+    A15_GIT_HASH=${GIT_HASH}
 USER alpasim
 CMD ["python", "-m", "a15_driver.driver"]

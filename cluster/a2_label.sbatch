@@ -31,5 +31,21 @@ if [ "${SMOKE:-0}" = 1 ]; then
     --manifest examples/validation_samples.json --sample-index 0 2>&1 | grep -v -i warning | tail -15
 fi
 [ -n "$DATA" ] || exit 0
-PYTHONPATH=$A/src $E/bin/python -u -m a15_ft.a2_label --data $DATA --out ${OUT:-$A/data/ft_a2labels} \
-  --shard ${SHARD:-0} --nshards ${NSHARDS:-1} --limit ${LIMIT:-0} 2>&1 | grep --line-buffered -v -i warning
+# A2_LOCAL=1 (2026-10-28): the shared fileset is nearly full, so the 72 GB weights download to this node's local
+# disk and vanish with the job (the HF token still comes from $HF_HOME/token, never argv)
+if [ "${A2_LOCAL:-0}" = 1 ]; then
+  export HF_HUB_CACHE=$TMPDIR/hfhub; mkdir -p $HF_HUB_CACHE
+  free=$(df -BG --output=avail $TMPDIR | tail -1 | tr -dc 0-9); echo "node-local $TMPDIR: ${free} GB free"
+  [ "$free" -ge 110 ] || { echo "not enough node-local disk for A2 Super"; exit 5; }
+  t=$(date +%s)
+  $E/bin/python -c "from huggingface_hub import snapshot_download as d; print(d('$ALPAMAYO2_SUPER_MODEL_ID', max_workers=8))" || exit 6
+  echo "A2 Super downloaded in $(( $(date +%s) - t )) s"
+fi
+# one labeller per GPU of the job, each on its own shard of this job's shard
+NG=$(nvidia-smi -L | wc -l); S=${SHARD:-0}; NS=${NSHARDS:-1}
+for g in $(seq 0 $((NG - 1))); do
+  CUDA_VISIBLE_DEVICES=$g PYTHONPATH=$A/src $E/bin/python -u -m a15_ft.a2_label --data $DATA --out ${OUT:-$A/data/ft_a2labels} \
+    --scratch $TMPDIR/a2lab_g$g --shard $((S * NG + g)) --nshards $((NS * NG)) --limit ${LIMIT:-0} $ARGS 2>&1 \
+    | grep --line-buffered -v -i warning | sed -u "s/^/[gpu$g] /" &
+done
+wait
