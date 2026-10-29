@@ -101,9 +101,35 @@ def teacher_label(p):
     return q if os.path.exists(q) else None
 
 
+OUTCOME = {"by_sid": {}, "last_t0": {}, "window_us": 6e6}   # --outcomes: scene outcome of each capture session
+
+
+def outcome_role(p):
+    """'fail_window' (a state in the last window_us before the end of a zero-score scene), 'pass' (a state of a
+    passed scene) or None (partial, unknown, or outcomes off)."""
+    sid = os.path.basename(os.path.dirname(p))
+    o = OUTCOME["by_sid"].get(sid)
+    if o is None:
+        return None
+    if o["cls"] == "fail":
+        t0 = int(os.path.basename(p)[:-4])
+        return "fail_window" if t0 >= OUTCOME["last_t0"][sid] - OUTCOME["window_us"] else None
+    return "pass" if o["cls"] == "pass" else None
+
+
 def load(p):
     s = load_sample(p)
     q = teacher_label(p)
+    role = outcome_role(p) if OUTCOME["by_sid"] else None
+    if q is not None and role is not None:
+        t = np.load(q)
+        if "a2_samp_xyz" in t.files and "samp_xyz" in s:
+            # outcome-weighted (T2d): before a zero-score ending, never re-imitate the policy's own choice; take the
+            # teacher's sample nearest the recording, or the recovery blend (road_target's fallback). In a passed
+            # scene, reinforce the policy's own nearest sample.
+            if role == "fail_window":
+                return road_target(dict(s, samp_xyz=t["a2_samp_xyz"], samp_rot=t["a2_samp_rot"]))[0]
+            return road_target(s)[0]
     if q is not None:
         t = np.load(q)
         if "a2_samp_xyz" in t.files:
@@ -260,6 +286,9 @@ def main():
     ap.add_argument("--eval_only", action="store_true")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--nav", action="store_true", help="put each sample's stored route instruction in the prompt")
+    ap.add_argument("--outcomes", default=None, help="a15_ft.outcomes JSON: outcome-weighted targets (T2d)")
+    ap.add_argument("--fail_window_s", type=float, default=6.0)
+    ap.add_argument("--fail_repeat", type=int, default=3, help="copies of each state near a zero-score ending")
     ap.add_argument("--init", default=None, help="start from this expert checkpoint (e.g. v7's ftC_w50) instead of the released one")
     a = ap.parse_args()
     NAV["on"] = a.nav
@@ -287,6 +316,18 @@ def main():
     val = random.Random(1).sample(val, min(a.val_max, len(val)))
     train = [p for s in sids[n_val:] for p in groups[s]]
     print(f"sessions {len(sids)} (val {n_val}); samples train {len(train)}, val {len(val)}", flush=True)
+    if a.outcomes:
+        OUTCOME["by_sid"] = json.load(open(a.outcomes))
+        OUTCOME["window_us"] = a.fail_window_s * 1e6
+        for sid, ps in groups.items():
+            if sid in OUTCOME["by_sid"]:
+                OUTCOME["last_t0"][sid] = max(int(os.path.basename(q)[:-4]) for q in ps)
+        roles = [outcome_role(p) for p in train]
+        fw = [p for p, r in zip(train, roles) if r == "fail_window"]
+        train = train + fw * (a.fail_repeat - 1)
+        print(f"outcomes: {sum(r == 'pass' for r in roles)} pass-scene states, {len(fw)} states in the last "
+              f"{a.fail_window_s:.0f} s of zero-score scenes (x{a.fail_repeat}), {sum(r is None for r in roles)} other; "
+              f"train now {len(train)}", flush=True)
 
     def offset_ok(p):
         z = np.load(p)

@@ -2171,3 +2171,12 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - **Cs2 / Cs3** = run C's recipe with `--seed 2` / `--seed 3` (the seed effect C vs C2 was 0.05): 13706770 → 71 → 72-74 and 13706775 → 76 → 77-79.
   - After both seeds, a soup (0.5 base + C, Cs2, Cs3 at 1/6 each) gets a fair deterministic test; the old C+C2 soup was also judged under Harmonizer noise.
   - **T2c** (13706660) running; its screen starts only after the validity gate.
+- **10:40 T2d = outcome-weighted self-imitation (Aman: "run T2d too").**
+  - Each capture state is linked to its scene's outcome (rollout_id = capture session dir). `src/a15_ft/outcomes.py` → data/t2_outcomes.json: 240 sessions, pass 166 / partial 39 / fail 35 (fail = at-fault, offroad or corridor).
+  - train.py `--outcomes --fail_window_s 6 --fail_repeat 3`:
+    - states in the last 6 s of a zero-score scene take the teacher's nearest sample or the recovery blend, never the policy's own, ×3;
+    - passed-scene states take the policy's own nearest sample;
+    - the rest use the union rule.
+  - Offline check on the real data: 2,466 states, all 240 sessions matched; 198 fail-window states (target source: teacher 32/40, recovery 8/40, never policy); 1,828 pass-scene states (policy 38/40).
+  - Train 13706868 (init ftC_w50, ft_runT2b, `--steps 800 --lr 3e-5 --nav`, 32 GB) → average ftT2d_w50 13706869.
+  - Screen after the validity gate (loss falling, ADE dropping), like T2c.
