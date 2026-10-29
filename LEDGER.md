@@ -2147,3 +2147,15 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **Overnight summary:** T2b (held-out +0.005, n.s.), T2a, unblended T2b and lateral are all rejected; wait-go is adopted. **The final candidate stays v7 + wait-go** (local image 05e650bdbecb).
 - **T2b Harmonizer ON (finals condition), fresh 41-120, 1 run vs v7's 2 runs averaged: -0.003 [-0.041, +0.033].** 41-80: 0.799 vs 0.755; 81-120: 0.655 vs 0.705 (v7's own two runs differ by 0.068 on that batch). No finals-condition gain; consistent with not adopting T2b. Batch 1-40 still running.
 - **T2b Harmonizer ON, all fresh 120 (1 run vs v7's 2 averaged): 0.768 → 0.774, +0.006 [-0.021, +0.033].** Level in the finals condition too. The queue is empty; v7 + wait-go stays final.
+
+## 2026-10-29 09:50 Audit after Aman's challenge ("are the runs being sabotaged?")
+- **Checked:**
+  - Driver logs: every run loaded its intended expert (hoT2bwg/mimT2bw50nav → ftT2b_w50; howg/mimw50nav → ftC_w50; wait-go set only where intended).
+  - Checkpoints are distinct: ftC_w50 f9da7cf3, ftT2b_w50 0dbdb528, ftT2b 996ccbb0.
+  - T2b trained on teacher targets: 572 teacher, 1,399 policy, 280 recovery.
+- **Found: T2b was under-trained.** Mean loss by sixth of training: 0.405 / 0.461 / 0.422 / 0.408 / 0.408 / 0.428 (flat). Open-loop ADE 2.79 → 2.70 (-3%); weights moved 2.1e-2. For comparison:
+  - run C: loss 0.375 → 0.265, ADE -17%, ~5e-2;
+  - T2a: loss 0.418 → 0.343, ADE -4.5%, 7.9e-2.
+  - Cause: my conservative choice (lr 1e-5, 600 steps from ftC_w50), then halved by averaging. **So T2b's held-out +0.005 tests a weak dose, not the method.** It should have been flagged when the training log came in.
+- **T2c (fair dose):** init ftC_w50, data ft_runT2a (run C data + T2 states ×3 with teacher + RoaD targets), `--steps 1200 --lr 3e-5 --nav`, 32 GB. Train 13706660 → average ftT2c_w50 (0.5 ftC_w50 + 0.5 T2c) 13706661.
+  - **Gate before any screen:** loss must fall and open-loop ADE must drop ≥ 10%. Otherwise report "under-trained", not a result.
