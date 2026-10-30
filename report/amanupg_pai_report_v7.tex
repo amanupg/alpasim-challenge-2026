@@ -41,7 +41,8 @@ waypoints when the model ignores a lane change the route requires; it raised the
 the simulator from the training split, including recovery states, is averaged with the released weights and paired
 with the model's own route-text input. On 321 curated-validation scenes never used for any decision, with the
 leaderboard's rendering, it raises the local mean scene score from 0.739 to 0.796 (+0.057, 90\% bootstrap interval
-[+0.023,\,+0.093]) and cuts corridor exits from 37 to 22. We also report a measurement finding that shaped every
+[+0.023,\,+0.093]) and cuts corridor exits from 37 to 22; a rule that starts the car when its plan keeps postponing
+the start adds +0.004 with no scene worse. We also report a measurement finding that shaped every
 decision: with the Harmonizer off, local closed-loop runs repeat bit for bit, so gains can be confirmed exactly on
 held-out scenes.
 \end{abstract}
@@ -114,9 +115,16 @@ saved its 16 samples per plan (2{,}466 states, all six cameras, route text), and
 plans per state with the same route text. Following RoaD~\cite{road}, the label is the candidate from either pool nearest
 the recording over the first 2\,s (a recovery blend if none is within 3\,m): the policy's own sample in 62\% of states,
 the teacher's in 26\%. Per sample the teacher is no closer to the recording than our policy (0.83 vs 0.82\,m), so its
-value is diversity. Fine-tuned from our expert and averaged, this gave 20 more full passes and 14 fewer rear-end
-endings on the held-out scenes, but the same number of zero-score failures, and +0.005 [$-$0.017,\,+0.027] overall;
-we did not adopt it.
+value is diversity. A first run from our expert gave 20 more full passes and 14 fewer rear-end endings on the held-out
+scenes but the same number of zero-score failures (+0.005 [$-$0.017,\,+0.027]); its training loss was flat, so we
+retrained at the dose that worked for run C. At that dose, starting from our expert ($-$0.020 on the 120 screening
+scenes), weighting each state by its scene's outcome (states before a zero-score ending take the teacher's or a
+recovery target, $-$0.021), and RoaD alone ($-$0.058) all trained properly and none beat the final model.
+
+\textbf{Seeds and soups.} Run C's exact recipe with other seeds was worse each time: one seed scored 0.051 below C
+(raw experts, Harmonizer on), and two more, averaged and with route text like the final model, scored $-$0.034 and
+$-$0.026 against it. C was a good draw. Averaging three seeds with the released weights was level with the final model
+($+$0.003 [$-$0.033,\,+0.040]).
 
 \section{Evaluation protocol}
 \textbf{Determinism.} With the Harmonizer off, as in the leaderboard's initial runs, local closed-loop runs on one GPU
@@ -126,6 +134,12 @@ type repeat bit for bit (two runs of 120 scenes: every scene identical). The run
 \textbf{Held-out confirmation.} About 40 decisions were taken on 120 local scenes, so the final candidate was confirmed on
 the 321 remaining curated-validation scenes (120 ``fresh'' plus a 201-scene lockbox kept untouched until the final
 check), paired per scene with bootstrap 90\% intervals.
+
+\textbf{Validity before verdicts.} A negative result only counts if the experiment was a real test: every fine-tune is
+checked for a falling training loss and a weight change comparable to run C's before its closed-loop number is read,
+and comparisons made with the Harmonizer on are reported as ``no detectable difference'' when inside its noise.
+An audit by these rules caught one under-trained run and two earlier rejections made inside Harmonizer noise; all three
+were retested.
 
 \begin{table}[h]
 \centering\small
@@ -174,10 +188,11 @@ route text in the fine-tuning prompts ($-$0.004); 20 flow-sampler steps instead 
 
 \section{Limitations and safety}
 \textbf{Fragile lane and branch choices.} Zero-score corridor exits dominate the remaining loss (0.069 of 0.20 per
-scene), and they flip in both directions under any change of the expert: the teacher-trained expert fixed six such
-scenes and broke a similar number. Gains in pace and progress, which every fine-tune delivered, are then cancelled by
-this churn; a policy whose lane choice is stable across small perturbations matters more than one that is better on
-average. \textbf{Front-end collisions.} v7 adds four late frontal at-fault collisions on held-out scenes (it removes three of
+scene), and they flip in both directions under any change of the expert. On the 120 screening scenes (15 zero-score for
+the final model), each of five properly trained fine-tunes fixed 0--4 of them but broke 4--9 others, while most
+improved pace (up to six fewer rear-end endings and four more full passes); only the seed average did not add failures.
+Average-case gains are cancelled by this churn: a policy whose lane choice is stable under small perturbations matters
+more than one that is better on average. \textbf{Front-end collisions.} v7 adds four late frontal at-fault collisions on held-out scenes (it removes three of
 v5's): it drives faster and sometimes closes on a slowing lead. \textbf{Signal compliance vs.\ progress.} Many
 remaining low-progress scenes are stops at red or unclear signals where the recorded driver went (e.g.\ a right turn
 on red); the non-reactive car behind then ends the scene. We did not override these stops. \textbf{Route snap trusts

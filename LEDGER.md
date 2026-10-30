@@ -2214,3 +2214,5 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 
   - **Every single fine-tune adds net zero-score failures (lane/branch flips) while improving pace (fewer rear-ends, more full passes). The soup is the only one that does not.**
 - **Day summary (29 Oct):** after the audit, fair-dose retests of teacher+RoaD (T2c), outcome weighting (T2d), RoaD (R2), two new seeds of C's recipe and a seed soup: none beats v7. **Final stays v7 + wait-go.**
+- **2026-10-30 19:55 Supervised session (Aman present).** Token configured by Aman. me: authenticated as amanupg-columbia (captain). **PAI submission deadline 2026-11-01T12:10Z; report deadline 2026-11-17.** limits: official 1 left this month (2/3 used); pai-warmup 3/3 left. Image re-verified (alpasim user, /app, md5s, env, expert f9da7cf3, tests PASS). **Aman approved the push ('push').** ecr-login OK; pushing teams/amanupg:v7 (05e650bdbecb).
+- **Aman approved the PAI warmup** ('ok for the warmup as well... you can take over the warmup once the push is finished'). Scope: `submit --track pai-warmup` of the pushed v7 only. The official `--track pai` stays with Aman.
