@@ -40,6 +40,11 @@ Pattern: **each improves pace (fewer rear-ends, more full passes) but breaks mor
 
 ## Evaluation lessons
 
+- **Optimise and validate the metric that ranks you, not a convenient stand-in (the costliest lesson).**
+  - v7 beat v5 officially on mean scene score (+0.025), at-fault distance and distance to GT, yet its PCS fell 2226 → 2151 (rank 16 → 28).
+  - PCS is an item-response (zoib) fit over all teams' per-scene scores; it weighs *which* scenes change. A held-out W/L of 65/48 can raise the mean and still lower PCS.
+  - We validated only the mean, and the "+28 PCS" projection was never tested. Before trusting a gain, fit a local PCS proxy (zoib/IRT on per-scene scores of several of our own and reference entries), and treat scene losses on easy scenes as costly.
+
 - **Determinism:** with the Harmonizer off, closed loop on one GPU type repeats bit for bit. Use this for paired, exact comparisons. The ±0.05 noise came from the Harmonizer.
 - **Screening vs held-out:** about 40 decisions on 120 scenes produce winner's curse. Confirm on an untouched lockbox before adopting.
 - **Local vs official:** local gains converted at about 0.6×. Never quote a screening number as the expected official result.
