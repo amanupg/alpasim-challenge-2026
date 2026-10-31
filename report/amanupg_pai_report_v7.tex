@@ -166,8 +166,10 @@ v7 $\rightarrow$ v7 + wait-then-go start (321) & 0.796 & 0.800 & +0.004 [+0.000,
 120 scenes, Harmonizer on (2 runs averaged) & 0.763 & 0.768 & +0.006 [$-$0.042, +0.053] \\
 \bottomrule
 \end{tabular}
-\caption{Local closed-loop results. Official: v0.3 0.611 (PCS 2143); v5 0.652 (PCS 2184, 2219 after the
-22~Oct re-scoring). \todo{official v7 result}}
+\caption{Local closed-loop results. Official (leaderboard of 31~Oct, all entries re-fitted together): average
+scene score v0.3 0.630, v5 0.671, v7 0.696; PCS 2187, 2226 and 2151. v7 raised the official mean scene score but
+lowered PCS. PCS is an item-response fit over every team's per-scene scores, so it weighs which scenes change, not
+only the mean; official per-scene scores are not visible to us, so we cannot say which scenes caused it.}
 \label{tab:ladder}
 \end{table}
 
