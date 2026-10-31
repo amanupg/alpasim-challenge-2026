@@ -206,7 +206,8 @@ by AlpaSim~\cite{alpasim} from the PAI-AV NuRec curated training split under its
 training samples only and is never used at inference. Alpamayo~2-Super was used only offline as a teacher in an
 experiment that was not adopted; it is not in the image. \textbf{Compute:} one 48\,GB GPU per capture or training job
 (A6000/L40S/RTX PRO 6000) on a university cluster. \textbf{Runtime:} v5 used 9{,}522 of 14{,}400\,s officially; v7
-has the same model call. \todo{v7 warmup wave time and peak memory}
+has the same model call, and its PAI warmup ran all 32 rollouts in one 539\,s wave (limit 2{,}700\,s), against
+536\,s for an earlier int8 image. The server does not report memory; locally the driver peaks at 14.6--15.2\,GB.
 
 \begin{thebibliography}{9}
 \bibitem{alpamayo15} NVIDIA. \newblock Alpamayo 1.5. \newblock \url{https://huggingface.co/nvidia/Alpamayo-1.5-10B}, 2026.
