@@ -2241,3 +2241,16 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
 - **My validity failure, stated plainly:** I treated mean scene score as the target ("PCS uses only per-scene scores, so the local paired scene-score comparison is the right target", line ~1469) and projected "+28 PCS". I never tested that projection: PCS is a zoib item-response fit, which weighs which scenes change (scene difficulty/discrimination across all teams), not the mean. I had no local PCS proxy and did not build one. A held-out W/L of 65/48 meant 48 scenes got worse; if those were scenes most teams pass, the fit can punish them more than the 65 wins reward. **That is a hypothesis.** Official per-scene scores are not visible, so it can't be confirmed.
 - **Standing:** board order is by PCS, team best entry = v5 2226 (team ~10th). The finals take the board's top 3, out of reach either way (3rd is ~2496).
 - Report: official result filled into the table caption (all three entries from the same 31 Oct board), with a neutral sentence on PCS vs mean. The abstract still frames v7's local gain; flagged to Aman for his audit. Not uploaded.
+
+## 2026-11-04 Campaign closed
+- **Report not submitted** (Aman's decision: out of contention). The PDF stays in `report/` with the official results filled in.
+- **Records:**
+  - `notes/campaign_record.md` (complete record: timeline, system, numbers, mistakes, resume/study material);
+  - `notes/learnings_pai_campaign.md`;
+  - workspace-level `../LESSONS_FOR_AGENTS.md` (shared with every agent; sent to alpasim-jepa-nuplan and jepa-nureasoning-planning; shared memory entry `shared-lessons-file`).
+- **Research-method lesson (Aman):** research went outward from the current approach. It must go from the problem outward (how others solve problems with the same structure) and inward (question our own system and evaluation).
+- **Cluster:** no AlpaSim jobs queued or running (squeue empty, 2026-11-04). The inventory for the end-of-campaign cleanup is job 13792214; nothing gets deleted without Aman's per-item approval.
+- **alpasim-jepa dependencies (their grep, 2026-11-04):**
+  - keep `data/nuplan_track`, `sandbox/alpasim-base`, `external/alpasim`, `src/summarize_run.py`, `src/compare_runs.py`, `.cache/hf/token`, `runs/local_nuplan_a15_bench_*`;
+  - not needed by them: `envs/overlay_driver`, `envs/overlay_torchao`, `src/a15_driver` (DRIVER=a15 only);
+  - FlashDrive-only (ours to decide): `data/ft_capture`, `runs/local_pai_a15_bench1_12991558`, `data/fs/nre-artifacts/all-usdzs`.
