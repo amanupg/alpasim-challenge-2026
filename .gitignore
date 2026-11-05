@@ -14,3 +14,6 @@ __pycache__/
 container/assets/
 container/alpasim_grpc/
 .bench_cache/
+
+# end-of-campaign copy of the cluster folder (results, logs), not in git
+cluster_archive/

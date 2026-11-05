@@ -2254,3 +2254,20 @@ Insomnia was unreachable from ~07:45 to 15:53 EDT; all six batches had already c
   - keep `data/nuplan_track`, `sandbox/alpasim-base`, `external/alpasim`, `src/summarize_run.py`, `src/compare_runs.py`, `.cache/hf/token`, `runs/local_nuplan_a15_bench_*`;
   - not needed by them: `envs/overlay_driver`, `envs/overlay_torchao`, `src/a15_driver` (DRIVER=a15 only);
   - FlashDrive-only (ours to decide): `data/ft_capture`, `runs/local_pai_a15_bench1_12991558`, `data/fs/nre-artifacts/all-usdzs`.
+- **2026-11-05 Cluster cleanup done (Aman approved: "move OK, token OK, delete D1–D8", keep files to local).**
+  - **Moved to alpasim-jepa** (plain mv, verified by alpasim-jepa: counts, token sha256 b89a3f89… unchanged, mode 600, 3-scene smoke sim reproduces 0.0 / 0.159 / 0.008):
+    - data/nuplan_track (nuplan_test, navtest/configs, 100 asset dirs);
+    - sandbox/alpasim-base → sandbox/alpasim-base;
+    - external/alpasim → ext/alpasim_sim;
+    - .cache/hf/token → .cache/hf/token.
+  - **Deleted (job 13792455; nobody claimed anything: alpasim-jepa, jepa-nureasoning and the nureasoning/playbook agent all replied "none"):**
+    - D1 data/fs (200 PAI usdz, 341 GB);
+    - D2 sandbox/nre-ga_26.04;
+    - D3 11 rejected checkpoints;
+    - D4 ftC.pt;
+    - D5 training captures and labels;
+    - D6 cache/;
+    - D8 envs/, external/, .cache/, data/nuplan_track leftovers.
+  - **Local archive** `cluster_archive/` (git-ignored, 9.4 GB + expert): every run's results without videos (447 runs), logs, scenes, src/src_cand/src_lat, cluster scripts. A dry-run rsync shows 0 differences from the cluster. `cluster_archive/data/ft_ckpt/ftC_w50.pt` is v7's expert, hard-linked to container/assets/expert.pt; sha256 f9da7cf3…cba matches the cluster copy.
+  - **Then deleted the whole cluster folder** /insomnia001/depts/edu/users/au2327/alpasim (job 13793268), including D7 (rollout videos). The dept fileset is at 45% used afterwards.
+  - Added to git: `src_cand/` (the exact code of the submitted v7 image: driver cfa0141e, policy b880af2b, route_choice 00527e05, trajectory ade286bc) and `scenes/` (bench, fresh, lockbox and train splits).
