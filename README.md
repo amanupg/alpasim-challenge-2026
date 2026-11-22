@@ -10,7 +10,12 @@ exactly what it reads from nuReasoning (read-only).
 separate JEPA thread (`../alpasim-jepa`, another agent). Our nuPlan results and diagnosis stay below
 and in the ledger as history. October's 3 official slots are shared by both threads: up to 2 for PAI.
 
-**Standing, as of 2026-09-29** (the leaderboard is open until 2026-10-31):
+**Final result (challenge closed 2026-10-31): PAI track, 11th place.** Best entry v5 (Alpamayo 1.5, partial
+fine-tune of the 2.3B action expert, int8, route snap), PCS 2226. Peak: rank 2 of 58 (v0.3, 2026-09-29); 4th team
+on 2026-10-21. Compute: 845.8 GPU-hours on Columbia's Insomnia cluster (485 GPU jobs). The full record is
+[`notes/campaign_record.md`](notes/campaign_record.md); the 4-page technical report is in [`report/`](report/).
+
+**Early standing, as of 2026-09-29** (kept as history):
 
 | Track | Entry | PCS | Rank | Avg scene score | At-fault incident spacing |
 |---|---|---|---|---|---|
